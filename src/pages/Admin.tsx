@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Scissors, Users2 } from "lucide-react";
+import { Building2, Scissors, Users2, LogOut, ExternalLink } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -41,47 +43,59 @@ const ProSchema = z.object({
 type ProForm = z.infer<typeof ProSchema>;
 
 export default function Admin() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [tenants, setTenants] = useState<Array<{ id: string; name: string; slug: string }>>([]);
 
   useEffect(() => {
-    // Try to get auth user (required to manage tenants)
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchTenants = async () => {
-      const { data, error } = await supabase.from("tenants").select("id,name,slug");
-      if (error) return; // likely RLS if not logged in
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("tenants")
+        .select("id,name,slug")
+        .eq("owner_id", user.id);
+      if (error) {
+        toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
+        return;
+      }
       setTenants(data ?? []);
     };
     fetchTenants();
-  }, [userId]);
+  }, [user]);
 
   const tenantForm = useForm<TenantForm>({ resolver: zodResolver(TenantSchema) });
   const serviceForm = useForm<ServiceForm>({ resolver: zodResolver(ServiceSchema) });
   const proForm = useForm<ProForm>({ resolver: zodResolver(ProSchema) });
 
   const onCreateTenant = async (values: TenantForm) => {
-    if (!userId) {
-      toast({
-        title: "Autenticação necessária",
-        description: "Ative o login no Supabase para criar e gerenciar seu estabelecimento.",
-      });
-      return;
-    }
+    if (!user) return;
+    
     const { error } = await supabase.from("tenants").insert({
-      owner_id: userId,
+      owner_id: user.id,
       name: values.name,
       slug: values.slug,
       theme_variant: values.theme_variant,
       logo_url: values.logo_url || null,
     } as any);
+    
     if (error) {
       toast({ title: "Erro ao criar estabelecimento", description: error.message });
     } else {
       toast({ title: "Estabelecimento criado!", description: "Agora cadastre serviços e profissionais." });
       tenantForm.reset();
+      // Recarregar lista de tenants
+      const { data } = await supabase
+        .from("tenants")
+        .select("id,name,slug")
+        .eq("owner_id", user.id);
+      setTenants(data ?? []);
     }
   };
 
@@ -110,12 +124,43 @@ export default function Admin() {
     }
   };
 
+  if (!user) {
+    return null; // Será redirecionado para auth
+  }
+
   return (
     <main className="container py-10 space-y-10">
       <header className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Painel do Administrador</h1>
-        <div className="text-sm text-muted-foreground">
-          {userId ? "Conectado" : "Acesso público (somente leitura)"}
+        <div>
+          <h1 className="text-3xl font-bold">Painel do Administrador</h1>
+          <p className="text-muted-foreground">Bem-vindo, {user.email}</p>
+        </div>
+        <div className="flex items-center gap-4">
+          {tenants.length > 0 && (
+            <div className="text-sm space-y-1">
+              <p className="font-medium">Seus links de agendamento:</p>
+              {tenants.map(tenant => (
+                <div key={tenant.id} className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{tenant.name}:</span>
+                  <Button variant="link" size="sm" asChild className="h-auto p-0">
+                    <a 
+                      href={`${window.location.origin}/agendamento?tenant=${tenant.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1"
+                    >
+                      {window.location.origin}/agendamento?tenant={tenant.slug}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <Button variant="outline" onClick={signOut} className="gap-2">
+            <LogOut className="h-4 w-4" />
+            Sair
+          </Button>
         </div>
       </header>
 
@@ -165,11 +210,6 @@ export default function Admin() {
                   <Button variant="hero" type="submit">Salvar</Button>
                 </div>
               </form>
-              {!userId && (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Dica: ative autenticação no Supabase para gerenciar seus dados com segurança.
-                </p>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

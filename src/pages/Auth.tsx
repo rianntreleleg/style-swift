@@ -5,9 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const SignupSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  name: z.string().min(2, "Nome obrigatório"),
+  business_name: z.string().min(2, "Nome da barbearia obrigatório"),
+  slug: z.string().min(2, "Slug obrigatório").regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"),
+  theme_variant: z.enum(["barber", "salon"]).default("barber"),
+  logo_url: z.string().url().optional().or(z.literal("")),
+});
+
+type SignupForm = z.infer<typeof SignupSchema>;
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,6 +31,13 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  const signupForm = useForm<SignupForm>({ 
+    resolver: zodResolver(SignupSchema),
+    defaultValues: {
+      theme_variant: "barber"
+    }
+  });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -32,31 +55,59 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      toast({ title: "Login realizado com sucesso!" });
+    } catch (error: any) {
+      toast({ 
+        title: "Erro", 
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (values: SignupForm) => {
+    setLoading(true);
+    try {
+      // Primeiro cria o usuário
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin`
+        }
+      });
+      
+      if (authError) throw authError;
+      
+      if (authData.user) {
+        // Cria o tenant
+        const { error: tenantError } = await supabase.from("tenants").insert({
+          owner_id: authData.user.id,
+          name: values.business_name,
+          slug: values.slug,
+          theme_variant: values.theme_variant,
+          logo_url: values.logo_url || null,
         });
-        if (error) throw error;
-        toast({ title: "Login realizado com sucesso!" });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/admin`
-          }
-        });
-        if (error) throw error;
+        
+        if (tenantError) throw tenantError;
+        
         toast({ 
-          title: "Conta criada!", 
-          description: "Verifique seu email para confirmar a conta." 
+          title: "Conta criada com sucesso!", 
+          description: "Verifique seu email para confirmar a conta e acessar o painel." 
         });
+        signupForm.reset();
       }
     } catch (error: any) {
       toast({ 
@@ -102,34 +153,106 @@ export default function Auth() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
-            </Button>
-          </form>
+          {isLogin ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Aguarde..." : "Entrar"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    {...signupForm.register("email")}
+                    placeholder="seu@email.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Senha</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    {...signupForm.register("password")}
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Seu nome</Label>
+                  <Input
+                    id="name"
+                    {...signupForm.register("name")}
+                    placeholder="Seu nome completo"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business_name">Nome da barbearia</Label>
+                  <Input
+                    id="business_name"
+                    {...signupForm.register("business_name")}
+                    placeholder="Barbearia do João"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="slug">Slug público</Label>
+                  <Input
+                    id="slug"
+                    {...signupForm.register("slug")}
+                    placeholder="barbearia-joao"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tema</Label>
+                  <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as any)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Escolha o tema" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="barber">Barbearia (dark + dourado)</SelectItem>
+                      <SelectItem value="salon">Salão (clean + rosa)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="logo_url">Logo (URL - opcional)</Label>
+                  <Input
+                    id="logo_url"
+                    {...signupForm.register("logo_url")}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Criando conta..." : "Criar conta completa"}
+              </Button>
+            </form>
+          )}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ type BookingForm = z.infer<typeof BookingSchema>;
 
 export default function PublicBooking() {
   const { slug = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const tenantParam = searchParams.get('tenant');
   const [tenant, setTenant] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [pros, setPros] = useState<any[]>([]);
@@ -38,7 +40,11 @@ export default function PublicBooking() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: t } = await supabase.from("tenants").select("*").eq("slug", slug).maybeSingle();
+      // Primeiro tenta pelo query param tenant, depois pelo slug da URL
+      const searchSlug = tenantParam || slug;
+      if (!searchSlug) return;
+      
+      const { data: t } = await supabase.from("tenants").select("*").eq("slug", searchSlug).maybeSingle();
       setTenant(t);
       if (!t) return;
       const [{ data: s }, { data: p }, { data: h }] = await Promise.all([
@@ -51,7 +57,7 @@ export default function PublicBooking() {
       setHours(h ?? []);
     };
     load();
-  }, [slug]);
+  }, [slug, tenantParam]);
 
   const slots = useMemo(() => {
     const date = form.getValues("date");
