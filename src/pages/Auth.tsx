@@ -77,48 +77,48 @@ export default function Auth() {
     }
   };
 
-  const handleSignup = async (values: SignupForm) => {
-    setLoading(true);
-    try {
-      // Primeiro cria o usuário
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/admin`
-        }
-      });
-      
-      if (authError) throw authError;
-      
-      if (authData.user) {
-        // Cria o tenant
-        const { error: tenantError } = await supabase.from("tenants").insert({
-          owner_id: authData.user.id,
-          name: values.business_name,
-          slug: values.slug,
-          theme_variant: values.theme_variant,
-          logo_url: values.logo_url || null,
-        });
-        
-        if (tenantError) throw tenantError;
-        
-        toast({ 
-          title: "Conta criada com sucesso!", 
-          description: "Verifique seu email para confirmar a conta e acessar o painel." 
-        });
-        signupForm.reset();
+const handleSignup = async (values: SignupForm) => {
+  setLoading(true);
+  try {
+    // Primeiro cria o usuário
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: values.email,
+      password: values.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/admin`
       }
-    } catch (error: any) {
-      toast({ 
-        title: "Erro", 
-        description: error.message,
-        variant: "destructive"
+    });
+
+    if (authError) throw authError;
+
+    if (authData.user) {
+      // Cria o tenant
+      const { error: tenantError } = await supabase.from("tenants").insert({
+        owner_id: authData.user.id, // <-- Aqui você usa o ID do usuário recém-criado
+        name: values.business_name,
+        slug: values.slug,
+        theme_variant: values.theme_variant,
+        logo_url: values.logo_url || null,
       });
-    } finally {
-      setLoading(false);
+
+      if (tenantError) throw tenantError;
+
+      toast({
+        title: "Conta criada com sucesso!",
+        description: "Verifique seu email para confirmar a conta e acessar o painel."
+      });
+      signupForm.reset();
     }
-  };
+  } catch (error: any) {
+    toast({
+      title: "Erro",
+      description: error.message,
+      variant: "destructive"
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleGoogleAuth = async () => {
     setLoading(true);
