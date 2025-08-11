@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatBRL } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,6 +58,12 @@ export default function PublicBooking() {
     };
     load();
   }, [slug, tenantParam]);
+
+  useEffect(() => {
+    if (tenant?.name) {
+      document.title = `Agendar - ${tenant.name}`;
+    }
+  }, [tenant]);
 
   const slots = useMemo(() => {
     const date = form.getValues("date");
@@ -137,7 +143,7 @@ export default function PublicBooking() {
   return (
     <main className={cn("min-h-screen py-10", tenant.theme_variant === "barber" ? "theme-barber" : "theme-salon")}> 
       <div className="container max-w-3xl">
-        <Card>
+        <Card className="animate-in fade-in-50">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Agendar em {tenant.name}</span>
@@ -155,7 +161,7 @@ export default function PublicBooking() {
                   <SelectContent>
                     {services.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.name} • R$ {(s.price_cents/100).toFixed(2)} • {s.duration_minutes}min
+                        {s.name} • {formatBRL(s.price_cents)} • {s.duration_minutes}min
                       </SelectItem>
                     ))}
                   </SelectContent>

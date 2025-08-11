@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +45,8 @@ type ProForm = z.infer<typeof ProSchema>;
 export default function Admin() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [tenants, setTenants] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [tenants, setTenants] = useState<Array<{ id: string; name: string; slug: string; logo_url?: string | null; theme_variant?: string }>>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -59,13 +60,16 @@ export default function Admin() {
       if (!user) return;
       const { data, error } = await supabase
         .from("tenants")
-        .select("id,name,slug")
+        .select("id,name,slug,logo_url,theme_variant")
         .eq("owner_id", user.id);
       if (error) {
         toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
         return;
       }
       setTenants(data ?? []);
+      if (!selectedTenantId && data && data.length) {
+        setSelectedTenantId(data[0].id);
+      }
     };
     fetchTenants();
   }, [user]);
@@ -73,6 +77,37 @@ export default function Admin() {
   const tenantForm = useForm<TenantForm>({ resolver: zodResolver(TenantSchema) });
   const serviceForm = useForm<ServiceForm>({ resolver: zodResolver(ServiceSchema) });
   const proForm = useForm<ProForm>({ resolver: zodResolver(ProSchema) });
+
+  const selectedTenant = useMemo(() => tenants.find(t => t.id === selectedTenantId) || null, [tenants, selectedTenantId]);
+
+  useEffect(() => {
+    if (selectedTenantId) {
+      serviceForm.setValue("tenant_id", selectedTenantId);
+      proForm.setValue("tenant_id", selectedTenantId);
+    }
+  }, [selectedTenantId]);
+
+  const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
+
+  useEffect(() => {
+    const loadMetrics = async () => {
+      if (!selectedTenantId) return;
+      const [{ count: sCount }, { count: pCount }, { count: aCount }] = await Promise.all([
+        supabase.from("services").select("*", { count: "exact", head: true }).eq("tenant_id", selectedTenantId),
+        supabase.from("professionals").select("*", { count: "exact", head: true }).eq("tenant_id", selectedTenantId),
+        supabase.from("appointments")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", selectedTenantId)
+          .gte("start_time", new Date().toISOString()),
+      ]);
+      setMetrics({
+        services: sCount || 0,
+        pros: pCount || 0,
+        upcoming: aCount || 0,
+      });
+    };
+    loadMetrics();
+  }, [selectedTenantId]);
 
   const onCreateTenant = async (values: TenantForm) => {
     if (!user) return;
@@ -137,24 +172,30 @@ export default function Admin() {
         </div>
         <div className="flex items-center gap-4">
           {tenants.length > 0 && (
-            <div className="text-sm space-y-1">
-              <p className="font-medium">Seus links de agendamento:</p>
-              {tenants.map(tenant => (
-                <div key={tenant.id} className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{tenant.name}:</span>
-                  <Button variant="link" size="sm" asChild className="h-auto p-0">
-                    <a 
-                      href={`${window.location.origin}/agendamento?tenant=${tenant.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1"
-                    >
-                      {window.location.origin}/agendamento?tenant={tenant.slug}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </Button>
-                </div>
-              ))}
+            <div className="flex items-center gap-3">
+              <Select value={selectedTenantId ?? undefined} onValueChange={(v) => setSelectedTenantId(v)}>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Selecione o estabelecimento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tenants.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedTenant && (
+                <Button variant="link" size="sm" asChild className="h-auto p-0">
+                  <a 
+                    href={`${window.location.origin}/agendamento?tenant=${selectedTenant.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1"
+                  >
+                    {window.location.origin}/agendamento?tenant={selectedTenant.slug}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </Button>
+              )}
             </div>
           )}
           <Button variant="outline" onClick={signOut} className="gap-2">
@@ -164,54 +205,41 @@ export default function Admin() {
         </div>
       </header>
 
-      <Tabs defaultValue="tenant">
+      <Tabs defaultValue="dashboard">
         <TabsList>
-          <TabsTrigger value="tenant" className="gap-2"><Building2 className="h-4 w-4" /> Estabelecimento</TabsTrigger>
+          <TabsTrigger value="dashboard" className="gap-2"><Building2 className="h-4 w-4" /> Dashboard</TabsTrigger>
           <TabsTrigger value="services" className="gap-2"><Scissors className="h-4 w-4" /> Serviços</TabsTrigger>
           <TabsTrigger value="pros" className="gap-2"><Users2 className="h-4 w-4" /> Profissionais</TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2"><Building2 className="h-4 w-4" /> Configurações</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tenant" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuração do Estabelecimento</CardTitle>
-              <CardDescription>Crie seu perfil, slug público e aparência.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={tenantForm.handleSubmit(onCreateTenant)}
-                className="grid gap-4 md:grid-cols-2"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input id="name" placeholder="Barbearia do Clebin" {...tenantForm.register("name")} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="slug">Slug público</Label>
-                  <Input id="slug" placeholder="barbearia-clebin" {...tenantForm.register("slug")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tema</Label>
-                  <Select onValueChange={(v) => tenantForm.setValue("theme_variant", v as any)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Escolha o tema" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="barber">Barbearia (dark + dourado)</SelectItem>
-                      <SelectItem value="salon">Salão (clean + rosa)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logo_url">Logo (URL)</Label>
-                  <Input id="logo_url" placeholder="https://..." {...tenantForm.register("logo_url")} />
-                </div>
-                <div className="md:col-span-2">
-                  <Button variant="hero" type="submit">Salvar</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+        <TabsContent value="dashboard" className="mt-6">
+          <div className="grid gap-6 md:grid-cols-3">
+            <Card className="animate-in fade-in-50">
+              <CardHeader>
+                <CardTitle>Serviços</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{metrics.services}</p>
+              </CardContent>
+            </Card>
+            <Card className="animate-in fade-in-50">
+              <CardHeader>
+                <CardTitle>Profissionais</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{metrics.pros}</p>
+              </CardContent>
+            </Card>
+            <Card className="animate-in fade-in-50">
+              <CardHeader>
+                <CardTitle>Próximos agendamentos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{metrics.upcoming}</p>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="services" className="mt-6">
@@ -295,7 +323,51 @@ export default function Admin() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configurações</CardTitle>
+              <CardDescription>Atualize a logo do estabelecimento.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {selectedTenant ? (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget as HTMLFormElement);
+                    const logo = formData.get("logo_url") as string;
+                    const { error } = await supabase.from("tenants")
+                      .update({ logo_url: logo || null } as any)
+                      .eq("id", selectedTenant.id);
+                    if (error) {
+                      toast({ title: "Erro ao salvar", description: error.message });
+                    } else {
+                      toast({ title: "Logo atualizada!" });
+                      const { data } = await supabase
+                        .from("tenants")
+                        .select("id,name,slug,logo_url,theme_variant")
+                        .eq("owner_id", user!.id);
+                      setTenants(data ?? []);
+                    }
+                  }}
+                  className="grid gap-4 md:grid-cols-2"
+                >
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="logo_url">Logo (URL)</Label>
+                    <Input id="logo_url" name="logo_url" defaultValue={selectedTenant.logo_url ?? ""} placeholder="https://..." />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button type="submit">Salvar</Button>
+                  </div>
+                </form>
+              ) : (
+                <p className="text-muted-foreground">Selecione um estabelecimento.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </main>
   );
 }
+
