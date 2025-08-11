@@ -103,3 +103,51 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Brand & theme extensions */
+:root {
+  /* Brand tokens (HSL only) */
+  --brand: 45 90% 50%;            /* Barber gold */
+  --brand-glow: 45 100% 65%;
+  --brand-foreground: 222.2 47.4% 11.2%;
+
+  --salon: 330 85% 65%;           /* Salon pink */
+  --salon-glow: 330 90% 75%;
+  --salon-foreground: 222.2 47.4% 11.2%;
+
+  /* Motion */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark {
+  --brand-foreground: 210 40% 98%;
+  --salon-foreground: 210 40% 98%;
+}
+
+/* Theming per establishment */
+.theme-barber {
+  --brand: 45 90% 50%;
+  --brand-glow: 45 100% 65%;
+  --brand-foreground: 210 40% 98%;
+  --accent: var(--brand);
+  --accent-foreground: var(--brand-foreground);
+}
+
+.theme-salon {
+  --brand: var(--salon);
+  --brand-glow: var(--salon-glow);
+  --brand-foreground: var(--salon-foreground);
+  --accent: var(--brand);
+  --accent-foreground: var(--brand-foreground);
+}
+
+/* Signature spotlight effect */
+.spotlight { position: relative; }
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(600px circle at var(--spot-x, 50%) var(--spot-y, 50%), hsl(var(--brand) / 0.15), transparent 40%);
+  pointer-events: none;
+}
