@@ -84,7 +84,7 @@ serve(async (req) => {
         {
           price_data: {
             currency: pricing.currency,
-            product: "prod_SqqVGzUIvJPVpt", // ID do produto fornecido
+            product: "prod_Sr9NRFLhQlYRE6", // ID do produto de teste
             unit_amount: pricing.amount,
             recurring: { interval: "month" },
           },
