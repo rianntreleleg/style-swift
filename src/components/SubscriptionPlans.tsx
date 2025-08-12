@@ -79,7 +79,7 @@ export default function SubscriptionPlans({ currentTier }: SubscriptionPlansProp
     try {
       const checkoutUrl = await createCheckout(planId);
       if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank');
+        window.location.href = checkoutUrl;
       }
     } catch (error) {
       console.error('Error creating checkout:', error);
