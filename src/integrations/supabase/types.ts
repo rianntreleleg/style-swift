@@ -22,6 +22,7 @@ export type Database = {
           customer_name: string
           end_time: string
           id: string
+          notes: string | null
           professional_id: string | null
           service_id: string
           start_time: string
@@ -36,6 +37,7 @@ export type Database = {
           customer_name: string
           end_time: string
           id?: string
+          notes?: string | null
           professional_id?: string | null
           service_id: string
           start_time: string
@@ -50,6 +52,7 @@ export type Database = {
           customer_name?: string
           end_time?: string
           id?: string
+          notes?: string | null
           professional_id?: string | null
           service_id?: string
           start_time?: string
@@ -300,37 +303,153 @@ export type Database = {
           },
         ]
       }
-      tenants: {
+      subscribers: {
         Row: {
           created_at: string
+          email: string
+          id: string
+          stripe_customer_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_tier: string | null
+          status: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          stripe_subscription_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_tier?: string | null
+          status?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_tier?: string | null
+          status?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          address: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          description: string | null
           id: string
           logo_url: string | null
           name: string
           owner_id: string
+          phone: string | null
           plan: string
+          plan_status: string | null
+          plan_tier: string | null
           slug: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          stripe_subscription_id: string | null
           theme_variant: string
           updated_at: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          description?: string | null
           id?: string
           logo_url?: string | null
           name: string
           owner_id: string
+          phone?: string | null
           plan?: string
+          plan_status?: string | null
+          plan_tier?: string | null
           slug: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
           theme_variant?: string
           updated_at?: string
         }
         Update: {
+          address?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          description?: string | null
           id?: string
           logo_url?: string | null
           name?: string
           owner_id?: string
+          phone?: string | null
           plan?: string
+          plan_status?: string | null
+          plan_tier?: string | null
           slug?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
           theme_variant?: string
           updated_at?: string
         }

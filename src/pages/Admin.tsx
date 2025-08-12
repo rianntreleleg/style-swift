@@ -30,10 +30,15 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Copy,
-  Check
+  Check,
+  Crown,
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { motion } from "framer-motion";
+import SubscriptionPlans from "@/components/SubscriptionPlans";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -65,6 +70,7 @@ type ProForm = z.infer<typeof ProSchema>;
 
 export default function Admin() {
   const { user, signOut } = useAuth();
+  const { subscribed, subscription_tier, loading: subLoading, openCustomerPortal } = useSubscription();
   const navigate = useNavigate();
   const [tenants, setTenants] = useState<Array<{ id: string; name: string; slug: string; logo_url?: string | null; theme_variant?: string }>>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
@@ -203,6 +209,18 @@ export default function Admin() {
     navigate('/auth');
   };
 
+  const handleManageSubscription = async () => {
+    try {
+      await openCustomerPortal();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível abrir o portal de assinatura.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getPublicBookingUrl = () => {
     const baseUrl = window.location.origin;
     if (selectedTenant?.slug) {
@@ -242,6 +260,86 @@ export default function Admin() {
 
   if (!user) {
     return null;
+  }
+
+  if (subLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <Loader2 className="h-16 w-16 text-primary mx-auto mb-4 animate-spin" />
+          <h2 className="text-2xl font-bold mb-2">Verificando assinatura...</h2>
+          <p className="text-muted-foreground">Aguarde um momento</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!subscribed) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+        <header className="border-b bg-background/80 backdrop-blur-sm">
+          <div className="container flex items-center justify-between py-4">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-3"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <Scissors className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">StyleSwift Admin</h1>
+                <p className="text-muted-foreground">Bem-vindo, {user.email}</p>
+              </div>
+            </motion.div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <main className="container py-8 space-y-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-8"
+          >
+            <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="h-10 w-10 text-orange-600 dark:text-orange-400" />
+            </div>
+            <h1 className="text-3xl font-bold mb-2">Assinatura Necessária</h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Para cadastrar sua barbearia/salão e começar a receber agendamentos online, você precisa escolher um plano de assinatura.
+            </p>
+          </motion.div>
+
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2 text-2xl">
+                <Crown className="h-6 w-6 text-primary" />
+                Escolha seu Plano
+              </CardTitle>
+              <CardDescription className="text-base">
+                Planos mensais com cancelamento a qualquer momento
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <SubscriptionPlans currentTier={subscription_tier} />
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -308,9 +406,12 @@ export default function Admin() {
 
       <main className="container py-8 space-y-8">
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-lg">
+          <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-lg">
             <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <BarChart3 className="h-4 w-4" /> Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="establishment" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Building2 className="h-4 w-4" /> Estabelecimento
             </TabsTrigger>
             <TabsTrigger value="services" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Scissors className="h-4 w-4" /> Serviços
@@ -330,6 +431,31 @@ export default function Admin() {
               transition={{ duration: 0.5 }}
               className="space-y-6"
             >
+              {/* Status da Assinatura */}
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                    <Crown className="h-5 w-5" />
+                    Status da Assinatura
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-green-800 dark:text-green-300">
+                        Plano {subscription_tier?.charAt(0).toUpperCase() + subscription_tier?.slice(1)}
+                      </p>
+                      <p className="text-sm text-green-600 dark:text-green-400">
+                        Assinatura ativa e funcionando
+                      </p>
+                    </div>
+                    <Button variant="outline" onClick={handleManageSubscription} className="border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20">
+                      Gerenciar Assinatura
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Métricas */}
               <div className="grid gap-6 md:grid-cols-3">
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
@@ -427,6 +553,74 @@ export default function Admin() {
               </Card>
 
               
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="establishment" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Cadastrar Estabelecimento
+                  </CardTitle>
+                  <CardDescription>
+                    Configure seu estabelecimento para começar a receber agendamentos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={tenantForm.handleSubmit(onCreateTenant)} className="space-y-8">
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
+                        <Input {...tenantForm.register("name")} placeholder="Ex: Barbearia do João" className="h-12" />
+                        {tenantForm.formState.errors.name && <p className="text-sm text-destructive">{tenantForm.formState.errors.name.message}</p>}
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Slug da URL</Label>
+                        <Input {...tenantForm.register("slug")} placeholder="barbearia-joao" className="h-12" />
+                        {tenantForm.formState.errors.slug && <p className="text-sm text-destructive">{tenantForm.formState.errors.slug.message}</p>}
+                        <p className="text-xs text-muted-foreground">
+                          URL: {window.location.origin}/agendamento?tenant=seu-slug
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Tipo de Estabelecimento</Label>
+                        <Select onValueChange={(value) => tenantForm.setValue("theme_variant", value as "barber" | "salon")}>
+                          <SelectTrigger className="h-12">
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="barber">Barbearia</SelectItem>
+                            <SelectItem value="salon">Salão de Beleza</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Logo (URL)</Label>
+                        <Input {...tenantForm.register("logo_url")} placeholder="https://exemplo.com/logo.jpg" className="h-12" />
+                        <p className="text-xs text-muted-foreground">
+                          Link para logo do estabelecimento (opcional)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
+                        <Plus className="mr-2 h-5 w-5" />
+                        Cadastrar Estabelecimento
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
             </motion.div>
           </TabsContent>
 
