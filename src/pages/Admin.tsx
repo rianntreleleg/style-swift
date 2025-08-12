@@ -39,6 +39,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { motion } from "framer-motion";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
+import RevenueChart from "@/components/RevenueChart";
+import ServicesTable from "@/components/ServicesTable";
+import ProfessionalsTable from "@/components/ProfessionalsTable";
+import { formatBRL } from "@/lib/utils";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -76,6 +80,13 @@ export default function Admin() {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
   const [copied, setCopied] = useState(false);
+  
+  // Novos estados para funcionalidades
+  const [services, setServices] = useState<any[]>([]);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [serviceRevenue, setServiceRevenue] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) {
@@ -130,6 +141,15 @@ export default function Admin() {
     fetchMetrics();
   }, [selectedTenantId]);
 
+  // Carregar dados quando tenant for selecionado
+  useEffect(() => {
+    if (selectedTenantId) {
+      fetchServices();
+      fetchProfessionals();
+      fetchRevenueData();
+    }
+  }, [selectedTenantId]);
+
   const tenantForm = useForm<TenantForm>({ resolver: zodResolver(TenantSchema) });
   const serviceForm = useForm<ServiceForm>({ resolver: zodResolver(ServiceSchema) });
   const proForm = useForm<ProForm>({ resolver: zodResolver(ProSchema) });
@@ -181,6 +201,96 @@ export default function Admin() {
     if (selectedTenantId) {
       serviceForm.setValue("tenant_id", selectedTenantId);
     }
+    fetchServices();
+  };
+
+  const fetchServices = async () => {
+    if (!selectedTenantId) return;
+    const { data, error } = await supabase
+      .from("services")
+      .select("*")
+      .eq("tenant_id", selectedTenantId)
+      .order("name");
+    if (error) {
+      toast({ title: "Erro ao carregar serviços", description: error.message });
+      return;
+    }
+    setServices(data ?? []);
+  };
+
+  const fetchProfessionals = async () => {
+    if (!selectedTenantId) return;
+    const { data, error } = await supabase
+      .from("professionals")
+      .select("*")
+      .eq("tenant_id", selectedTenantId)
+      .order("name");
+    if (error) {
+      toast({ title: "Erro ao carregar profissionais", description: error.message });
+      return;
+    }
+    setProfessionals(data ?? []);
+  };
+
+  const fetchRevenueData = async () => {
+    if (!selectedTenantId) return;
+    
+    // Buscar agendamentos concluídos dos últimos 30 dias
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const { data: appointments, error } = await supabase
+      .from("appointments")
+      .select(`
+        *,
+        services!inner(name, price_cents)
+      `)
+      .eq("tenant_id", selectedTenantId)
+      .eq("status", "concluido")
+      .gte("start_time", thirtyDaysAgo.toISOString())
+      .order("start_time");
+
+    if (error) {
+      console.error("Erro ao carregar dados de receita:", error);
+      return;
+    }
+
+    // Processar dados para o gráfico
+    const revenueByDate = appointments?.reduce((acc: any, appointment: any) => {
+      const date = new Date(appointment.start_time).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = 0;
+      }
+      acc[date] += appointment.services.price_cents / 100;
+      return acc;
+    }, {});
+
+    const chartData = Object.entries(revenueByDate || {}).map(([date, revenue]) => ({
+      date,
+      revenue: revenue as number
+    }));
+
+    setRevenueData(chartData);
+    setTotalRevenue(chartData.reduce((sum, item) => sum + item.revenue, 0));
+
+    // Processar receita por serviço
+    const revenueByService = appointments?.reduce((acc: any, appointment: any) => {
+      const serviceName = appointment.services.name;
+      if (!acc[serviceName]) {
+        acc[serviceName] = { count: 0, revenue: 0 };
+      }
+      acc[serviceName].count += 1;
+      acc[serviceName].revenue += appointment.services.price_cents / 100;
+      return acc;
+    }, {});
+
+    const serviceData = Object.entries(revenueByService || {}).map(([name, data]: [string, any]) => ({
+      name,
+      count: data.count,
+      revenue: data.revenue
+    }));
+
+    setServiceRevenue(serviceData);
   };
 
   const onCreatePro = async (values: ProForm) => {
@@ -202,6 +312,7 @@ export default function Admin() {
     if (selectedTenantId) {
       proForm.setValue("tenant_id", selectedTenantId);
     }
+    fetchProfessionals();
   };
 
   const handleSignOut = async () => {
