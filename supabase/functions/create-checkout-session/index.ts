@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,17 +16,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
-    }
-  );
-
   try {
     logStep("Function started");
 
@@ -37,60 +25,39 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header provided");
+    const { productId } = await req.json();
+    if (!productId) {
+      throw new Error("productId is required");
     }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    const { planTier } = await req.json();
-    if (!planTier) {
-      throw new Error("planTier is required");
-    }
-    logStep("Plan tier received", { planTier });
+    logStep("Product ID received", { productId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
-    // Mapear planos para preços em centavos usando o produto fornecido
-    const planPricing = {
-      essential: { amount: 2990, currency: "brl" }, // R$ 29,90
-      professional: { amount: 4390, currency: "brl" }, // R$ 43,90
-      premium: { amount: 7990, currency: "brl" } // R$ 79,90
+    // Mapear produtos para preços
+    const productPricing = {
+      'prod_SqqVGzUIvJPVpt': { amount: 2990, currency: "brl", name: "Essencial" }, // R$ 29,90
+      'prod_professional': { amount: 4390, currency: "brl", name: "Profissional" }, // R$ 43,90
+      'prod_premium': { amount: 7990, currency: "brl", name: "Premium" } // R$ 79,90
     };
 
-    const pricing = planPricing[planTier as keyof typeof planPricing];
+    const pricing = productPricing[productId as keyof typeof productPricing];
     if (!pricing) {
-      throw new Error(`Invalid plan tier: ${planTier}`);
+      throw new Error(`Invalid product ID: ${productId}`);
     }
     logStep("Pricing determined", pricing);
 
-    // Verificar se o cliente já existe
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Existing customer found", { customerId });
-    } else {
-      logStep("Creating new customer");
-    }
-
-    const origin = req.headers.get("origin") || "https://0b541b0a-7d61-4d26-a5c9-f72bce2c2291.lovableproject.com";
+    const origin = req.headers.get("origin") || "http://localhost:8080";
 
     // Criar sessão de checkout
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
       line_items: [
         {
           price_data: {
             currency: pricing.currency,
-            product: "prod_Sr9NRFLhQlYRE6", // ID do produto de teste
+            product_data: {
+              name: `StyleSwift - ${pricing.name}`,
+              description: `Plano ${pricing.name} - Gestão completa para barbearias e salões`,
+            },
             unit_amount: pricing.amount,
             recurring: { interval: "month" },
           },
@@ -98,11 +65,12 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cancel`,
+      success_url: `${origin}/auth?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/?checkout=cancel`,
+      allow_promotion_codes: true,
       metadata: {
-        planTier: planTier,
-        userId: user.id,
+        productId: productId,
+        planName: pricing.name,
       },
     });
 

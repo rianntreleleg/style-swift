@@ -24,6 +24,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getProductId } from "@/config/stripe";
 
 const Index = () => {
   const [spot, setSpot] = useState({ x: "50%", y: "50%" });
@@ -54,14 +55,29 @@ const Index = () => {
       setLoadingPlan(productId);
       // Marca plano escolhido para gating client-side antes do cadastro
       localStorage.setItem('planSelected', productId);
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planTier: productId }
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: { productId }
       });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-      else throw new Error('Falha ao iniciar checkout.');
+      
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message || 'Erro na function');
+      }
+      
+      if (data?.url) {
+        // Redirecionar para o Stripe
+        window.location.href = data.url;
+      } else {
+        throw new Error('URL de checkout não recebida');
+      }
     } catch (e: any) {
-      toast({ title: 'Erro ao iniciar assinatura', description: e.message, variant: 'destructive' });
+      console.error('Checkout error:', e);
+      toast({ 
+        title: 'Erro ao iniciar assinatura', 
+        description: e.message || 'Erro desconhecido. Tente novamente.', 
+        variant: 'destructive' 
+      });
     } finally {
       setLoadingPlan(null);
     }
@@ -425,7 +441,7 @@ const Index = () => {
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Página pública</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Agendamentos básicos</li>
                 </ul>
-                <Button disabled={!!loadingPlan} onClick={() => startCheckout('essential')} className="w-full">{loadingPlan === 'essential' ? 'Carregando...' : 'Selecionar Plano'}</Button>
+                <Button disabled={!!loadingPlan} onClick={() => startCheckout(getProductId('essential'))} className="w-full">{loadingPlan === getProductId('essential') ? 'Carregando...' : 'Selecionar Plano'}</Button>
                 <p className="text-xs text-muted-foreground text-center">Ideal para quem está começando.</p>
               </CardContent>
             </Card>
@@ -444,7 +460,7 @@ const Index = () => {
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Dashboard financeiro</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Suporte prioritário</li>
                 </ul>
-                <Button disabled={!!loadingPlan} onClick={() => startCheckout('professional')} className="w-full bg-primary">{loadingPlan === 'professional' ? 'Carregando...' : 'Selecionar Plano'}</Button>
+                <Button disabled={!!loadingPlan} onClick={() => startCheckout(getProductId('professional'))} className="w-full bg-primary">{loadingPlan === getProductId('professional') ? 'Carregando...' : 'Selecionar Plano'}</Button>
                 <p className="text-xs text-muted-foreground text-center">Feito para crescer sem dor de cabeça.</p>
               </CardContent>
             </Card>
@@ -463,7 +479,7 @@ const Index = () => {
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Relatórios avançados</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Recursos premium</li>
                 </ul>
-                <Button disabled={!!loadingPlan} onClick={() => startCheckout('premium')} className="w-full" variant="outline">{loadingPlan === 'premium' ? 'Carregando...' : 'Selecionar Plano'}</Button>
+                <Button disabled={!!loadingPlan} onClick={() => startCheckout(getProductId('premium'))} className="w-full" variant="outline">{loadingPlan === getProductId('premium') ? 'Carregando...' : 'Selecionar Plano'}</Button>
                 <p className="text-xs text-muted-foreground text-center">Seu negócio no piloto automático.</p>
               </CardContent>
             </Card>
