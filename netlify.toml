@@ -1,0 +1,40 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_ENV = "production"
+
+[dev]
+  command = "npm run dev"
+  port = 5173
+  publish = "dist"
+
+# Single Page App fallback for React Router (all routes → index.html)
+[[redirects]]
+  from = "/admin"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/agendamento"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Basic security and caching headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer-when-downgrade"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+
