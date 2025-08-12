@@ -19,7 +19,13 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    }
   );
 
   try {
