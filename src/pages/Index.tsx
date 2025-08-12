@@ -54,8 +54,8 @@ const Index = () => {
       setLoadingPlan(productId);
       // Marca plano escolhido para gating client-side antes do cadastro
       localStorage.setItem('planSelected', productId);
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { productId }
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planTier: productId }
       });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
@@ -419,13 +419,13 @@ const Index = () => {
                 <CardDescription>Ideal para quem está começando</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="text-4xl font-bold">R$ 29<span className="text-base font-medium text-muted-foreground">/mês</span></div>
+                <div className="text-4xl font-bold">R$ 29,90<span className="text-base font-medium text-muted-foreground">/mês</span></div>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> 1 profissional</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Página pública</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Agendamentos básicos</li>
                 </ul>
-                <Button disabled={!!loadingPlan} onClick={() => startCheckout('prod_SqqVGzUIvJPVpt')} className="w-full">{loadingPlan === 'prod_SqqVGzUIvJPVpt' ? 'Carregando...' : 'Selecionar Plano'}</Button>
+                <Button disabled={!!loadingPlan} onClick={() => startCheckout('essential')} className="w-full">{loadingPlan === 'essential' ? 'Carregando...' : 'Selecionar Plano'}</Button>
                 <p className="text-xs text-muted-foreground text-center">Ideal para quem está começando.</p>
               </CardContent>
             </Card>
@@ -438,13 +438,13 @@ const Index = () => {
                 <CardDescription>Feito para crescer sem dor de cabeça</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="text-4xl font-bold">R$ 79<span className="text-base font-medium text-muted-foreground">/mês</span></div>
+                <div className="text-4xl font-bold">R$ 43,90<span className="text-base font-medium text-muted-foreground">/mês</span></div>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Até 3 profissionais</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Dashboard financeiro</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Suporte prioritário</li>
                 </ul>
-                <Button disabled={!!loadingPlan} onClick={() => startCheckout('prod_SqqVGzUIvJPVpt')} className="w-full bg-primary">{loadingPlan === 'prod_SqqVGzUIvJPVpt' ? 'Carregando...' : 'Selecionar Plano'}</Button>
+                <Button disabled={!!loadingPlan} onClick={() => startCheckout('professional')} className="w-full bg-primary">{loadingPlan === 'professional' ? 'Carregando...' : 'Selecionar Plano'}</Button>
                 <p className="text-xs text-muted-foreground text-center">Feito para crescer sem dor de cabeça.</p>
               </CardContent>
             </Card>
@@ -457,13 +457,13 @@ const Index = () => {
                 <CardDescription>Seu negócio no piloto automático</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="text-4xl font-bold">R$ 149<span className="text-base font-medium text-muted-foreground">/mês</span></div>
+                <div className="text-4xl font-bold">R$ 79,90<span className="text-base font-medium text-muted-foreground">/mês</span></div>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Profissionais ilimitados</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Relatórios avançados</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> Recursos premium</li>
                 </ul>
-                <Button disabled={!!loadingPlan} onClick={() => startCheckout('prod_SqqVGzUIvJPVpt')} className="w-full" variant="outline">{loadingPlan === 'prod_SqqVGzUIvJPVpt' ? 'Carregando...' : 'Selecionar Plano'}</Button>
+                <Button disabled={!!loadingPlan} onClick={() => startCheckout('premium')} className="w-full" variant="outline">{loadingPlan === 'premium' ? 'Carregando...' : 'Selecionar Plano'}</Button>
                 <p className="text-xs text-muted-foreground text-center">Seu negócio no piloto automático.</p>
               </CardContent>
             </Card>
