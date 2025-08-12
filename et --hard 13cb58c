@@ -1,0 +1,10 @@
+[33mbca39ba[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Remove sensitive data and improve security
+[33m0298811[m Everything updated
+[33m13cb58c[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add Supabase Edge Functions and Stripe integration
+[33mdd6548a[m Uptade
+[33me1523de[m Refactor admin and booking pages
+[33mb3c985c[m Agora os usuários conseguem fazer login
+[33m41123e2[m Fix RLS policy for tenants
+[33m1e39cd7[m Implement admin tenant creation
+[33m04aa273[m Enable Supabase Auth
+[33meba3f46[m Fix: Update trigger function
