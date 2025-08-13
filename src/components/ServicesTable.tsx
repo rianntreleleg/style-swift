@@ -196,7 +196,7 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
                 />
               </div>
             ) : (
-              <div className="font-medium">{formatBRL(service.price_cents / 100)}</div>
+              <div className="font-medium">{formatBRL(service.price_cents)}</div>
             ),
             duration: editingId === service.id ? (
               <div className="flex items-center gap-2">

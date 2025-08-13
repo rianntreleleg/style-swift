@@ -155,46 +155,48 @@ export default function BusinessHoursManager({ tenantId }: BusinessHoursManagerP
             const hour = businessHours.find(h => h.weekday === value);
             
             return (
-              <div key={value} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="w-32">
-                    <Label className="text-sm font-medium">{label}</Label>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={!hour?.closed}
-                      onCheckedChange={() => handleToggleClosed(value)}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {hour?.closed ? 'Fechado' : 'Aberto'}
-                    </span>
-                  </div>
-                </div>
-
-                {!hour?.closed && (
+              <div key={value} className="p-4 border rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Abertura</Label>
-                      <Input
-                        type="time"
-                        value={hour?.open_time || ''}
-                        onChange={(e) => handleTimeChange(value, 'open_time', e.target.value)}
-                        className="w-32"
-                      />
+                    <div className="w-24 sm:w-32">
+                      <Label className="text-sm font-medium">{label}</Label>
                     </div>
                     
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Fechamento</Label>
-                      <Input
-                        type="time"
-                        value={hour?.close_time || ''}
-                        onChange={(e) => handleTimeChange(value, 'close_time', e.target.value)}
-                        className="w-32"
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={!hour?.closed}
+                        onCheckedChange={() => handleToggleClosed(value)}
                       />
+                      <span className="text-sm text-muted-foreground">
+                        {hour?.closed ? 'Fechado' : 'Aberto'}
+                      </span>
                     </div>
                   </div>
-                )}
+
+                  {!hour?.closed && (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="space-y-1 w-full sm:w-auto">
+                        <Label className="text-xs text-muted-foreground">Abertura</Label>
+                        <Input
+                          type="time"
+                          value={hour?.open_time || ''}
+                          onChange={(e) => handleTimeChange(value, 'open_time', e.target.value)}
+                          className="w-full sm:w-32"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1 w-full sm:w-auto">
+                        <Label className="text-xs text-muted-foreground">Fechamento</Label>
+                        <Input
+                          type="time"
+                          value={hour?.close_time || ''}
+                          onChange={(e) => handleTimeChange(value, 'close_time', e.target.value)}
+                          className="w-full sm:w-32"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
