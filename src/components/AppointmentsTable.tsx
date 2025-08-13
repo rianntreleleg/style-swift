@@ -45,10 +45,10 @@ interface Appointment {
   services: {
     name: string;
     price_cents: number;
-  };
+  } | null;
   professionals: {
     name: string;
-  };
+  } | null;
 }
 
 interface AppointmentsTableProps {
@@ -226,10 +226,10 @@ Aguardo você! 😊
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium">{appointment.services.name}</span>
+                        <span className="font-medium">{appointment.services?.name || 'Serviço não encontrado'}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{appointment.professionals.name}</span>
+                        <span className="text-sm">{appointment.professionals?.name || 'Profissional não encontrado'}</span>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
@@ -245,7 +245,7 @@ Aguardo você! 😊
                       </TableCell>
                       <TableCell>
                         <span className="font-bold text-green-600">
-                          {formatBRL(appointment.services.price_cents / 100)}
+                          {appointment.services?.price_cents ? formatBRL(appointment.services.price_cents / 100) : 'N/A'}
                         </span>
                       </TableCell>
                       <TableCell>
