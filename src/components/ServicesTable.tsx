@@ -25,6 +25,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { formatBRL } from '@/lib/utils';
+import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
 
 interface Service {
   id: string;
@@ -152,130 +153,109 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Serviço</TableHead>
-              <TableHead>Preço</TableHead>
-              <TableHead>Duração</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {services.map((service) => (
-              <TableRow key={service.id}>
-                <TableCell>
-                  {editingId === service.id ? (
-                    <div className="space-y-2">
-                      <Input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        placeholder="Nome do serviço"
-                      />
-                      <Input
-                        value={editForm.description}
-                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        placeholder="Descrição (opcional)"
-                      />
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="font-medium">{service.name}</div>
-                      {service.description && (
-                        <div className="text-sm text-muted-foreground">{service.description}</div>
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === service.id ? (
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editForm.price_reais}
-                        onChange={(e) => setEditForm({ ...editForm, price_reais: e.target.value })}
-                        className="w-20"
-                      />
-                    </div>
-                  ) : (
-                    <div className="font-medium">{formatBRL(service.price_cents / 100)}</div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === service.id ? (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="number"
-                        value={editForm.duration_minutes}
-                        onChange={(e) => setEditForm({ ...editForm, duration_minutes: e.target.value })}
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">min</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{service.duration_minutes} min</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={service.active ? "default" : "secondary"}>
-                    {service.active ? "Ativo" : "Inativo"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {editingId === service.id ? (
-                    <div className="flex items-center gap-2 justify-end">
-                      <Button size="sm" onClick={handleSave}>
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleCancel}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 justify-end">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => handleEdit(service)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleToggleActive(service.id, service.active)}
-                      >
-                        {service.active ? "Desativar" : "Ativar"}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        onClick={() => handleDelete(service.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        
-        {services.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Scissors className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum serviço cadastrado</p>
-            <p className="text-sm">Adicione serviços para começar a receber agendamentos</p>
-          </div>
-        )}
+        <MobileTable
+          columns={[
+            { key: 'name', label: 'Serviço' },
+            { key: 'price', label: 'Preço' },
+            { key: 'duration', label: 'Duração' },
+            { key: 'status', label: 'Status' },
+            { key: 'actions', label: 'Ações' }
+          ]}
+          data={services.map((service) => ({
+            id: service.id,
+            name: editingId === service.id ? (
+              <div className="space-y-2">
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="Nome do serviço"
+                />
+                <Input
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  placeholder="Descrição (opcional)"
+                />
+              </div>
+            ) : (
+              <div>
+                <div className="font-medium">{service.name}</div>
+                {service.description && (
+                  <div className="text-sm text-muted-foreground">{service.description}</div>
+                )}
+              </div>
+            ),
+            price: editingId === service.id ? (
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editForm.price_reais}
+                  onChange={(e) => setEditForm({ ...editForm, price_reais: e.target.value })}
+                  className="w-20"
+                />
+              </div>
+            ) : (
+              <div className="font-medium">{formatBRL(service.price_cents / 100)}</div>
+            ),
+            duration: editingId === service.id ? (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  value={editForm.duration_minutes}
+                  onChange={(e) => setEditForm({ ...editForm, duration_minutes: e.target.value })}
+                  className="w-20"
+                />
+                <span className="text-sm text-muted-foreground">min</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span>{service.duration_minutes} min</span>
+              </div>
+            ),
+            status: <StatusBadge status={service.active ? "Ativo" : "Inativo"} variant={service.active ? "default" : "secondary"} />,
+            actions: editingId === service.id ? (
+              <div className="flex items-center gap-2">
+                <ActionButton
+                  onClick={handleSave}
+                  icon={<Save className="h-4 w-4" />}
+                  label="Salvar"
+                  variant="default"
+                />
+                <ActionButton
+                  onClick={handleCancel}
+                  icon={<X className="h-4 w-4" />}
+                  label="Cancelar"
+                  variant="outline"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <ActionButton
+                  onClick={() => handleEdit(service)}
+                  icon={<Edit className="h-4 w-4" />}
+                  label="Editar"
+                  variant="outline"
+                />
+                <ActionButton
+                  onClick={() => handleToggleActive(service.id, service.active)}
+                  icon={service.active ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  label={service.active ? "Desativar" : "Ativar"}
+                  variant="outline"
+                />
+                <ActionButton
+                  onClick={() => handleDelete(service.id)}
+                  icon={<Trash2 className="h-4 w-4" />}
+                  label="Excluir"
+                  variant="destructive"
+                />
+              </div>
+            )
+          }))}
+          emptyMessage="Nenhum serviço cadastrado"
+        />
       </CardContent>
     </Card>
   );

@@ -21,10 +21,12 @@ import {
   Users2,
   User,
   Calendar,
-  Clock
+  Clock,
+  Plus
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
 
 interface Professional {
   id: string;
@@ -185,122 +187,103 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Profissional</TableHead>
-              <TableHead>Bio</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {professionals.map((professional) => (
-              <TableRow key={professional.id}>
-                <TableCell>
-                  {editingId === professional.id ? (
-                    <div className="space-y-2">
-                      <Input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        placeholder="Nome do profissional"
-                      />
-                      <Input
-                        value={editForm.avatar_url}
-                        onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
-                        placeholder="URL da foto (opcional)"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={professional.avatar_url} />
-                        <AvatarFallback>
-                          {getInitials(professional.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{professional.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {professional.bio ? 'Bio disponível' : 'Sem bio'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === professional.id ? (
-                    <Textarea
-                      value={editForm.bio}
-                      onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                      placeholder="Biografia do profissional"
-                      className="min-h-[80px]"
-                    />
-                  ) : (
-                    <div className="max-w-xs">
-                      {professional.bio ? (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {professional.bio}
-                        </p>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">Sem biografia</span>
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={professional.active ? "default" : "secondary"}>
-                    {professional.active ? "Ativo" : "Inativo"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {editingId === professional.id ? (
-                    <div className="flex items-center gap-2 justify-end">
-                      <Button size="sm" onClick={handleSave}>
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleCancel}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 justify-end">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => handleEdit(professional)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleToggleActive(professional.id, professional.active)}
-                      >
-                        {professional.active ? "Desativar" : "Ativar"}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        onClick={() => handleDelete(professional.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        
-        {professionals.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Users2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum profissional cadastrado</p>
-            <p className="text-sm">Adicione profissionais para começar a receber agendamentos</p>
-          </div>
-        )}
+        <MobileTable
+          columns={[
+            { key: 'professional', label: 'Profissional' },
+            { key: 'bio', label: 'Bio' },
+            { key: 'status', label: 'Status' },
+            { key: 'actions', label: 'Ações' }
+          ]}
+          data={professionals.map((professional) => ({
+            id: professional.id,
+            professional: editingId === professional.id ? (
+              <div className="space-y-2">
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="Nome do profissional"
+                />
+                <Input
+                  value={editForm.avatar_url}
+                  onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
+                  placeholder="URL da foto (opcional)"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={professional.avatar_url} />
+                  <AvatarFallback>
+                    {getInitials(professional.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-medium">{professional.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {professional.bio ? 'Bio disponível' : 'Sem bio'}
+                  </div>
+                </div>
+              </div>
+            ),
+            bio: editingId === professional.id ? (
+              <Textarea
+                value={editForm.bio}
+                onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                placeholder="Biografia do profissional"
+                className="min-h-[80px]"
+              />
+            ) : (
+              <div className="max-w-xs">
+                {professional.bio ? (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {professional.bio}
+                  </p>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Sem biografia</span>
+                )}
+              </div>
+            ),
+            status: <StatusBadge status={professional.active ? "Ativo" : "Inativo"} variant={professional.active ? "default" : "secondary"} />,
+            actions: editingId === professional.id ? (
+              <div className="flex items-center gap-2">
+                <ActionButton
+                  onClick={handleSave}
+                  icon={<Save className="h-4 w-4" />}
+                  label="Salvar"
+                  variant="default"
+                />
+                <ActionButton
+                  onClick={handleCancel}
+                  icon={<X className="h-4 w-4" />}
+                  label="Cancelar"
+                  variant="outline"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <ActionButton
+                  onClick={() => handleEdit(professional)}
+                  icon={<Edit className="h-4 w-4" />}
+                  label="Editar"
+                  variant="outline"
+                />
+                <ActionButton
+                  onClick={() => handleToggleActive(professional.id, professional.active)}
+                  icon={professional.active ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  label={professional.active ? "Desativar" : "Ativar"}
+                  variant="outline"
+                />
+                <ActionButton
+                  onClick={() => handleDelete(professional.id)}
+                  icon={<Trash2 className="h-4 w-4" />}
+                  label="Excluir"
+                  variant="destructive"
+                />
+              </div>
+            )
+          }))}
+          emptyMessage="Nenhum profissional cadastrado"
+        />
       </CardContent>
     </Card>
   );

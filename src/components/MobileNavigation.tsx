@@ -8,7 +8,8 @@ import {
   Settings,
   Plus,
   Home,
-  LogOut
+  LogOut,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -28,6 +29,12 @@ const navigationItems: NavigationItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard className="h-5 w-5" />,
     href: '#dashboard'
+  },
+  {
+    id: 'establishment',
+    label: 'Estabelecimento',
+    icon: <Building2 className="h-5 w-5" />,
+    href: '#establishment'
   },
   {
     id: 'appointments',
@@ -64,11 +71,15 @@ const navigationItems: NavigationItem[] = [
 interface MobileNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  desktopTab?: string;
+  onDesktopTabChange?: (tab: string) => void;
 }
 
 export const MobileNavigation: React.FC<MobileNavigationProps> = ({ 
   activeTab, 
-  onTabChange 
+  onTabChange,
+  desktopTab,
+  onDesktopTabChange
 }) => {
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -80,6 +91,12 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     const element = document.getElementById(tabId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleDesktopTabClick = (tabId: string) => {
+    if (onDesktopTabChange) {
+      onDesktopTabChange(tabId);
     }
   };
 
@@ -100,10 +117,10 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
             {navigationItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleTabClick(item.id)}
+                onClick={() => handleDesktopTabClick(item.id)}
                 className={cn(
                   "group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left transition-colors",
-                  activeTab === item.id
+                  desktopTab === item.id
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
