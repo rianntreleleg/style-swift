@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { applyTheme } from "@/config/themes";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -288,11 +287,6 @@ export default function PublicBooking() {
         }
 
         setTenant(tenantData);
-        
-        // Apply theme based on tenant's theme_variant
-        if (tenantData?.theme_variant) {
-          applyTheme(tenantData.theme_variant);
-        }
         
         // Carregar serviços
         const { data: servicesData } = await supabase
