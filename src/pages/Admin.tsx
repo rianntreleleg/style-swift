@@ -42,11 +42,15 @@ import RevenueChart from "@/components/RevenueChart";
 import ServicesTable from "@/components/ServicesTable";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
 import AppointmentsTable from "@/components/AppointmentsTable";
+import { DailyAppointments } from "@/components/DailyAppointments";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
 import AutoConfirmationManager from "@/components/AutoConfirmationManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import { ThemeApplicator } from "@/components/ThemeApplicator";
-import { formatBRL } from "@/lib/utils";
+import { formatBRL, cn } from "@/lib/utils";
+import { MobileNavigation } from "@/components/MobileNavigation";
+import { MobileTable, StatusBadge, ActionButton } from "@/components/MobileTable";
+import { FloatingActionButton, QuickActions } from "@/components/FloatingActionButton";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -88,6 +92,9 @@ export default function Admin() {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
   const [copied, setCopied] = useState(false);
+  
+  // Mobile navigation state
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   // Novos estados para funcionalidades
   const [services, setServices] = useState<any[]>([]);
@@ -520,8 +527,11 @@ export default function Admin() {
     <>
       <ThemeApplicator themeVariant={selectedTenant?.theme_variant} />
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-sm">
+        {/* Mobile Navigation */}
+        <MobileNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        {/* Desktop Header */}
+        <header className="hidden lg:flex border-b bg-background/80 backdrop-blur-sm">
         <div className="container flex items-center justify-between py-4">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -580,9 +590,97 @@ export default function Admin() {
         </div>
       </header>
 
-      <main className="container py-8 space-y-8">
-        <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 rounded-lg">
+      <main className={cn(
+        "container py-8 space-y-8 transition-all duration-200",
+        "lg:ml-64" // Offset for desktop sidebar
+      )}>
+        {/* Mobile Content */}
+        <div className="lg:hidden">
+          {activeTab === 'dashboard' && (
+            <div id="dashboard" className="space-y-6">
+              {/* Dashboard content for mobile */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Serviços Ativos</CardTitle>
+                    <Scissors className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.services}</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Profissionais</CardTitle>
+                    <Users2 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.pros}</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Próximos Agendamentos</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.upcoming}</div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+          {activeTab === 'appointments' && (
+            <div id="appointments" className="space-y-6">
+              {selectedTenant && (
+                <AppointmentsTable 
+                  appointments={appointments} 
+                  tenantId={selectedTenant.id} 
+                  onAppointmentUpdate={fetchAppointments}
+                />
+              )}
+            </div>
+          )}
+          {activeTab === 'today' && (
+            <div id="today" className="space-y-6">
+              {selectedTenant && (
+                <DailyAppointments tenantId={selectedTenant.id} />
+              )}
+            </div>
+          )}
+          {activeTab === 'services' && (
+            <div id="services" className="space-y-6">
+              {selectedTenant && (
+                <ServicesTable 
+                  services={services} 
+                  tenantId={selectedTenant.id} 
+                  onServiceUpdate={fetchServices}
+                />
+              )}
+            </div>
+          )}
+          {activeTab === 'professionals' && (
+            <div id="professionals" className="space-y-6">
+              {selectedTenant && (
+                <ProfessionalsTable 
+                  professionals={professionals} 
+                  tenantId={selectedTenant.id} 
+                  onProfessionalUpdate={fetchProfessionals}
+                />
+              )}
+            </div>
+          )}
+          {activeTab === 'settings' && (
+            <div id="settings" className="space-y-6">
+              {/* Settings content for mobile */}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Tabs */}
+        <div className="hidden lg:block">
+          <Tabs defaultValue="dashboard">
+            <TabsList className="grid w-full grid-cols-7 bg-muted/50 p-1 rounded-lg">
             <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <BarChart3 className="h-4 w-4" /> Dashboard
             </TabsTrigger>
@@ -597,6 +695,9 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="appointments" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Calendar className="h-4 w-4" /> Agendamentos
+            </TabsTrigger>
+            <TabsTrigger value="daily" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Clock className="h-4 w-4" /> Hoje
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Settings className="h-4 w-4" /> Configurações
@@ -1030,6 +1131,24 @@ export default function Admin() {
             </motion.div>
           </TabsContent>
 
+          <TabsContent value="daily" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-6"
+            >
+              {selectedTenantId ? (
+                <DailyAppointments tenantId={selectedTenantId} />
+              ) : (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Selecione um estabelecimento para ver os agendamentos de hoje.</p>
+                </div>
+              )}
+            </motion.div>
+          </TabsContent>
+
           <TabsContent value="settings" className="mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1138,6 +1257,7 @@ export default function Admin() {
             </motion.div>
           </TabsContent>
         </Tabs>
+        </div>
       </main>
     </div>
     </>

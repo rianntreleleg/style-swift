@@ -62,6 +62,68 @@ Este documento lista todas as correções críticas e melhorias implementadas no
 
 **Solução**: Corrigida a função `get_auto_confirmation_stats()` para usar `created_at` em vez de `scheduled_at` para determinar confirmação automática.
 
+### 11. Nova aba "Agendamentos do Dia"
+**Problema**: Usuário solicitou uma aba específica para agendamentos do dia com dashboard/relatório.
+
+**Solução**: 
+- Criado componente `DailyAppointments.tsx` com dashboard completo
+- Adicionada nova aba "Hoje" na página Admin
+- Dashboard mostra estatísticas em tempo real (total, confirmados, pendentes, concluídos, cancelados, receita)
+- Atualização automática a cada 5 minutos
+- Busca e filtros por cliente, serviço e profissional
+
+### 12. Melhoria na seleção de horários
+**Problema**: Seleção de horários não estava 100% funcional.
+
+**Solução**: 
+- Criado componente `TimeSlotSelector.tsx` com visualização melhorada
+- Horários ocupados aparecem em vermelho
+- Horários bloqueados aparecem em cinza
+- Horário selecionado destacado
+- Integração com horários de funcionamento
+- Suporte a bloqueios de horários (time_blocks)
+- Legenda clara para cada tipo de horário
+
+### 13. Tabela time_blocks para bloqueio de horários
+**Problema**: Sistema não tinha suporte para bloqueio de horários.
+
+**Solução**: 
+- Criada tabela `time_blocks` para armazenar bloqueios
+- Suporte a bloqueios por profissional ou geral
+- Integração com o seletor de horários
+- Políticas RLS para segurança
+
+### 14. Validação de horários passados e melhoria no fluxo de agendamento
+**Problema**: 
+1. Sistema permitia agendar horários que já passaram para o dia atual
+2. Confirmação de agendamento acontecia ao selecionar horário, não ao clicar no botão
+3. Duração dos serviços não estava clara para o usuário
+
+**Solução**: 
+- Implementada validação `isTimeSlotPast()` que verifica se o horário já passou (com margem de 30 minutos)
+- Horários passados aparecem em laranja e ficam desabilitados
+- Corrigido fluxo de confirmação: agora só acontece ao clicar em "Confirmar Agendamento"
+- Adicionada exibição da duração do serviço e quantas vagas ele ocupa
+- Formulário é resetado apenas após confirmação bem-sucedida
+- Horário é limpo quando a data é alterada
+
+### 15. Melhorias no sistema de agendamentos - ETAPA 1
+**Problema**: 
+1. Sistema não bloqueava múltiplos slots quando um serviço ocupa mais de um horário
+2. Preços não eram exibidos no formato brasileiro correto
+3. Botão de WhatsApp não era suficientemente visível
+4. Agendamento para o mesmo dia precisava de melhorias
+
+**Solução**: 
+- **Bloqueio de múltiplos slots**: Implementada função `isTimeSlotOccupiedByMultiSlot()` que verifica conflitos quando um serviço ocupa múltiplos slots
+- **Exibição de preços corretos**: Todos os preços agora são exibidos no formato brasileiro (R$ 35,00) em vez de decimal
+- **Botão de WhatsApp melhorado**: 
+  - Adicionado tooltip "Enviar mensagem no WhatsApp"
+  - Estilo visual melhorado com cores verdes
+  - Implementado em ambas as abas (Agendamentos e Hoje)
+- **Agendamento para o mesmo dia**: Sistema permite agendar para hoje respeitando horários disponíveis
+- **Nova legenda**: Adicionada indicação visual para "Conflito de horários" em amarelo
+
 ## 📁 Arquivos de Migração SQL
 
 ### 1. `20250115000002_fix_critical_issues.sql`
@@ -85,6 +147,16 @@ Este documento lista todas as correções críticas e melhorias implementadas no
 - Adição da coluna `created_at` se não existir
 - Atualização de dados existentes
 
+### 5. `20250115000006_fix_auto_confirmation_functions.sql`
+- Correção das funções para usar a tabela `appointments` correta
+- Atualização das funções `get_auto_confirmation_stats`, `auto_confirm_appointments`, `check_and_confirm_appointments`
+- Correção dos campos de data/hora
+
+### 6. `20250115000007_create_time_blocks_table.sql`
+- Criação da tabela `time_blocks` para bloqueio de horários
+- Índices para performance
+- Políticas RLS para segurança
+
 ## 🎨 Componentes Criados/Modificados
 
 ### Novos Componentes
@@ -92,12 +164,17 @@ Este documento lista todas as correções críticas e melhorias implementadas no
 - `AutoConfirmationManager.tsx` - Interface para confirmação automática
 - `ThemeApplicator.tsx` - Aplicação dinâmica de temas
 - `ThemeDemo.tsx` - Demonstração dos temas
+- `DailyAppointments.tsx` - Dashboard de agendamentos do dia
+- `TimeSlotSelector.tsx` - Seletor de horários melhorado
 
 ### Componentes Modificados
-- `AppointmentsTable.tsx` - Melhor tratamento de erros
+- `AppointmentsTable.tsx` - Melhor tratamento de erros e botão de WhatsApp melhorado
 - `ProfessionalsTable.tsx` - Validação client-side de limites
-- `PublicBooking.tsx` - Correção de campos de business_hours
-- `Admin.tsx` - Integração dos novos componentes
+- `PublicBooking.tsx` - Integração do novo TimeSlotSelector, correção do fluxo de confirmação e exibição de preços corretos
+- `Admin.tsx` - Integração dos novos componentes e nova aba "Hoje"
+- `AutoConfirmationManager.tsx` - Correção do erro de estatísticas
+- `TimeSlotSelector.tsx` - Validação de horários passados, exibição de duração de serviços e bloqueio de múltiplos slots
+- `DailyAppointments.tsx` - Botão de WhatsApp melhorado e exibição de preços corretos
 
 ### Arquivos de Configuração
 - `themes.ts` - Definição das paletas de cores
@@ -113,6 +190,8 @@ Execute as seguintes migrações no Supabase Dashboard (SQL Editor):
 2. `20250115000003_fix_plan_sync_and_business_hours.sql`
 3. `20250115000004_auto_confirm_appointments.sql`
 4. `20250115000005_fix_auto_confirmation_stats.sql`
+5. `20250115000006_fix_auto_confirmation_functions.sql`
+6. `20250115000007_create_time_blocks_table.sql`
 
 ### 2. Atualizar Código Frontend
 Todos os arquivos já estão atualizados no repositório.
@@ -170,6 +249,44 @@ Todos os arquivos já estão atualizados no repositório.
 2. Teste alternar entre os temas
 3. Verifique se as cores são aplicadas corretamente
 4. Verifique se o fundo escuro está funcionando
+
+### Teste 9: Validação de Horários Passados
+1. Acesse a página pública de agendamento
+2. Selecione o dia atual
+3. Verifique se horários que já passaram aparecem em laranja e estão desabilitados
+4. Tente selecionar um horário passado - deve ser impossível
+
+### Teste 10: Fluxo de Confirmação de Agendamento
+1. Acesse a página pública de agendamento
+2. Preencha todos os campos
+3. Selecione um horário - verifique que NÃO aparece mensagem de confirmação
+4. Clique em "Confirmar Agendamento" - agora deve aparecer a mensagem de processamento
+5. Verifique se o formulário é resetado apenas após confirmação bem-sucedida
+
+### Teste 11: Exibição de Duração de Serviços
+1. Acesse a página pública de agendamento
+2. Selecione um serviço
+3. Verifique se aparece a duração do serviço e quantas vagas ele ocupa
+4. Selecione diferentes serviços e verifique se as informações mudam corretamente
+
+### Teste 12: Bloqueio de Múltiplos Slots
+1. Acesse a página pública de agendamento
+2. Selecione um serviço que ocupa múltiplos slots (ex: 60 ou 90 minutos)
+3. Verifique se slots que teriam conflito aparecem em amarelo e estão desabilitados
+4. Tente selecionar um slot que teria conflito - deve ser impossível
+
+### Teste 13: Exibição de Preços Corretos
+1. Acesse a página pública de agendamento
+2. Verifique se os preços aparecem no formato brasileiro (R$ 35,00)
+3. Acesse as abas de agendamentos e verifique se os preços também estão no formato correto
+4. Verifique se não há preços em formato decimal
+
+### Teste 14: Botão de WhatsApp Melhorado
+1. Acesse a aba "Agendamentos" ou "Hoje"
+2. Passe o mouse sobre o botão de WhatsApp - deve aparecer tooltip
+3. Verifique se o botão tem cores verdes e é mais visível
+4. Clique no botão - deve abrir o WhatsApp com mensagem pré-formatada
+5. Teste com clientes que não têm telefone - botão deve estar desabilitado
 
 ## 📝 Notas Importantes
 
