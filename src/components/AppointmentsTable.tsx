@@ -125,8 +125,8 @@ Aguardo você! 😊
 
 *StyleSwift - Agendamento Online*`;
 
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/55${phone.replace(/\D/g, '')}?text=${encodedMessage}`;
+    const cleanPhone = phone.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
     
     window.open(whatsappUrl, '_blank');
   };

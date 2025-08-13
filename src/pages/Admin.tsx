@@ -132,7 +132,7 @@ export default function Admin() {
         supabase.from("appointments")
           .select("*", { count: "exact", head: true })
           .eq("tenant_id", selectedTenantId)
-          .gte("scheduled_at", new Date().toISOString())
+          .gte("start_time", new Date().toISOString())
       ]);
       setMetrics({
         services: servicesCount.count || 0,
