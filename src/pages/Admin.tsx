@@ -663,7 +663,57 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              
+              {/* Dashboard Financeiro */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Receita dos Últimos 30 Dias
+                    </CardTitle>
+                    <CardDescription>
+                      Gráfico de receita ao longo do tempo
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <RevenueChart data={revenueData} totalRevenue={totalRevenue} period="dos Últimos 30 Dias" />
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Receita por Serviço
+                    </CardTitle>
+                    <CardDescription>
+                      Receita gerada por cada serviço
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {serviceRevenue.map((service, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <p className="font-medium">{service.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {service.count} agendamento{service.count !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <p className="font-bold text-green-600">
+                            {formatBRL(service.revenue)}
+                          </p>
+                        </div>
+                      ))}
+                      {serviceRevenue.length === 0 && (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nenhuma receita registrada no período
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </motion.div>
           </TabsContent>
 
@@ -740,12 +790,34 @@ export default function Admin() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              className="space-y-6"
             >
+              {/* Tabela de Serviços */}
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Scissors className="h-5 w-5" />
-                    Cadastrar Serviços
+                    Serviços Cadastrados
+                  </CardTitle>
+                  <CardDescription>
+                    Gerencie todos os serviços do estabelecimento
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ServicesTable 
+                    services={services} 
+                    onServiceUpdate={fetchServices}
+                    tenantId={selectedTenantId || ''}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Formulário de Cadastro */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    Cadastrar Novo Serviço
                   </CardTitle>
                   <CardDescription>
                     Cadastre seus serviços e valores. Os preços devem ser informados em reais.
@@ -833,12 +905,34 @@ export default function Admin() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              className="space-y-6"
             >
+              {/* Tabela de Profissionais */}
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users2 className="h-5 w-5" />
-                    Cadastrar Profissionais
+                    Profissionais Cadastrados
+                  </CardTitle>
+                  <CardDescription>
+                    Gerencie todos os profissionais do estabelecimento
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ProfessionalsTable 
+                    professionals={professionals} 
+                    onProfessionalUpdate={fetchProfessionals}
+                    tenantId={selectedTenantId || ''}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Formulário de Cadastro */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    Cadastrar Novo Profissional
                   </CardTitle>
                   <CardDescription>
                     Inclua os profissionais do seu time e suas especialidades.
