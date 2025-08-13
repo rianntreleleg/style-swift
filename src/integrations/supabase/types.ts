@@ -523,7 +523,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_tenant_subscription: {
+        Args: {
+          p_user_id: string
+          p_subscription_tier: string
+          p_subscribed: boolean
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

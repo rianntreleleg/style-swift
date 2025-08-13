@@ -113,6 +113,19 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
 
+    // Atualizar também a tabela tenant com o plano
+    const { error: updateError } = await supabaseClient.rpc('update_tenant_subscription', {
+      p_user_id: user.id,
+      p_subscription_tier: subscriptionTier,
+      p_subscribed: hasActiveSub
+    });
+    
+    if (updateError) {
+      logStep("Warning: Failed to update tenant subscription", { error: updateError.message });
+    } else {
+      logStep("Updated tenant subscription", { subscriptionTier, subscribed: hasActiveSub });
+    }
+
     logStep("Updated database with subscription info", { subscribed: hasActiveSub, subscriptionTier });
     
     return new Response(JSON.stringify({

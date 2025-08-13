@@ -34,6 +34,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { ThemeApplicator } from "@/components/ThemeApplicator";
 
 const BookingSchema = z.object({
   service_id: z.string({ required_error: "Selecione um serviço" }).uuid("Selecione um serviço"),
@@ -457,7 +458,9 @@ export default function PublicBooking() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <>
+      <ThemeApplicator themeVariant={tenant?.theme_variant} />
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container py-8 space-y-8">
         {/* Header */}
         <motion.div
@@ -716,7 +719,8 @@ export default function PublicBooking() {
           </motion.div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

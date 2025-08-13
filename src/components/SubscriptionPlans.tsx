@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, Crown, Zap, Star } from "lucide-react";
 import { motion } from "framer-motion";
-import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const plans = [
   {
@@ -63,7 +63,6 @@ interface SubscriptionPlansProps {
 }
 
 export default function SubscriptionPlans({ currentTier }: SubscriptionPlansProps) {
-  const { createCheckout } = useSubscription();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleSelectPlan = async (planId: string) => {
@@ -77,9 +76,21 @@ export default function SubscriptionPlans({ currentTier }: SubscriptionPlansProp
 
     setLoadingPlan(planId);
     try {
-      const checkoutUrl = await createCheckout(planId);
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planTier: planId },
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error creating checkout:', error);
+        throw new Error('Erro ao criar checkout');
+      }
+
+      if (data?.url) {
+        // Open Stripe checkout in a new tab
+        window.open(data.url, '_blank');
       }
     } catch (error) {
       console.error('Error creating checkout:', error);

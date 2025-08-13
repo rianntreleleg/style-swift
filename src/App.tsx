@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { ThemeProvider } from "@/hooks/useTheme";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -20,8 +19,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="style-swift-theme">
       <AuthProvider>
-        <SubscriptionProvider>
-          <TooltipProvider>
+        <TooltipProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -37,8 +35,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </TooltipProvider>
-        </SubscriptionProvider>
+        </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

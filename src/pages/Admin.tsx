@@ -36,7 +36,6 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
 import { motion } from "framer-motion";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
 import RevenueChart from "@/components/RevenueChart";
@@ -44,6 +43,7 @@ import ServicesTable from "@/components/ServicesTable";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
 import AppointmentsTable from "@/components/AppointmentsTable";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
+import FinancialDashboard from "@/components/FinancialDashboard";
 import { formatBRL } from "@/lib/utils";
 
 const TenantSchema = z.object({
@@ -76,7 +76,11 @@ type ProForm = z.infer<typeof ProSchema>;
 
 export default function Admin() {
   const { user, signOut } = useAuth();
-  const { subscribed, subscription_tier, loading: subLoading, openCustomerPortal } = useSubscription();
+  
+  // Estados locais para gerenciar a subscrição
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
+  const [subLoading, setSubLoading] = useState(true);
   const navigate = useNavigate();
   const [tenants, setTenants] = useState<Array<{ id: string; name: string; slug: string; logo_url?: string | null; theme_variant?: string }>>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
@@ -91,11 +95,34 @@ export default function Admin() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [serviceRevenue, setServiceRevenue] = useState<any[]>([]);
 
+  // Verificar subscrição diretamente da tabela tenant
   useEffect(() => {
     if (!user) {
       navigate('/auth');
       return;
     }
+    
+    const checkSubscription = async () => {
+      try {
+        const { data: tenantData, error } = await supabase
+          .from("tenants")
+          .select("plan_tier, plan_status")
+          .eq("owner_id", user.id)
+          .single();
+          
+        if (!error && tenantData) {
+          const isSubscribed = tenantData.plan_status === 'active' && tenantData.plan_tier !== null;
+          setSubscribed(isSubscribed);
+          setSubscriptionTier(tenantData.plan_tier);
+        }
+      } catch (err) {
+        console.error('Error checking subscription:', err);
+      } finally {
+        setSubLoading(false);
+      }
+    };
+    
+    checkSubscription();
   }, [user, navigate]);
 
   useEffect(() => {
@@ -344,7 +371,19 @@ export default function Admin() {
 
   const handleManageSubscription = async () => {
     try {
-      await openCustomerPortal();
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
+
+      if (error) {
+        throw new Error('Erro ao abrir portal');
+      }
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
     } catch (error) {
       toast({
         title: "Erro",
@@ -467,7 +506,7 @@ export default function Admin() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <SubscriptionPlans currentTier={subscription_tier} />
+              <SubscriptionPlans currentTier={subscriptionTier} />
             </CardContent>
           </Card>
         </main>
@@ -579,7 +618,7 @@ export default function Admin() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-green-800 dark:text-green-300">
-                        Plano {subscription_tier?.charAt(0).toUpperCase() + subscription_tier?.slice(1)}
+                        Plano {subscriptionTier?.charAt(0).toUpperCase() + subscriptionTier?.slice(1)}
                       </p>
                       <p className="text-sm text-green-600 dark:text-green-400">
                         Assinatura ativa e funcionando
@@ -689,6 +728,8 @@ export default function Admin() {
               </Card>
 
               {/* Dashboard Financeiro */}
+              <FinancialDashboard tenantId={selectedTenantId || ''} planTier={subscriptionTier} />
+              
               <div className="grid gap-6 md:grid-cols-2">
                 <Card className="border-0 shadow-lg">
                   <CardHeader>
