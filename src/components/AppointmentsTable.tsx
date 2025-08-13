@@ -302,7 +302,7 @@ Aguardo você! 😊
       label: 'Ações',
       mobilePriority: true,
       render: (value: any, row: any) => (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ActionButton
             onClick={() => handleWhatsAppMessage(
               row.raw.customer_phone,

@@ -109,7 +109,7 @@ export default function PublicBooking() {
 
     const { data: service } = await supabase
       .from("services")
-      .select("duration_minutes")
+      .select("duration_minutes, name")
       .eq("id", values.service_id)
       .single();
 
@@ -184,6 +184,42 @@ export default function PublicBooking() {
     } as any);
 
     if (appointmentError) throw appointmentError;
+
+    // Enviar webhook após criar o agendamento com sucesso
+    try {
+      const webhookData = {
+        appointment: {
+          id: customerId, // Usando customerId como identificador temporário
+          customer_name: values.name,
+          customer_email: values.email,
+          customer_phone: values.phone,
+          service_id: values.service_id,
+          service_name: service?.name || 'Serviço não especificado',
+          professional_id: values.professional_id,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+          notes: values.notes || '',
+          status: "agendado"
+        },
+        tenant: {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      await fetch('https://chatbot-n8n.mw2uje.easypanel.host/webhook-test/swift-style', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData)
+      });
+    } catch (webhookError) {
+      // Log do erro do webhook mas não falhar o agendamento
+      console.error('Erro ao enviar webhook:', webhookError);
+    }
 
     // Recarregar agendamentos para atualizar a interface
     await loadAppointments();
@@ -588,7 +624,14 @@ export default function PublicBooking() {
                                 // Clear time when date changes
                                 form.setValue("time", "");
                               }}
-                              disabled={(date) => date < new Date() || date > addDays(new Date(), 14)}
+                              disabled={(date) => {
+                                // Allow same-day appointments, but disable past dates
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const selectedDate = new Date(date);
+                                selectedDate.setHours(0, 0, 0, 0);
+                                return selectedDate < today || date > addDays(new Date(), 14);
+                              }}
                               initialFocus
                             />
                           </PopoverContent>

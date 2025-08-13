@@ -217,7 +217,7 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
             ),
             status: <StatusBadge status={service.active ? "Ativo" : "Inativo"} variant={service.active ? "default" : "secondary"} />,
             actions: editingId === service.id ? (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <ActionButton
                   onClick={handleSave}
                   icon={<Save className="h-4 w-4" />}
@@ -232,7 +232,7 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
                 />
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <ActionButton
                   onClick={() => handleEdit(service)}
                   icon={<Edit className="h-4 w-4" />}

@@ -245,7 +245,7 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
             ),
             status: <StatusBadge status={professional.active ? "Ativo" : "Inativo"} variant={professional.active ? "default" : "secondary"} />,
             actions: editingId === professional.id ? (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <ActionButton
                   onClick={handleSave}
                   icon={<Save className="h-4 w-4" />}
@@ -260,7 +260,7 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
                 />
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <ActionButton
                   onClick={() => handleEdit(professional)}
                   icon={<Edit className="h-4 w-4" />}

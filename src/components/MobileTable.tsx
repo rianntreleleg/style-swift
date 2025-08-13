@@ -167,10 +167,10 @@ export const ActionButton: React.FC<{
       }}
       variant={variant}
       size={size}
-      className={cn("min-h-[44px]", className)}
+      className={cn("min-h-[44px] text-xs", className)}
     >
       {icon}
-      <span className="ml-2">{label}</span>
+      <span className="ml-1 sm:ml-2 hidden sm:inline">{label}</span>
     </Button>
   );
 };
