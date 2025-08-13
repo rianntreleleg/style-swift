@@ -94,12 +94,6 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     }
   };
 
-  const handleDesktopTabClick = (tabId: string) => {
-    if (onDesktopTabChange) {
-      onDesktopTabChange(tabId);
-    }
-  };
-
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
@@ -107,42 +101,6 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   return (
     <>
-      {/* Desktop Side Navigation */}
-      <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-50 lg:bg-background lg:border-r">
-        <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
-            <h1 className="text-xl font-bold">StyleSwift</h1>
-          </div>
-          <nav className="mt-8 flex-1 px-2 space-y-1">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleDesktopTabClick(item.id)}
-                className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left transition-colors",
-                  desktopTab === item.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              >
-                {item.icon}
-                <span className="ml-3">{item.label}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="flex-shrink-0 px-2 py-4">
-            <Button
-              onClick={handleSignOut}
-              variant="outline"
-              className="w-full justify-start"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Mobile Bottom Navigation */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
         <div className="flex justify-around items-center h-16 px-2">
