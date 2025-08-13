@@ -79,9 +79,9 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Bloqueio leve: exigir assinatura antes do cadastro (placeholder)
-  // Em produção, isto deve consultar o backend/Stripe via RLS/Function para validar o status do usuário/tenant.
-  const canAccessSignup = true; // Ajustado depois via webhook/state de assinatura
+  // Verificar se há plano selecionado para permitir cadastro
+  const planSelected = localStorage.getItem('planSelected');
+  const canAccessSignup = !!planSelected;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,8 +106,19 @@ export default function Auth() {
   };
 
   const handleSignup = async (values: SignupForm) => {
+    if (!canAccessSignup) {
+      toast({
+        title: "Pagamento necessário",
+        description: "Você precisa escolher um plano antes de se cadastrar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      const planSelected = localStorage.getItem('planSelected');
+      
       // Primeiro cria o usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
@@ -120,7 +131,7 @@ export default function Auth() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Cria o tenant e retorna o id
+        // Cria o tenant com informações do plano
         const { data: tenantRow, error: tenantError } = await supabase
           .from("tenants")
           .insert({
@@ -129,6 +140,8 @@ export default function Auth() {
             slug: values.slug,
             theme_variant: values.theme_variant,
             logo_url: values.logo_url || null,
+            plan_selected: planSelected,
+            payment_completed: false
           })
           .select("id")
           .single();
@@ -145,6 +158,10 @@ export default function Auth() {
         }));
         const { error: bhError } = await supabase.from("business_hours").insert(rows as any);
         if (bhError) throw bhError;
+
+        // Limpar localStorage
+        localStorage.removeItem('planSelected');
+        localStorage.removeItem('productSelected');
 
         toast({
           title: "Conta criada com sucesso!",
@@ -305,7 +322,7 @@ export default function Auth() {
                       )}
                     </Button>
                   </form>
-                ) : (
+                ) : canAccessSignup ? (
                   <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-8">
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-3">
@@ -450,6 +467,23 @@ export default function Auth() {
                       )}
                     </Button>
                   </form>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <div className="p-6 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">
+                        Plano Necessário
+                      </h3>
+                      <p className="text-sm text-orange-600 dark:text-orange-300 mb-4">
+                        Para se cadastrar, você precisa primeiro escolher um plano de assinatura.
+                      </p>
+                      <Button 
+                        onClick={() => window.location.href = '/#planos'} 
+                        className="w-full"
+                      >
+                        Escolher Plano
+                      </Button>
+                    </div>
+                  </div>
                 )}
 
                 <div className="text-center">

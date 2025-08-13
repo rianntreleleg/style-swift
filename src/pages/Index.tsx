@@ -15,7 +15,12 @@ const Index = () => {
   const startCheckout = async (productId: string) => {
     try {
       setLoadingPlan(productId);
-      localStorage.setItem('planSelected', productId);
+      // Salvar plano e tema selecionados no localStorage para usar após o pagamento
+      const planId = productId === 'prod_SqqVGzUIvJPVpt' ? 'essential' : 
+                   productId === 'prod_professional' ? 'professional' : 'premium';
+      
+      localStorage.setItem('planSelected', planId);
+      localStorage.setItem('productSelected', productId);
       
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { productId }
@@ -27,6 +32,7 @@ const Index = () => {
       }
       
       if (data?.url) {
+        // Redirecionar para o Stripe Checkout
         window.location.href = data.url;
       } else {
         throw new Error('URL de checkout não recebida');

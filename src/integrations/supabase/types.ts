@@ -259,6 +259,54 @@ export type Database = {
           },
         ]
       }
+      revenues: {
+        Row: {
+          amount_cents: number
+          appointment_id: string | null
+          created_at: string
+          id: string
+          professional_name: string | null
+          revenue_date: string
+          service_name: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount_cents: number
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          professional_name?: string | null
+          revenue_date?: string
+          service_name?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount_cents?: number
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          professional_name?: string | null
+          revenue_date?: string
+          service_name?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenues_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenues_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           active: boolean
@@ -308,10 +356,13 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          payment_completed: boolean | null
+          plan_selected: string | null
           stripe_customer_id: string | null
           subscribed: boolean
           subscription_end: string | null
           subscription_tier: string | null
+          theme_selected: string | null
           updated_at: string
           user_id: string | null
         }
@@ -319,10 +370,13 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          payment_completed?: boolean | null
+          plan_selected?: string | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          theme_selected?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -330,10 +384,13 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          payment_completed?: boolean | null
+          plan_selected?: string | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          theme_selected?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -397,8 +454,10 @@ export type Database = {
           logo_url: string | null
           name: string
           owner_id: string
+          payment_completed: boolean | null
           phone: string | null
           plan: string
+          plan_selected: string | null
           plan_status: string | null
           plan_tier: string | null
           slug: string
@@ -419,8 +478,10 @@ export type Database = {
           logo_url?: string | null
           name: string
           owner_id: string
+          payment_completed?: boolean | null
           phone?: string | null
           plan?: string
+          plan_selected?: string | null
           plan_status?: string | null
           plan_tier?: string | null
           slug: string
@@ -441,8 +502,10 @@ export type Database = {
           logo_url?: string | null
           name?: string
           owner_id?: string
+          payment_completed?: boolean | null
           phone?: string | null
           plan?: string
+          plan_selected?: string | null
           plan_status?: string | null
           plan_tier?: string | null
           slug?: string

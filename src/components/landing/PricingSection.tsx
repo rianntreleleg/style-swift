@@ -15,38 +15,48 @@ const plans = [
     description: "Ideal para quem está começando",
     features: [
       "1 profissional",
-      "Página pública",
-      "Agendamentos básicos"
+      "1 estabelecimento",
+      "Agendamentos básicos",
+      "Página pública"
     ],
-    className: "border border-muted shadow-lg",
-    buttonVariant: "default" as const
+    className: "border border-muted shadow-lg hover:shadow-xl transition-all duration-300",
+    buttonVariant: "outline" as const,
+    limitations: [
+      "Sem dashboard financeiro",
+      "Sem temas personalizados",
+      "Sem suporte"
+    ]
   },
   {
-    id: "professional",
+    id: "professional", 
     name: "Profissional",
     price: "R$ 43,90",
     description: "Feito para crescer sem dor de cabeça",
     features: [
       "Até 3 profissionais",
-      "Dashboard financeiro",
-      "Suporte prioritário"
+      "1 estabelecimento",
+      "Dashboard financeiro básico",
+      "Tema personalizado",
+      "Suporte incluído"
     ],
-    className: "relative border-2 border-primary shadow-xl bg-gradient-to-b from-primary/5 to-background",
+    className: "relative border-2 border-primary shadow-xl bg-gradient-to-b from-primary/5 to-background hover:shadow-2xl transition-all duration-300",
     buttonVariant: "default" as const,
     badge: "MAIS VENDIDO",
     popular: true
   },
   {
     id: "premium",
-    name: "Premium",
+    name: "Premium", 
     price: "R$ 79,90",
     description: "Seu negócio no piloto automático",
     features: [
       "Profissionais ilimitados",
-      "Relatórios avançados",
-      "Recursos premium"
+      "Até 3 estabelecimentos",
+      "Relatórios financeiros completos",
+      "Robô de IA para atendimento",
+      "Suporte prioritário 24/7"
     ],
-    className: "relative border border-muted shadow-lg bg-muted/10",
+    className: "relative border border-muted shadow-lg bg-gradient-to-b from-background to-muted/10 hover:shadow-xl transition-all duration-300",
     buttonVariant: "outline" as const,
     badge: "TUDO INCLUÍDO"
   }
@@ -97,20 +107,47 @@ const PricingSection = ({ loadingPlan, startCheckout }: PricingSectionProps) => 
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    {feature}
+                    <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">{feature}</span>
                   </li>
                 ))}
               </ul>
               <Button 
                 disabled={!!loadingPlan} 
                 onClick={() => startCheckout(getProductId(plan.id))} 
-                className={`w-full ${plan.popular ? 'bg-primary' : ''}`}
+                className={`w-full h-12 transition-all duration-300 ${
+                  plan.popular 
+                    ? 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl' 
+                    : 'hover:shadow-md'
+                }`}
                 variant={plan.buttonVariant}
               >
-                {loadingPlan === getProductId(plan.id) ? 'Carregando...' : 'Selecionar Plano'}
+                {loadingPlan === getProductId(plan.id) ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"
+                    />
+                    Processando...
+                  </>
+                ) : (
+                  'Escolher Plano'
+                )}
               </Button>
-              <p className="text-xs text-muted-foreground text-center">{plan.description}</p>
+              
+              {plan.limitations && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Limitações:</p>
+                  {plan.limitations.map((limitation, i) => (
+                    <p key={i} className="text-xs text-muted-foreground">• {limitation}</p>
+                  ))}
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                Cancele a qualquer momento
+              </p>
             </CardContent>
           </Card>
         ))}

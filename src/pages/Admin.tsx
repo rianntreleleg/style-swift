@@ -150,9 +150,9 @@ export default function Admin() {
       fetchServices();
       fetchProfessionals();
       fetchAppointments();
-      fetchRevenueData();
-    }
-  }, [selectedTenantId]);
+          // fetchRevenueData(); // Será substituído pelo FinancialDashboard
+        }
+      }, [selectedTenantId]);
 
   const tenantForm = useForm<TenantForm>({ resolver: zodResolver(TenantSchema) });
   const serviceForm = useForm<ServiceForm>({ resolver: zodResolver(ServiceSchema) });
