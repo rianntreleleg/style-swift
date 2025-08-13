@@ -5,58 +5,68 @@ export const THEMES = {
     name: "Barbearia",
     description: "Tema masculino e elegante para barbearias",
     colors: {
-      primary: "#FCF9F2",
-      secondary: "#563A22", 
-      accent: "#F1D7B4",
-      muted: "#9B7C64",
-      highlight: "#F18836"
+      primary: "#8B4513", // Marrom escuro
+      secondary: "#D2691E", 
+      accent: "#CD853F",
+      muted: "#A0522D",
+      highlight: "#F4A460"
     },
     cssVars: {
-      '--background': '48 23% 97%',
-      '--foreground': '30 25% 15%',
-      '--primary': '48 23% 97%',
-      '--primary-foreground': '30 25% 15%',
-      '--secondary': '23 44% 25%',
+      // Dark theme com marrom
+      '--background': '20 25% 8%',
+      '--foreground': '48 23% 97%',
+      '--primary': '25 76% 31%',
+      '--primary-foreground': '48 23% 97%',
+      '--secondary': '25 76% 47%',
       '--secondary-foreground': '48 23% 97%',
-      '--accent': '32 46% 82%',
-      '--accent-foreground': '30 25% 15%',
-      '--muted': '32 25% 60%',
-      '--muted-foreground': '30 15% 35%',
+      '--accent': '25 76% 60%',
+      '--accent-foreground': '20 25% 8%',
+      '--muted': '25 76% 25%',
+      '--muted-foreground': '48 23% 80%',
       '--destructive': '0 84% 60%',
       '--destructive-foreground': '48 23% 97%',
-      '--border': '32 25% 85%',
-      '--input': '32 25% 85%',
-      '--ring': '23 44% 25%',
-      '--radius': '0.5rem'
+      '--border': '25 76% 20%',
+      '--input': '25 76% 15%',
+      '--ring': '25 76% 47%',
+      '--radius': '0.5rem',
+      '--card': '20 25% 10%',
+      '--card-foreground': '48 23% 97%',
+      '--popover': '20 25% 12%',
+      '--popover-foreground': '48 23% 97%'
     }
   },
   salon: {
     name: "Salão de Beleza", 
     description: "Tema feminino e delicado para salões",
     colors: {
-      primary: "#f3988b",
-      secondary: "#637c8b",
-      accent: "#d1d1d1", 
-      muted: "#353339",
-      highlight: "#e2e2e2"
+      primary: "#E91E63", // Rosa vibrante
+      secondary: "#FF69B4", 
+      accent: "#FFB6C1",
+      muted: "#FFC0CB",
+      highlight: "#FF1493"
     },
     cssVars: {
-      '--background': '0 0% 96%',
-      '--foreground': '240 6% 21%',
-      '--primary': '7 67% 76%',
-      '--primary-foreground': '0 0% 100%',
-      '--secondary': '206 18% 48%',
-      '--secondary-foreground': '0 0% 100%',
-      '--accent': '0 0% 82%',
-      '--accent-foreground': '240 6% 21%',
-      '--muted': '258 5% 22%',
-      '--muted-foreground': '0 0% 82%',
+      // Dark theme com rosé
+      '--background': '330 25% 8%',
+      '--foreground': '330 23% 97%',
+      '--primary': '330 76% 55%',
+      '--primary-foreground': '330 23% 97%',
+      '--secondary': '330 76% 70%',
+      '--secondary-foreground': '330 23% 97%',
+      '--accent': '330 76% 85%',
+      '--accent-foreground': '330 25% 8%',
+      '--muted': '330 76% 25%',
+      '--muted-foreground': '330 23% 80%',
       '--destructive': '0 84% 60%',
-      '--destructive-foreground': '0 0% 100%',
-      '--border': '0 0% 88%',
-      '--input': '0 0% 88%',
-      '--ring': '7 67% 76%',
-      '--radius': '0.5rem'
+      '--destructive-foreground': '330 23% 97%',
+      '--border': '330 76% 20%',
+      '--input': '330 76% 15%',
+      '--ring': '330 76% 70%',
+      '--radius': '0.5rem',
+      '--card': '330 25% 10%',
+      '--card-foreground': '330 23% 97%',
+      '--popover': '330 25% 12%',
+      '--popover-foreground': '330 23% 97%'
     }
   }
 } as const;

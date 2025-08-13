@@ -1,0 +1,143 @@
+/* Estilos específicos para os temas */
+
+/* Tema Barbearia - Dark + Marrom */
+.theme-barber {
+  --theme-accent: #8B4513;
+  --theme-accent-light: #D2691E;
+  --theme-accent-dark: #654321;
+}
+
+.theme-barber .bg-gradient-to-br {
+  background: linear-gradient(135deg, hsl(20 25% 8%) 0%, hsl(25 76% 15%) 100%);
+}
+
+.theme-barber .border-primary {
+  border-color: hsl(25 76% 47%);
+}
+
+.theme-barber .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(139, 69, 19, 0.1), 0 4px 6px -2px rgba(139, 69, 19, 0.05);
+}
+
+/* Tema Salão - Dark + Rosé */
+.theme-salon {
+  --theme-accent: #E91E63;
+  --theme-accent-light: #FF69B4;
+  --theme-accent-dark: #C2185B;
+}
+
+.theme-salon .bg-gradient-to-br {
+  background: linear-gradient(135deg, hsl(330 25% 8%) 0%, hsl(330 76% 15%) 100%);
+}
+
+.theme-salon .border-primary {
+  border-color: hsl(330 76% 70%);
+}
+
+.theme-salon .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(233, 30, 99, 0.1), 0 4px 6px -2px rgba(233, 30, 99, 0.05);
+}
+
+/* Melhorias gerais para ambos os temas */
+.theme-barber .card,
+.theme-salon .card {
+  backdrop-filter: blur(10px);
+  border: 1px solid hsl(var(--border));
+}
+
+.theme-barber .button-primary,
+.theme-salon .button-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  transition: all 0.3s ease;
+}
+
+.theme-barber .button-primary:hover,
+.theme-salon .button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Animações específicas por tema */
+.theme-barber .animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.theme-salon .animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Estilos para inputs e formulários */
+.theme-barber input:focus,
+.theme-salon input:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+/* Estilos para badges e elementos de destaque */
+.theme-barber .badge-primary {
+  background: linear-gradient(135deg, hsl(25 76% 47%) 0%, hsl(25 76% 60%) 100%);
+}
+
+.theme-salon .badge-primary {
+  background: linear-gradient(135deg, hsl(330 76% 70%) 0%, hsl(330 76% 85%) 100%);
+}
+
+/* Melhorias para cards e containers */
+.theme-barber .card-hover,
+.theme-salon .card-hover {
+  transition: all 0.3s ease;
+}
+
+.theme-barber .card-hover:hover,
+.theme-salon .card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para ícones */
+.theme-barber .icon-primary {
+  color: hsl(25 76% 60%);
+}
+
+.theme-salon .icon-primary {
+  color: hsl(330 76% 85%);
+}
+
+/* Melhorias para tabelas */
+.theme-barber .table-header,
+.theme-salon .table-header {
+  background: hsl(var(--muted));
+  border-bottom: 2px solid hsl(var(--border));
+}
+
+/* Estilos para modais e popovers */
+.theme-barber .modal-content,
+.theme-salon .modal-content {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Estilos para loading e estados de carregamento */
+.theme-barber .loading-spinner,
+.theme-salon .loading-spinner {
+  border-color: hsl(var(--muted));
+  border-top-color: hsl(var(--primary));
+}
+
+/* Estilos para notificações e toasts */
+.theme-barber .toast-success {
+  background: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 76% 46%) 100%);
+}
+
+.theme-salon .toast-success {
+  background: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 76% 46%) 100%);
+}
+
+.theme-barber .toast-error {
+  background: linear-gradient(135deg, hsl(0 84% 60%) 0%, hsl(0 84% 70%) 100%);
+}
+
+.theme-salon .toast-error {
+  background: linear-gradient(135deg, hsl(0 84% 60%) 0%, hsl(0 84% 70%) 100%);
+}

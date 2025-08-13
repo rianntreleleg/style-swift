@@ -7,9 +7,18 @@ interface ThemeApplicatorProps {
 
 export function ThemeApplicator({ themeVariant = 'barber' }: ThemeApplicatorProps) {
   useEffect(() => {
-    if (themeVariant === 'salon' || themeVariant === 'barber') {
-      applyTheme(themeVariant as 'salon' | 'barber');
-    }
+    // Validar se o tema é válido
+    const validThemes = ['salon', 'barber'];
+    const theme = validThemes.includes(themeVariant) ? themeVariant : 'barber';
+    
+    // Aplicar o tema
+    applyTheme(theme as 'salon' | 'barber');
+    
+    // Adicionar classe ao body para facilitar estilos específicos
+    document.body.className = document.body.className.replace(/theme-\w+/g, '');
+    document.body.classList.add(`theme-${theme}`);
+    
+    console.log(`🎨 Tema aplicado: ${theme}`);
   }, [themeVariant]);
 
   return null;

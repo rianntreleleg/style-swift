@@ -44,6 +44,7 @@ import ProfessionalsTable from "@/components/ProfessionalsTable";
 import AppointmentsTable from "@/components/AppointmentsTable";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
+import { ThemeApplicator } from "@/components/ThemeApplicator";
 import { formatBRL } from "@/lib/utils";
 
 const TenantSchema = z.object({
@@ -515,7 +516,9 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <>
+      <ThemeApplicator themeVariant={selectedTenant?.theme_variant} />
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm">
         <div className="container flex items-center justify-between py-4">
@@ -730,56 +733,7 @@ export default function Admin() {
               {/* Dashboard Financeiro */}
               <FinancialDashboard tenantId={selectedTenantId || ''} planTier={subscriptionTier} />
               
-              <div className="grid gap-6 md:grid-cols-2">
-                <Card className="border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      Receita dos Últimos 30 Dias
-                    </CardTitle>
-                    <CardDescription>
-                      Gráfico de receita ao longo do tempo
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <RevenueChart data={revenueData} totalRevenue={totalRevenue} period="dos Últimos 30 Dias" />
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Receita por Serviço
-                    </CardTitle>
-                    <CardDescription>
-                      Receita gerada por cada serviço
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {serviceRevenue.map((service, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <div>
-                            <p className="font-medium">{service.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {service.count} agendamento{service.count !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <p className="font-bold text-green-600">
-                            {formatBRL(service.revenue)}
-                          </p>
-                        </div>
-                      ))}
-                      {serviceRevenue.length === 0 && (
-                        <p className="text-center text-muted-foreground py-8">
-                          Nenhuma receita registrada no período
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              
             </motion.div>
           </TabsContent>
 
@@ -1180,5 +1134,6 @@ export default function Admin() {
         </Tabs>
       </main>
     </div>
+    </>
   );
 }
