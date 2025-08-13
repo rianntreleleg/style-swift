@@ -1,80 +1,95 @@
 // Configuração de temas personalizados
 
-export const THEMES = {
+export interface ThemeConfig {
+  [key: string]: {
+    name: string;
+    description: string;
+    colors: {
+      primary: string;
+      secondary: string;
+      accent: string;
+      muted: string;
+      highlight: string;
+    };
+    cssVars: {
+      [key: string]: string;
+    };
+  };
+}
+
+export const themes: ThemeConfig = {
   barber: {
     name: "Barbearia",
-    description: "Tema masculino e elegante para barbearias",
+    description: "Tema masculino e elegante para barbearias, com fundo escuro e cores modernas",
     colors: {
-      primary: "#8B4513", // Marrom escuro
-      secondary: "#D2691E", 
-      accent: "#CD853F",
-      muted: "#A0522D",
-      highlight: "#F4A460"
+      primary: "#1C160F", // Marrom Carvão
+      secondary: "#4A3C32", // Marrom Café
+      accent: "#C76E36", // Laranja Telha
+      muted: "#5C5248", // Cinza Marrom
+      highlight: "#EAE4DB" // Branco Creme Suave
     },
     cssVars: {
-      // Dark theme com marrom
-      '--background': '20 25% 8%',
-      '--foreground': '48 23% 97%',
-      '--primary': '25 76% 31%',
-      '--primary-foreground': '48 23% 97%',
-      '--secondary': '25 76% 47%',
-      '--secondary-foreground': '48 23% 97%',
-      '--accent': '25 76% 60%',
-      '--accent-foreground': '20 25% 8%',
-      '--muted': '25 76% 25%',
-      '--muted-foreground': '48 23% 80%',
+      '--background': '0 0% 0%', // Preto puro
+      '--foreground': '25 76% 91%', // #EAE4DB
+      '--primary': '25 15% 7%', // #1C160F
+      '--primary-foreground': '25 76% 91%', // #EAE4DB
+      '--secondary': '25 15% 24%', // #4A3C32
+      '--secondary-foreground': '25 76% 91%', // #EAE4DB
+      '--accent': '25 76% 50%', // #C76E36
+      '--accent-foreground': '25 15% 7%', // #1C160F
+      '--muted': '25 15% 30%', // #5C5248
+      '--muted-foreground': '25 76% 91%', // #EAE4DB
       '--destructive': '0 84% 60%',
-      '--destructive-foreground': '48 23% 97%',
-      '--border': '25 76% 20%',
-      '--input': '25 76% 15%',
-      '--ring': '25 76% 47%',
+      '--destructive-foreground': '25 76% 91%', // #EAE4DB
+      '--border': '25 15% 30%', // #5C5248
+      '--input': '25 15% 24%', // #4A3C32
+      '--ring': '25 76% 50%', // #C76E36
       '--radius': '0.5rem',
-      '--card': '20 25% 10%',
-      '--card-foreground': '48 23% 97%',
-      '--popover': '20 25% 12%',
-      '--popover-foreground': '48 23% 97%'
+      '--card': '0 0% 5%', // Cinza muito escuro
+      '--card-foreground': '25 76% 91%', // #EAE4DB
+      '--popover': '0 0% 5%', // Cinza muito escuro
+      '--popover-foreground': '25 76% 91%' // #EAE4DB
     }
   },
   salon: {
-    name: "Salão de Beleza", 
-    description: "Tema feminino e delicado para salões",
+    name: "Salão de Beleza",
+    description: "Tema feminino e delicado para salões, com fundo escuro e cores sofisticadas",
     colors: {
-      primary: "#E91E63", // Rosa vibrante
-      secondary: "#FF69B4", 
-      accent: "#FFB6C1",
-      muted: "#FFC0CB",
-      highlight: "#FF1493"
+      primary: "#E9A3C4", // Rosa Blush
+      secondary: "#5E6D7E", // Cinza ardósia
+      accent: "#F7D26E", // Ouro Envelhecido
+      muted: "#EAE2DE", // Bege Claro
+      highlight: "#FFFFFF" // Branco Puro
     },
     cssVars: {
-      // Dark theme com rosé
-      '--background': '330 25% 8%',
-      '--foreground': '330 23% 97%',
-      '--primary': '330 76% 55%',
-      '--primary-foreground': '330 23% 97%',
-      '--secondary': '330 76% 70%',
-      '--secondary-foreground': '330 23% 97%',
-      '--accent': '330 76% 85%',
-      '--accent-foreground': '330 25% 8%',
-      '--muted': '330 76% 25%',
-      '--muted-foreground': '330 23% 80%',
+      '--background': '220 20% 8%', // Dark Blue
+      '--foreground': '30 20% 90%', // #EAE2DE
+      '--primary': '330 65% 82%', // #E9A3C4
+      '--primary-foreground': '220 20% 8%', // Dark Blue
+      '--secondary': '210 15% 45%', // #5E6D7E
+      '--secondary-foreground': '30 20% 90%', // #EAE2DE
+      '--accent': '46 92% 70%', // #F7D26E
+      '--accent-foreground': '220 20% 8%', // Dark Blue
+      '--muted': '220 20% 12%', // Dark Blue mais claro
+      '--muted-foreground': '30 20% 90%', // #EAE2DE
       '--destructive': '0 84% 60%',
-      '--destructive-foreground': '330 23% 97%',
-      '--border': '330 76% 20%',
-      '--input': '330 76% 15%',
-      '--ring': '330 76% 70%',
+      '--destructive-foreground': '30 20% 90%', // #EAE2DE
+      '--border': '210 15% 45%', // #5E6D7E
+      '--input': '220 20% 12%', // Dark Blue mais claro
+      '--ring': '330 65% 82%', // #E9A3C4
       '--radius': '0.5rem',
-      '--card': '330 25% 10%',
-      '--card-foreground': '330 23% 97%',
-      '--popover': '330 25% 12%',
-      '--popover-foreground': '330 23% 97%'
+      '--card': '220 20% 10%', // Dark Blue médio
+      '--card-foreground': '30 20% 90%', // #EAE2DE
+      '--popover': '220 20% 10%', // Dark Blue médio
+      '--popover-foreground': '30 20% 90%' // #EAE2DE
     }
   }
-} as const;
+};
 
-export type ThemeVariant = keyof typeof THEMES;
+export type ThemeVariant = keyof typeof themes;
 
 export const getThemeConfig = (variant: ThemeVariant) => {
-  return THEMES[variant] || THEMES.barber;
+  return themes[variant] || themes.barber;
 };
 
 export const applyTheme = (variant: ThemeVariant) => {

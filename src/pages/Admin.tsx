@@ -43,6 +43,7 @@ import ServicesTable from "@/components/ServicesTable";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
 import AppointmentsTable from "@/components/AppointmentsTable";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
+import AutoConfirmationManager from "@/components/AutoConfirmationManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import { ThemeApplicator } from "@/components/ThemeApplicator";
 import { formatBRL } from "@/lib/utils";
@@ -1128,6 +1129,11 @@ export default function Admin() {
               {/* Horários de Funcionamento */}
               {selectedTenant && (
                 <BusinessHoursManager tenantId={selectedTenant.id} />
+              )}
+
+              {/* Confirmação Automática de Agendamentos */}
+              {selectedTenant && (
+                <AutoConfirmationManager />
               )}
             </motion.div>
           </TabsContent>

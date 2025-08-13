@@ -1,143 +1,277 @@
-/* Estilos específicos para os temas */
+/* Estilos específicos para temas */
+/* Estes estilos complementam as variáveis CSS definidas em themes.ts */
 
-/* Tema Barbearia - Dark + Marrom */
+/* Tema Barbearia - Fundo escuro com cores masculinas */
 .theme-barber {
-  --theme-accent: #8B4513;
-  --theme-accent-light: #D2691E;
-  --theme-accent-dark: #654321;
+  /* Fundo escuro com gradiente sutil */
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+  
+  /* Bordas e sombras suaves */
+  --border-color: #5C5248;
+  --shadow-color: rgba(198, 110, 54, 0.2);
+  
+  /* Cards com fundo escuro */
+  .card {
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid #5C5248;
+    box-shadow: 0 4px 12px rgba(198, 110, 54, 0.15);
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Botões com cores contrastantes */
+  .btn-primary {
+    background: linear-gradient(135deg, #C76E36 0%, #9B7C64 100%);
+    border: none;
+    box-shadow: 0 2px 8px rgba(198, 110, 54, 0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #B85D25 0%, #8A6B53 100%);
+    box-shadow: 0 4px 12px rgba(198, 110, 54, 0.4);
+    transform: translateY(-1px);
+  }
+  
+  .btn-secondary {
+    background: rgba(74, 60, 50, 0.8);
+    border: 1px solid #5C5248;
+    color: #EAE4DB;
+  }
+  
+  .btn-secondary:hover {
+    background: rgba(92, 82, 72, 0.9);
+    border-color: #C76E36;
+  }
+  
+  /* Inputs com fundo escuro */
+  .input {
+    background: rgba(10, 10, 10, 0.8);
+    border: 1px solid #5C5248;
+    color: #EAE4DB;
+  }
+  
+  .input:focus {
+    border-color: #C76E36;
+    box-shadow: 0 0 0 2px rgba(198, 110, 54, 0.2);
+  }
+  
+  /* Badges com cores temáticas */
+  .badge {
+    background: rgba(198, 110, 54, 0.2);
+    border: 1px solid #C76E36;
+    color: #EAE4DB;
+  }
+  
+  /* Hover effects */
+  .card:hover {
+    border-color: #C76E36;
+    box-shadow: 0 6px 16px rgba(198, 110, 54, 0.2);
+  }
+  
+  /* Ícones com cor temática */
+  .icon {
+    color: #C76E36;
+  }
+  
+  /* Tabelas */
+  .table th {
+    background: rgba(28, 22, 15, 0.8);
+    border-bottom: 2px solid #C76E36;
+    color: #EAE4DB;
+  }
+  
+  .table td {
+    border-bottom: 1px solid #5C5248;
+    color: #EAE4DB;
+  }
+  
+  /* Modais e popovers */
+  .modal, .popover {
+    background: rgba(10, 10, 10, 0.98);
+    border: 1px solid #5C5248;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Loading spinner */
+  .spinner {
+    border-color: #5C5248;
+    border-top-color: #C76E36;
+  }
+  
+  /* Toast notifications */
+  .toast {
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid #5C5248;
+    color: #EAE4DB;
+  }
+  
+  /* Transições suaves */
+  * {
+    transition: all 0.2s ease;
+  }
+  
+  /* Links */
+  a {
+    color: #C76E36;
+  }
+  
+  a:hover {
+    color: #B85D25;
+  }
+  
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #5C5248;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #C76E36;
+  }
 }
 
-.theme-barber .bg-gradient-to-br {
-  background: linear-gradient(135deg, hsl(20 25% 8%) 0%, hsl(25 76% 15%) 100%);
-}
-
-.theme-barber .border-primary {
-  border-color: hsl(25 76% 47%);
-}
-
-.theme-barber .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(139, 69, 19, 0.1), 0 4px 6px -2px rgba(139, 69, 19, 0.05);
-}
-
-/* Tema Salão - Dark + Rosé */
+/* Tema Salão - Fundo escuro com cores femininas */
 .theme-salon {
-  --theme-accent: #E91E63;
-  --theme-accent-light: #FF69B4;
-  --theme-accent-dark: #C2185B;
-}
-
-.theme-salon .bg-gradient-to-br {
-  background: linear-gradient(135deg, hsl(330 25% 8%) 0%, hsl(330 76% 15%) 100%);
-}
-
-.theme-salon .border-primary {
-  border-color: hsl(330 76% 70%);
-}
-
-.theme-salon .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(233, 30, 99, 0.1), 0 4px 6px -2px rgba(233, 30, 99, 0.05);
-}
-
-/* Melhorias gerais para ambos os temas */
-.theme-barber .card,
-.theme-salon .card {
-  backdrop-filter: blur(10px);
-  border: 1px solid hsl(var(--border));
-}
-
-.theme-barber .button-primary,
-.theme-salon .button-primary {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
-  transition: all 0.3s ease;
-}
-
-.theme-barber .button-primary:hover,
-.theme-salon .button-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Animações específicas por tema */
-.theme-barber .animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.theme-salon .animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Estilos para inputs e formulários */
-.theme-barber input:focus,
-.theme-salon input:focus {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
-}
-
-/* Estilos para badges e elementos de destaque */
-.theme-barber .badge-primary {
-  background: linear-gradient(135deg, hsl(25 76% 47%) 0%, hsl(25 76% 60%) 100%);
-}
-
-.theme-salon .badge-primary {
-  background: linear-gradient(135deg, hsl(330 76% 70%) 0%, hsl(330 76% 85%) 100%);
-}
-
-/* Melhorias para cards e containers */
-.theme-barber .card-hover,
-.theme-salon .card-hover {
-  transition: all 0.3s ease;
-}
-
-.theme-barber .card-hover:hover,
-.theme-salon .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-/* Estilos para ícones */
-.theme-barber .icon-primary {
-  color: hsl(25 76% 60%);
-}
-
-.theme-salon .icon-primary {
-  color: hsl(330 76% 85%);
-}
-
-/* Melhorias para tabelas */
-.theme-barber .table-header,
-.theme-salon .table-header {
-  background: hsl(var(--muted));
-  border-bottom: 2px solid hsl(var(--border));
-}
-
-/* Estilos para modais e popovers */
-.theme-barber .modal-content,
-.theme-salon .modal-content {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-/* Estilos para loading e estados de carregamento */
-.theme-barber .loading-spinner,
-.theme-salon .loading-spinner {
-  border-color: hsl(var(--muted));
-  border-top-color: hsl(var(--primary));
-}
-
-/* Estilos para notificações e toasts */
-.theme-barber .toast-success {
-  background: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 76% 46%) 100%);
-}
-
-.theme-salon .toast-success {
-  background: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 76% 46%) 100%);
-}
-
-.theme-barber .toast-error {
-  background: linear-gradient(135deg, hsl(0 84% 60%) 0%, hsl(0 84% 70%) 100%);
-}
-
-.theme-salon .toast-error {
-  background: linear-gradient(135deg, hsl(0 84% 60%) 0%, hsl(0 84% 70%) 100%);
+  /* Fundo dark blue com gradiente sutil */
+  background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+  
+  /* Bordas e sombras suaves */
+  --border-color: #5E6D7E;
+  --shadow-color: rgba(233, 163, 196, 0.2);
+  
+  /* Cards com fundo escuro */
+  .card {
+    background: rgba(15, 20, 25, 0.95);
+    border: 1px solid #5E6D7E;
+    box-shadow: 0 4px 12px rgba(233, 163, 196, 0.15);
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Botões com cores contrastantes */
+  .btn-primary {
+    background: linear-gradient(135deg, #E9A3C4 0%, #F7D26E 100%);
+    border: none;
+    box-shadow: 0 2px 8px rgba(233, 163, 196, 0.3);
+    transition: all 0.3s ease;
+    color: #0f1419;
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #D892B3 0%, #E6C25E 100%);
+    box-shadow: 0 4px 12px rgba(233, 163, 196, 0.4);
+    transform: translateY(-1px);
+  }
+  
+  .btn-secondary {
+    background: rgba(94, 109, 126, 0.8);
+    border: 1px solid #5E6D7E;
+    color: #EAE2DE;
+  }
+  
+  .btn-secondary:hover {
+    background: rgba(112, 127, 144, 0.9);
+    border-color: #E9A3C4;
+  }
+  
+  /* Inputs com fundo escuro */
+  .input {
+    background: rgba(15, 20, 25, 0.8);
+    border: 1px solid #5E6D7E;
+    color: #EAE2DE;
+  }
+  
+  .input:focus {
+    border-color: #E9A3C4;
+    box-shadow: 0 0 0 2px rgba(233, 163, 196, 0.2);
+  }
+  
+  /* Badges com cores temáticas */
+  .badge {
+    background: rgba(233, 163, 196, 0.2);
+    border: 1px solid #E9A3C4;
+    color: #EAE2DE;
+  }
+  
+  /* Hover effects */
+  .card:hover {
+    border-color: #E9A3C4;
+    box-shadow: 0 6px 16px rgba(233, 163, 196, 0.2);
+  }
+  
+  /* Ícones com cor temática */
+  .icon {
+    color: #E9A3C4;
+  }
+  
+  /* Tabelas */
+  .table th {
+    background: rgba(15, 20, 25, 0.8);
+    border-bottom: 2px solid #E9A3C4;
+    color: #EAE2DE;
+  }
+  
+  .table td {
+    border-bottom: 1px solid #5E6D7E;
+    color: #EAE2DE;
+  }
+  
+  /* Modais e popovers */
+  .modal, .popover {
+    background: rgba(15, 20, 25, 0.98);
+    border: 1px solid #5E6D7E;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Loading spinner */
+  .spinner {
+    border-color: #5E6D7E;
+    border-top-color: #E9A3C4;
+  }
+  
+  /* Toast notifications */
+  .toast {
+    background: rgba(15, 20, 25, 0.95);
+    border: 1px solid #5E6D7E;
+    color: #EAE2DE;
+  }
+  
+  /* Transições suaves */
+  * {
+    transition: all 0.2s ease;
+  }
+  
+  /* Links */
+  a {
+    color: #E9A3C4;
+  }
+  
+  a:hover {
+    color: #D892B3;
+  }
+  
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #1a1f2e;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #5E6D7E;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #E9A3C4;
+  }
 }
