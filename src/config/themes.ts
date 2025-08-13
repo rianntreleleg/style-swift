@@ -67,8 +67,9 @@ export const getThemeConfig = (variant: ThemeVariant) => {
   return THEMES[variant] || THEMES.barber;
 };
 
-export const applyTheme = (variant: ThemeVariant) => {
-  const theme = getThemeConfig(variant);
+export const applyTheme = (variant: string) => {
+  const validVariant = (variant === 'barber' || variant === 'salon') ? variant : 'barber';
+  const theme = getThemeConfig(validVariant);
   const root = document.documentElement;
   
   Object.entries(theme.cssVars).forEach(([property, value]) => {

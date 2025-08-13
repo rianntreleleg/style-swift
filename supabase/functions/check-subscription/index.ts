@@ -103,6 +103,7 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
+    // Update subscribers table
     await supabaseClient.from("subscribers").upsert({
       email: user.email,
       user_id: user.id,
@@ -112,6 +113,22 @@ serve(async (req) => {
       subscription_end: subscriptionEnd,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
+
+    // Update tenant table with plan info
+    if (hasActiveSub && subscriptionTier) {
+      await supabaseClient
+        .from("tenants")
+        .update({
+          plan_tier: subscriptionTier,
+          plan_status: "active",
+          stripe_customer_id: customerId,
+          current_period_end: subscriptionEnd,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("owner_id", user.id);
+      
+      logStep("Updated tenant with subscription info", { subscriptionTier });
+    }
 
     logStep("Updated database with subscription info", { subscribed: hasActiveSub, subscriptionTier });
     
