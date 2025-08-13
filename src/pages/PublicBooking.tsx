@@ -353,9 +353,11 @@ export default function PublicBooking() {
     if (!selectedDate || !businessHours.length) return [];
     
     const dayOfWeek = selectedDate.getDay();
-    const dayHours = businessHours.find(h => h.day_of_week === dayOfWeek);
+    const dayHours = businessHours.find(h => h.weekday === dayOfWeek);
     
-    if (!dayHours || !dayHours.is_open) return [];
+    if (!dayHours || dayHours.closed) return [];
+    
+    if (!dayHours.open_time || !dayHours.close_time) return [];
     
     const slots = [];
     const [startHour, startMin] = dayHours.open_time.split(":").map(Number);

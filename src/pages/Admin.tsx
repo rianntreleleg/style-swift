@@ -43,6 +43,7 @@ import RevenueChart from "@/components/RevenueChart";
 import ServicesTable from "@/components/ServicesTable";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
 import AppointmentsTable from "@/components/AppointmentsTable";
+import BusinessHoursManager from "@/components/BusinessHoursManager";
 import { formatBRL } from "@/lib/utils";
 
 const TenantSchema = z.object({
@@ -1038,7 +1039,9 @@ export default function Admin() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              className="space-y-6"
             >
+              {/* Configurações Gerais */}
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1126,6 +1129,11 @@ export default function Admin() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Horários de Funcionamento */}
+              {selectedTenant && (
+                <BusinessHoursManager tenantId={selectedTenant.id} />
+              )}
             </motion.div>
           </TabsContent>
         </Tabs>

@@ -101,14 +101,22 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
         .delete()
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir agendamento:', error);
+        throw error;
+      }
 
       toast({ title: 'Agendamento excluído com sucesso!' });
-      onAppointmentUpdate();
+      
+      // Chamar callback para atualizar a lista
+      if (onAppointmentUpdate) {
+        onAppointmentUpdate();
+      }
     } catch (error: any) {
+      console.error('Erro detalhado:', error);
       toast({ 
         title: 'Erro ao excluir agendamento', 
-        description: error.message,
+        description: error.message || 'Erro desconhecido ao excluir agendamento',
         variant: 'destructive'
       });
     }

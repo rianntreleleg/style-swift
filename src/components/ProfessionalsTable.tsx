@@ -117,6 +117,35 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
 
   const handleToggleActive = async (professionalId: string, currentActive: boolean) => {
     try {
+      // Se está tentando ativar, verificar limite primeiro
+      if (!currentActive) {
+        // Contar profissionais ativos
+        const { count } = await supabase
+          .from('professionals')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId)
+          .eq('active', true);
+
+        // Buscar plano do tenant
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('plan')
+          .eq('id', tenantId)
+          .single();
+
+        const plan = tenantData?.plan || 'free';
+        const limit = plan === 'free' ? 1 : plan === 'pro' ? 3 : 10;
+
+        if (count && count >= limit) {
+          toast({ 
+            title: 'Limite atingido', 
+            description: `Seu plano atual permite apenas ${limit} profissional(ais) ativo(s).`,
+            variant: 'destructive'
+          });
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('professionals')
         .update({ active: !currentActive })
