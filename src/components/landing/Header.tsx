@@ -46,6 +46,17 @@ const Header = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <a href="/auth">
+              <Button variant="outline" className="border-primary/20 hover:bg-primary/10">
+                Login
+              </Button>
+            </a>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <a href="#planos">

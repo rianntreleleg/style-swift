@@ -42,6 +42,7 @@ import SubscriptionPlans from "@/components/SubscriptionPlans";
 import RevenueChart from "@/components/RevenueChart";
 import ServicesTable from "@/components/ServicesTable";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
+import AppointmentsTable from "@/components/AppointmentsTable";
 import { formatBRL } from "@/lib/utils";
 
 const TenantSchema = z.object({
@@ -84,6 +85,7 @@ export default function Admin() {
   // Novos estados para funcionalidades
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [serviceRevenue, setServiceRevenue] = useState<any[]>([]);
@@ -146,6 +148,7 @@ export default function Admin() {
     if (selectedTenantId) {
       fetchServices();
       fetchProfessionals();
+      fetchAppointments();
       fetchRevenueData();
     }
   }, [selectedTenantId]);
@@ -230,6 +233,24 @@ export default function Admin() {
       return;
     }
     setProfessionals(data ?? []);
+  };
+
+  const fetchAppointments = async () => {
+    if (!selectedTenantId) return;
+    const { data, error } = await supabase
+      .from("appointments")
+      .select(`
+        *,
+        services(name, price_cents),
+        professionals(name)
+      `)
+      .eq("tenant_id", selectedTenantId)
+      .order("start_time", { ascending: false });
+    if (error) {
+      toast({ title: "Erro ao carregar agendamentos", description: error.message });
+      return;
+    }
+    setAppointments(data ?? []);
   };
 
   const fetchRevenueData = async () => {
@@ -517,7 +538,7 @@ export default function Admin() {
 
       <main className="container py-8 space-y-8">
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-lg">
+          <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 rounded-lg">
             <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <BarChart3 className="h-4 w-4" /> Dashboard
             </TabsTrigger>
@@ -529,6 +550,9 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="pros" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Users2 className="h-4 w-4" /> Profissionais
+            </TabsTrigger>
+            <TabsTrigger value="appointments" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Calendar className="h-4 w-4" /> Agendamentos
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Settings className="h-4 w-4" /> Configurações
@@ -991,6 +1015,21 @@ export default function Admin() {
                   </form>
                 </CardContent>
               </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="appointments" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-6"
+            >
+              <AppointmentsTable 
+                appointments={appointments} 
+                onAppointmentUpdate={fetchAppointments}
+                tenantId={selectedTenantId || ''}
+              />
             </motion.div>
           </TabsContent>
 
