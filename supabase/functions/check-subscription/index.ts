@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,25 +24,16 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
-    // Use service role key to bypass RLS for upsert operations
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
     
     const token = authHeader.replace("Bearer ", "");
-    
-    // Get user with anon key first
-    const anonClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-    
-    const { data: userData, error: userError } = await anonClient.auth.getUser(token);
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
@@ -68,7 +59,7 @@ serve(async (req) => {
         status: 200,
       });
     }
-
+    
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
@@ -113,25 +104,27 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
 
-    // Atualizar também a tabela tenant com o plano
-    const { error: updateError } = await supabaseClient.rpc('update_tenant_subscription', {
-      p_user_id: user.id,
-      p_subscription_tier: subscriptionTier,
-      p_subscribed: hasActiveSub
-    });
-    
-    if (updateError) {
-      logStep("Warning: Failed to update tenant subscription", { error: updateError.message });
-    } else {
-      logStep("Updated tenant subscription", { subscriptionTier, subscribed: hasActiveSub });
+    // Sincronizar com a tabela tenants
+    if (hasActiveSub && subscriptionTier) {
+      await supabaseClient.from("tenants").update({
+        plan: subscriptionTier,
+        plan_tier: subscriptionTier,
+        plan_status: "active",
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptions.data[0].id,
+        payment_completed: true,
+        current_period_start: new Date(subscriptions.data[0].current_period_start * 1000).toISOString(),
+        current_period_end: subscriptionEnd,
+        updated_at: new Date().toISOString(),
+      }).eq("owner_id", user.id);
+      
+      logStep("Tenant updated with subscription info");
     }
 
-    logStep("Updated database with subscription info", { subscribed: hasActiveSub, subscriptionTier });
-    
-    return new Response(JSON.stringify({
+    return new Response(JSON.stringify({ 
       subscribed: hasActiveSub,
-      subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd
+      tier: subscriptionTier,
+      endDate: subscriptionEnd
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
@@ -139,7 +132,7 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in check-subscription", { message: errorMessage });
+    logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,9 +35,7 @@ const SignupSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   name: z.string().min(2, "Nome obrigatório"),
-  business_name: z.string().min(2, "Nome da barbearia obrigatório"),
-  slug: z.string().min(2, "Slug obrigatório").regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"),
-  theme_variant: z.enum(["barber", "salon"]).default("barber"),
+  business_name: z.string().min(2, "Nome do estabelecimento obrigatório"),
   logo_url: z.string().url().optional().or(z.literal("")),
   open_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   close_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
@@ -52,11 +50,11 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const signupForm = useForm<SignupForm>({
     resolver: zodResolver(SignupSchema),
     defaultValues: {
-      theme_variant: "barber",
       open_time: "09:00",
       close_time: "18:00",
       working_days: [1,2,3,4,5,6],
@@ -82,6 +80,23 @@ export default function Auth() {
   // Verificar se há plano selecionado para permitir cadastro
   const planSelected = localStorage.getItem('planSelected');
   const canAccessSignup = !!planSelected;
+
+  // Verificar se veio do checkout de pagamento
+  const checkoutSuccess = searchParams.get('checkout') === 'success';
+  const sessionId = searchParams.get('session_id');
+
+  useEffect(() => {
+    if (checkoutSuccess && sessionId) {
+      // Usuário veio do pagamento bem-sucedido
+      toast({
+        title: "Pagamento realizado com sucesso!",
+        description: "Agora você pode criar sua conta.",
+      });
+      
+      // Limpar URL para não mostrar os parâmetros
+      navigate('/auth', { replace: true });
+    }
+  }, [checkoutSuccess, sessionId, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,29 +139,76 @@ export default function Auth() {
         email: values.email,
         password: values.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/admin`
+          emailRedirectTo: `${window.location.origin}/auth`
         }
       });
 
       if (authError) throw authError;
 
       if (authData.user) {
+        // Gerar slug único baseado no nome do estabelecimento
+        const baseSlug = values.business_name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim('-');
+        
+        // Verificar se o slug já existe e adicionar número se necessário
+        let finalSlug = baseSlug;
+        let counter = 1;
+        while (true) {
+          const { data: existingTenant } = await supabase
+            .from("tenants")
+            .select("id")
+            .eq("slug", finalSlug)
+            .single();
+          
+          if (!existingTenant) break;
+          finalSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+
+        // Verificar se já existe pagamento para este email
+        const { data: existingPayment } = await supabase
+          .from("subscribers")
+          .select("*")
+          .eq("email", values.email)
+          .eq("subscribed", true)
+          .single();
+
         // Cria o tenant com informações do plano
         const { data: tenantRow, error: tenantError } = await supabase
           .from("tenants")
           .insert({
             owner_id: authData.user.id,
             name: values.business_name,
-            slug: values.slug,
-            theme_variant: values.theme_variant,
+            slug: finalSlug,
+            theme_variant: "barber", // Tema padrão
             logo_url: values.logo_url || null,
-            plan_selected: planSelected,
-            payment_completed: false
+            plan: existingPayment?.subscription_tier || planSelected || 'essential',
+            plan_tier: existingPayment?.subscription_tier || planSelected || 'essential',
+            plan_status: existingPayment ? 'active' : 'pending',
+            payment_completed: !!existingPayment,
+            stripe_customer_id: existingPayment?.stripe_customer_id || null,
+            stripe_subscription_id: existingPayment?.stripe_subscription_id || null,
           })
           .select("id")
           .single();
 
         if (tenantError) throw tenantError;
+
+        // Se existe pagamento, associar ao tenant
+        if (existingPayment) {
+          await supabase.rpc('associate_payment_to_tenant', {
+            p_user_id: authData.user.id,
+            p_plan_tier: existingPayment.subscription_tier,
+            p_stripe_customer_id: existingPayment.stripe_customer_id,
+            p_stripe_subscription_id: existingPayment.stripe_subscription_id
+          });
+        }
 
         // Cria horários de funcionamento baseados na seleção do cadastro
         const rows = Array.from({ length: 7 }, (_, weekday) => ({
@@ -165,9 +227,18 @@ export default function Auth() {
 
         toast({
           title: "Conta criada com sucesso!",
-          description: "Verifique seu email para confirmar a conta e acessar o painel."
+          description: existingPayment 
+            ? "Sua conta foi criada e o pagamento foi associado. Você pode fazer login agora."
+            : "Verifique seu email para confirmar a conta e acessar o painel."
         });
+        
         signupForm.reset();
+        
+        // Se já tem pagamento, redirecionar para login
+        if (existingPayment) {
+          setIsLogin(true);
+          setEmail(values.email);
+        }
       }
     } catch (error: any) {
       toast({
@@ -272,6 +343,14 @@ export default function Auth() {
                     : "Comece gratuitamente e automatize seus agendamentos"
                   }
                 </CardDescription>
+                {!isLogin && (
+                  <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <strong>Importante:</strong> Cada usuário pode criar apenas um estabelecimento. 
+                      O slug da URL será gerado automaticamente baseado no nome do estabelecimento.
+                    </p>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-6">
                 {isLogin ? (
@@ -363,7 +442,7 @@ export default function Auth() {
                           className="h-12"
                         />
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-3 md:col-span-2">
                         <Label htmlFor="business_name" className="text-sm font-medium flex items-center gap-2">
                           <Building2 className="h-4 w-4" />
                           Nome do estabelecimento
@@ -374,36 +453,9 @@ export default function Auth() {
                           placeholder="Barbearia do João ou Salão da Maria"
                           className="h-12"
                         />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="slug" className="text-sm font-medium flex items-center gap-2">
-                          <Link className="h-4 w-4" />
-                          Slug público
-                        </Label>
-                        <Input
-                          id="slug"
-                          {...signupForm.register("slug")}
-                          placeholder="barbearia-joao"
-                          className="h-12"
-                        />
                         <p className="text-xs text-muted-foreground">
-                          Sua URL será: style-swift.com/agendamento?tenant=barbearia-joao
+                          O slug da URL será gerado automaticamente baseado no nome do estabelecimento
                         </p>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium flex items-center gap-2">
-                          <Palette className="h-4 w-4" />
-                          Tema
-                        </Label>
-                        <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as any)}>
-                          <SelectTrigger className="h-12">
-                            <SelectValue placeholder="Escolha o tema" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="barber">Barbearia (dark + dourado)</SelectItem>
-                            <SelectItem value="salon">Salão de Beleza (clean + rosa)</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                       {/* Funcionamento */}
                       <div className="space-y-4 md:col-span-2 rounded-lg border p-4">

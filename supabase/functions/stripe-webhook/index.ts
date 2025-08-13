@@ -13,6 +13,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-05-28.basil" });
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+// Mapeamento de produtos para planos
+const PRODUCT_TO_PLAN_MAP: Record<string, string> = {
+  "prod_SqqVGzUIvJPVpt": "essential",
+  "prod_professional": "professional", 
+  "prod_premium": "premium"
+};
+
 export async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
@@ -33,23 +40,58 @@ export async function handler(req: Request): Promise<Response> {
         const session = event.data.object as Stripe.Checkout.Session;
         const customerId = session.customer as string;
         const productId = (session.metadata?.product_id as string) || undefined;
-        const planTier = (session.metadata?.plan_tier as string) || undefined;
+        const planTier = PRODUCT_TO_PLAN_MAP[productId || ""] || "essential";
 
-        // Upsert tenant-less subscription row (associate later when tenant created)
-        await supabase.from("subscriptions").insert({
-          stripe_customer_id: customerId,
-          stripe_subscription_id: session.subscription as string,
-          stripe_product_id: productId,
-          plan_tier: planTier,
-          status: "active",
-        } as any);
+        console.log(`[WEBHOOK] Checkout completed for customer ${customerId}, plan: ${planTier}`);
+
+        // Buscar o customer para obter o email
+        const customer = await stripe.customers.retrieve(customerId);
+        const customerEmail = customer.email;
+
+        if (!customerEmail) {
+          console.error("[WEBHOOK] No email found for customer", customerId);
+          break;
+        }
+
+        // Buscar usuário pelo email
+        const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+        const user = userData.users.find(u => u.email === customerEmail);
+
+        if (user) {
+          // Usuário já existe, associar pagamento ao tenant
+          await supabase.rpc('associate_payment_to_tenant', {
+            p_user_id: user.id,
+            p_plan_tier: planTier,
+            p_stripe_customer_id: customerId,
+            p_stripe_subscription_id: session.subscription as string
+          });
+          console.log(`[WEBHOOK] Associated payment to existing user ${user.id}`);
+        } else {
+          // Usuário não existe ainda, salvar informações para associação posterior
+          await supabase.from("subscribers").upsert({
+            email: customerEmail,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: session.subscription as string,
+            subscribed: true,
+            subscription_tier: planTier,
+            updated_at: new Date().toISOString(),
+          });
+          console.log(`[WEBHOOK] Saved payment info for future user association`);
+        }
         break;
       }
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
-        // Mark active
-        await supabase.from("tenants").update({ plan_status: "active" } as any).eq("stripe_customer_id", customerId);
+        
+        console.log(`[WEBHOOK] Payment succeeded for customer ${customerId}`);
+        
+        // Marcar tenant como ativo
+        await supabase.from("tenants").update({ 
+          plan_status: "active",
+          payment_completed: true,
+          updated_at: new Date().toISOString()
+        } as any).eq("stripe_customer_id", customerId);
         break;
       }
       case "customer.subscription.updated":
@@ -57,23 +99,64 @@ export async function handler(req: Request): Promise<Response> {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
         const productId = (sub.items.data[0]?.price.product as string) || undefined;
-        const tierMap: Record<string, string> = {
-          "prod_SqqVGzUIvJPVpt": "essential",
-        };
-        const plan_tier = tierMap[productId || ""] || null;
-        await supabase.from("tenants").update({
-          plan_status: sub.status,
-          plan_tier,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: sub.id,
-          current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-        } as any).eq("stripe_customer_id", customerId);
+        const planTier = PRODUCT_TO_PLAN_MAP[productId || ""] || "essential";
+        
+        console.log(`[WEBHOOK] Subscription ${event.type} for customer ${customerId}, plan: ${planTier}`);
+
+        // Buscar o customer para obter o email
+        const customer = await stripe.customers.retrieve(customerId);
+        const customerEmail = customer.email;
+
+        if (customerEmail) {
+          // Buscar usuário pelo email
+          const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+          const user = userData.users.find(u => u.email === customerEmail);
+
+          if (user) {
+            // Atualizar tenant com informações da subscription
+            await supabase.from("tenants").update({
+              plan_status: sub.status,
+              plan: planTier,
+              plan_tier: planTier,
+              stripe_customer_id: customerId,
+              stripe_subscription_id: sub.id,
+              current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+              payment_completed: true,
+              updated_at: new Date().toISOString(),
+            } as any).eq("owner_id", user.id);
+
+            // Atualizar subscribers
+            await supabase.from("subscribers").upsert({
+              user_id: user.id,
+              email: customerEmail,
+              stripe_customer_id: customerId,
+              stripe_subscription_id: sub.id,
+              subscribed: sub.status === "active",
+              subscription_tier: planTier,
+              subscription_end: new Date(sub.current_period_end * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          }
+        }
         break;
       }
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
-        await supabase.from("tenants").update({ plan_status: "canceled" } as any).eq("stripe_subscription_id", sub.id);
+        
+        console.log(`[WEBHOOK] Subscription deleted: ${sub.id}`);
+        
+        await supabase.from("tenants").update({ 
+          plan_status: "canceled",
+          payment_completed: false,
+          updated_at: new Date().toISOString()
+        } as any).eq("stripe_subscription_id", sub.id);
+        
+        await supabase.from("subscribers").update({
+          subscribed: false,
+          subscription_end: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("stripe_subscription_id", sub.id);
         break;
       }
       default:
@@ -82,6 +165,7 @@ export async function handler(req: Request): Promise<Response> {
     }
     return new Response(JSON.stringify({ received: true }), { status: 200 });
   } catch (e: any) {
+    console.error("[WEBHOOK] Error:", e);
     return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
 }

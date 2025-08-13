@@ -55,8 +55,6 @@ import { FloatingActionButton, QuickActions } from "@/components/FloatingActionB
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
-  slug: z.string().min(2, "Slug obrigatório").regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"),
-  theme_variant: z.enum(["barber", "salon"]).default("barber"),
   logo_url: z.string().url().optional().or(z.literal("")),
 });
 
@@ -119,12 +117,15 @@ export default function Admin() {
       try {
         const { data: tenantData, error } = await supabase
           .from("tenants")
-          .select("plan_tier, plan_status")
+          .select("plan_tier, plan_status, payment_completed")
           .eq("owner_id", user.id)
           .single();
           
         if (!error && tenantData) {
-          const isSubscribed = tenantData.plan_status === 'active' && tenantData.plan_tier !== null;
+          // Verificar se tem pagamento ativo ou se o plano está ativo
+          const isSubscribed = (tenantData.plan_status === 'active' || tenantData.payment_completed === true) && 
+                              tenantData.plan_tier !== null && 
+                              tenantData.plan_tier !== 'free';
           setSubscribed(isSubscribed);
           setSubscriptionTier(tenantData.plan_tier);
         }
@@ -200,23 +201,20 @@ export default function Admin() {
 
   const selectedTenant = useMemo(() => tenants.find(t => t.id === selectedTenantId) || null, [tenants, selectedTenantId]);
 
-  const onCreateTenant = async (values: TenantForm) => {
-    if (!user) return;
+  const onUpdateTenant = async (values: TenantForm) => {
+    if (!user || !selectedTenant) return;
 
-    const { error } = await supabase.from("tenants").insert({
-      owner_id: user.id,
+    const { error } = await supabase.from("tenants").update({
       name: values.name,
-      slug: values.slug,
-      theme_variant: values.theme_variant,
       logo_url: values.logo_url || null,
-    } as any);
+    } as any).eq("id", selectedTenant.id);
 
     if (error) {
-      toast({ title: "Erro ao criar estabelecimento", description: error.message });
+      toast({ title: "Erro ao atualizar estabelecimento", description: error.message });
       return;
     }
 
-    toast({ title: "Estabelecimento criado com sucesso!" });
+    toast({ title: "Estabelecimento atualizado com sucesso!" });
     tenantForm.reset();
     const { data } = await supabase
       .from("tenants")
@@ -713,57 +711,67 @@ export default function Admin() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Building2 className="h-5 w-5" />
-                        Cadastrar Estabelecimento
+                        Estabelecimento
                       </CardTitle>
                       <CardDescription>
-                        Configure seu estabelecimento para começar a receber agendamentos
+                        Seu estabelecimento foi criado automaticamente durante o registro. 
+                        Você pode editar apenas o nome e logo nas configurações.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <form onSubmit={tenantForm.handleSubmit(onCreateTenant)} className="space-y-6">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
-                            <Input {...tenantForm.register("name")} placeholder="Ex: Barbearia Style, Salão Beauty" className="h-12" />
+                      {selectedTenant ? (
+                        <div className="space-y-6">
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
+                              <Input 
+                                value={selectedTenant.name} 
+                                disabled 
+                                className="h-12 bg-muted" 
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Nome pode ser alterado nas configurações
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Slug da URL</Label>
+                              <Input 
+                                value={selectedTenant.slug} 
+                                disabled 
+                                className="h-12 bg-muted" 
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
+                              </p>
+                            </div>
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm font-medium">Slug da URL</Label>
-                            <Input {...tenantForm.register("slug")} placeholder="Ex: barbearia-style" className="h-12" />
+                            <Label className="text-sm font-medium">Tipo de Estabelecimento</Label>
+                            <Input 
+                              value={selectedTenant.theme_variant === 'barber' ? 'Barbearia' : 'Salão de Beleza'} 
+                              disabled 
+                              className="h-12 bg-muted" 
+                            />
                             <p className="text-xs text-muted-foreground">
-                              URL: {window.location.origin}/agendamento?tenant=seu-slug
+                              Tipo não pode ser alterado
                             </p>
                           </div>
+                          <div className="pt-4">
+                            <Button 
+                              onClick={() => setActiveTab('settings')} 
+                              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 sm:px-8"
+                            >
+                              <Settings className="mr-2 h-4 w-4" />
+                              Editar nas Configurações
+                            </Button>
+                          </div>
                         </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Tipo de Estabelecimento</Label>
-                          <Select onValueChange={(v) => tenantForm.setValue("theme_variant", v as "barber" | "salon")}>
-                            <SelectTrigger className="h-12">
-                              <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="barber">Barbearia</SelectItem>
-                              <SelectItem value="salon">Salão de Beleza</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">Selecione um estabelecimento para ver os detalhes.</p>
                         </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Logo (URL)</Label>
-                          <Input {...tenantForm.register("logo_url")} placeholder="https://exemplo.com/logo.png" className="h-12" />
-                          <p className="text-xs text-muted-foreground">
-                            URL da imagem do logo (opcional)
-                          </p>
-                        </div>
-
-                        <div className="flex justify-end pt-4">
-                          <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 sm:px-8">
-                            <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                            <span className="hidden sm:inline">Cadastrar Estabelecimento</span>
-                            <span className="sm:hidden">Cadastrar</span>
-                          </Button>
-                        </div>
-                      </form>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -960,37 +968,18 @@ export default function Admin() {
                     </CardHeader>
                     <CardContent>
                       {selectedTenant ? (
-                        <form
-                          onSubmit={async (e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.currentTarget as HTMLFormElement);
-                            const logo = formData.get("logo_url") as string;
-                            const { error } = await supabase.from("tenants")
-                              .update({ logo_url: logo || null } as any)
-                              .eq("id", selectedTenant.id);
-                            if (error) {
-                              toast({ title: "Erro ao salvar", description: error.message });
-                            } else {
-                              toast({ title: "Configurações atualizadas!" });
-                              const { data } = await supabase
-                                .from("tenants")
-                                .select("id,name,slug,logo_url,theme_variant")
-                                .eq("owner_id", user!.id);
-                              setTenants(data ?? []);
-                            }
-                          }}
-                          className="space-y-6"
-                        >
+                        <form onSubmit={tenantForm.handleSubmit(onUpdateTenant)} className="space-y-6">
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
                               <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
                               <Input
-                                value={selectedTenant.name}
-                                disabled
-                                className="h-12 bg-muted"
+                                {...tenantForm.register("name")}
+                                defaultValue={selectedTenant.name}
+                                placeholder="Nome do estabelecimento"
+                                className="h-12"
                               />
                               <p className="text-xs text-muted-foreground">
-                                Nome não pode ser alterado
+                                Nome pode ser alterado
                               </p>
                             </div>
                             <div className="space-y-2">
@@ -1009,8 +998,7 @@ export default function Admin() {
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Logo do Estabelecimento</Label>
                             <Input
-                              id="logo_url"
-                              name="logo_url"
+                              {...tenantForm.register("logo_url")}
                               defaultValue={selectedTenant.logo_url ?? ""}
                               placeholder="https://exemplo.com/logo.png"
                               className="h-12"
@@ -1242,56 +1230,67 @@ export default function Admin() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Building2 className="h-5 w-5" />
-                          Cadastrar Estabelecimento
+                          Estabelecimento
                         </CardTitle>
                         <CardDescription>
-                          Configure seu estabelecimento para começar a receber agendamentos
+                          Seu estabelecimento foi criado automaticamente durante o registro. 
+                          Você pode editar apenas o nome e logo nas configurações.
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                                             <form onSubmit={tenantForm.handleSubmit(onCreateTenant)} className="space-y-6">
-                       <div className="grid gap-4 sm:grid-cols-2">
-                         <div className="space-y-2">
-                           <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
-                           <Input {...tenantForm.register("name")} placeholder="Ex: Barbearia Style, Salão Beauty" className="h-12" />
-                         </div>
-                         <div className="space-y-2">
-                           <Label className="text-sm font-medium">Slug da URL</Label>
-                           <Input {...tenantForm.register("slug")} placeholder="Ex: barbearia-style" className="h-12" />
-                           <p className="text-xs text-muted-foreground">
-                             URL: {window.location.origin}/agendamento?tenant=seu-slug
-                           </p>
-                         </div>
-                       </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Tipo de Estabelecimento</Label>
-                            <Select onValueChange={(v) => tenantForm.setValue("theme_variant", v as "barber" | "salon")}>
-                              <SelectTrigger className="h-12">
-                                <SelectValue placeholder="Selecione o tipo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="barber">Barbearia</SelectItem>
-                                <SelectItem value="salon">Salão de Beleza</SelectItem>
-                              </SelectContent>
-                            </Select>
+                        {selectedTenant ? (
+                          <div className="space-y-6">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
+                                <Input 
+                                  value={selectedTenant.name} 
+                                  disabled 
+                                  className="h-12 bg-muted" 
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Nome pode ser alterado nas configurações
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Slug da URL</Label>
+                                <Input 
+                                  value={selectedTenant.slug} 
+                                  disabled 
+                                  className="h-12 bg-muted" 
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Tipo de Estabelecimento</Label>
+                              <Input 
+                                value={selectedTenant.theme_variant === 'barber' ? 'Barbearia' : 'Salão de Beleza'} 
+                                disabled 
+                                className="h-12 bg-muted" 
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Tipo não pode ser alterado
+                              </p>
+                            </div>
+                            <div className="pt-4">
+                              <Button 
+                                onClick={() => setDesktopTab('settings')} 
+                                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8"
+                              >
+                                <Settings className="mr-2 h-5 w-5" />
+                                Editar nas Configurações
+                              </Button>
+                            </div>
                           </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Logo (URL)</Label>
-                            <Input {...tenantForm.register("logo_url")} placeholder="https://exemplo.com/logo.png" className="h-12" />
-                            <p className="text-xs text-muted-foreground">
-                              URL da imagem do logo (opcional)
-                            </p>
+                        ) : (
+                          <div className="text-center py-8">
+                            <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">Selecione um estabelecimento para ver os detalhes.</p>
                           </div>
-
-                          <div className="flex justify-end pt-4">
-                            <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
-                              <Plus className="mr-2 h-5 w-5" />
-                              Cadastrar Estabelecimento
-                            </Button>
-                          </div>
-                        </form>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>
