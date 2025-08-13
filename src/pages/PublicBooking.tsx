@@ -177,6 +177,7 @@ export default function PublicBooking() {
       customer_id: customerId,
       customer_name: values.name,
       customer_contact: values.phone,
+      customer_email: values.email,
       start_time: start.toISOString(),
       end_time: end.toISOString(),
       status: "agendado",
