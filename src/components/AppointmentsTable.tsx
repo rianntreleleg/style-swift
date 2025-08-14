@@ -130,12 +130,19 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
   };
 
   const handleWhatsAppMessage = (phone: string, customerName: string, appointmentDate: string, appointmentTime: string) => {
+    console.log('handleWhatsAppMessage called with:', { phone, customerName, appointmentDate, appointmentTime });
+    
     if (!phone) {
-      toast({ title: 'Número de telefone inválido', variant: 'destructive' });
+      toast({ 
+        title: 'Telefone não disponível', 
+        description: 'Este cliente não possui número de telefone cadastrado',
+        variant: 'destructive' 
+      });
       return;
     }
 
-    const message = `Olá ${customerName}! 
+    try {
+      const message = `Olá ${customerName}! 
 
 Confirmando seu agendamento:
 📅 Data: ${new Date(appointmentDate).toLocaleDateString('pt-BR')}
@@ -145,17 +152,40 @@ Aguardo você! 😊
 
 *StyleSwift - Agendamento Online*`;
 
-    let cleanPhone = phone.replace(/\D/g, '');
-    if (!cleanPhone.startsWith('55')) {
-      cleanPhone = '55' + cleanPhone;
+      let cleanPhone = phone.replace(/\D/g, '');
+      
+      // Garantir que o número tenha o código do país
+      if (!cleanPhone.startsWith('55')) {
+        cleanPhone = '55' + cleanPhone;
+      }
+      
+      if (!cleanPhone || cleanPhone.length < 12) {
+        toast({ 
+          title: 'Número inválido', 
+          description: 'O número de telefone não está em um formato válido',
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+      console.log('Opening WhatsApp URL:', whatsappUrl);
+      
+      window.open(whatsappUrl, '_blank');
+      
+      toast({ 
+        title: 'WhatsApp aberto', 
+        description: 'A conversa foi aberta no WhatsApp',
+        variant: 'default' 
+      });
+    } catch (error) {
+      console.error('Erro ao abrir WhatsApp:', error);
+      toast({ 
+        title: 'Erro', 
+        description: 'Não foi possível abrir o WhatsApp',
+        variant: 'destructive' 
+      });
     }
-    if (!cleanPhone) {
-      toast({ title: 'Número de telefone inválido', variant: 'destructive' });
-      return;
-    }
-    
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
   };
 
   const formatDateTime = (dateTime: string) => {

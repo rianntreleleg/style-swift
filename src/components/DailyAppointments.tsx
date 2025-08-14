@@ -149,25 +149,53 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
   };
 
   const enviarWhatsApp = (telefone?: string, nome?: string) => {
+    console.log('enviarWhatsApp called with:', { telefone, nome });
+    
     if (!telefone) {
       toast({
-        title: 'Aviso',
-        description: 'Telefone não disponível para este cliente',
+        title: 'Telefone não disponível',
+        description: 'Este cliente não possui número de telefone cadastrado',
         variant: 'destructive'
       });
       return;
     }
 
-    const mensagem = `Olá ${nome || 'cliente'}, sua consulta está confirmada para hoje. Caso precise de alguma coisa, entre em contato conosco.`;
-    let numeroLimpo = telefone.replace(/\D/g, '');
-    
-    // Garantir que o número tenha o código do país
-    if (!numeroLimpo.startsWith('55')) {
-      numeroLimpo = '55' + numeroLimpo;
+    try {
+      const mensagem = `Olá ${nome || 'cliente'}, sua consulta está confirmada para hoje. Caso precise de alguma coisa, entre em contato conosco.`;
+      let numeroLimpo = telefone.replace(/\D/g, '');
+      
+      // Garantir que o número tenha o código do país
+      if (!numeroLimpo.startsWith('55')) {
+        numeroLimpo = '55' + numeroLimpo;
+      }
+      
+      if (!numeroLimpo || numeroLimpo.length < 12) {
+        toast({
+          title: 'Número inválido',
+          description: 'O número de telefone não está em um formato válido',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      const url = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
+      console.log('Opening WhatsApp URL:', url);
+      
+      window.open(url, '_blank');
+      
+      toast({
+        title: 'WhatsApp aberto',
+        description: 'A conversa foi aberta no WhatsApp',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Erro ao abrir WhatsApp:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível abrir o WhatsApp',
+        variant: 'destructive'
+      });
     }
-    
-    const url = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
-    window.open(url, '_blank');
   };
 
 

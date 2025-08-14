@@ -16,7 +16,6 @@ import {
   BarChart3,
   Lock,
   Crown,
-  Download,
   RefreshCw,
   Target,
   Award,
@@ -190,119 +189,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
     setRefreshing(false);
   };
 
-  const handleExportData = () => {
-    // Função para escapar campos CSV
-    const escapeCSV = (value: string) => {
-      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-        return `"${value.replace(/"/g, '""')}"`;
-      }
-      return value;
-    };
 
-    // Função para criar linha CSV
-    const createCSVRow = (values: string[]) => {
-      return values.map(escapeCSV).join(',');
-    };
-
-    // Função para criar seção com título
-    const createSection = (title: string, headers: string[], data: string[][]) => {
-      const section = [];
-      section.push(''); // Linha em branco
-      section.push(title); // Título da seção
-      section.push(createCSVRow(headers)); // Cabeçalhos
-      data.forEach(row => section.push(createCSVRow(row))); // Dados
-      return section;
-    };
-
-    // Cabeçalho do relatório
-    const reportHeader = [
-      'Relatório de Receita - StyleSwift',
-      '',
-      `Período: ${period} dias`,
-      `Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`,
-      '',
-      'RESUMO EXECUTIVO',
-      `Receita Total,${formatBRL(totalRevenue)}`,
-      `Total Agendamentos,${totalAppointments}`,
-      `Ticket Médio,${formatBRL(ticketMedio)}`,
-      `Crescimento,${growth !== null ? `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%` : 'N/A'}`,
-      `Média de Receita por Dia,${formatBRL(totalRevenue / revenueData.length)}`,
-      `Média de Agendamentos por Dia,${(totalAppointments / revenueData.length).toFixed(1)}`
-    ];
-
-    // Dados diários
-    const dailyHeaders = ['Data', 'Receita', 'Agendamentos', 'Ticket Médio'];
-    const dailyData = revenueData.map(item => [
-      new Date(item.date).toLocaleDateString('pt-BR'),
-      formatBRL(item.revenue),
-      item.appointments.toString(),
-      formatBRL(item.revenue / item.appointments)
-    ]);
-
-    // Dados por profissional
-    const professionalHeaders = ['Profissional', 'Receita', 'Agendamentos', '% do Total'];
-    const professionalData = professionalRevenue
-      .sort((a, b) => b.revenue - a.revenue)
-      .map(p => [
-        p.professional_name,
-        formatBRL(p.revenue),
-        p.appointments.toString(),
-        `${((p.revenue / totalRevenue) * 100).toFixed(1)}%`
-      ]);
-
-    // Dados por serviço
-    const serviceHeaders = ['Serviço', 'Receita', 'Vendas', '% do Total'];
-    const serviceData = serviceRevenue
-      .sort((a, b) => b.revenue - a.revenue)
-      .map(s => [
-        s.service_name,
-        formatBRL(s.revenue),
-        s.count.toString(),
-        `${((s.revenue / totalRevenue) * 100).toFixed(1)}%`
-      ]);
-
-    // Análise de performance
-    const analysisHeaders = ['Métrica', 'Valor'];
-    const bestDay = revenueData.reduce((max, item) => 
-      item.revenue > max.revenue ? item : max
-    );
-    const worstDay = revenueData.reduce((min, item) => 
-      item.revenue < min.revenue ? item : min
-    );
-    
-    const analysisData = [
-      ['Melhor Dia', `${new Date(bestDay.date).toLocaleDateString('pt-BR')} - ${formatBRL(bestDay.revenue)} (${bestDay.appointments} agendamentos)`],
-      ['Dia com Menor Receita', `${new Date(worstDay.date).toLocaleDateString('pt-BR')} - ${formatBRL(worstDay.revenue)} (${worstDay.appointments} agendamentos)`],
-      ['Profissional Top', `${topProfessional?.professional_name || 'N/A'} - ${topProfessional ? formatBRL(topProfessional.revenue) : 'N/A'}`],
-      ['Serviço Mais Vendido', `${topService?.service_name || 'N/A'} - ${topService ? formatBRL(topService.revenue) : 'N/A'}`]
-    ];
-
-    // Combinar todas as seções
-    const csvLines = [
-      ...reportHeader,
-      ...createSection('DADOS DIÁRIOS', dailyHeaders, dailyData),
-      ...createSection('PERFORMANCE POR PROFISSIONAL', professionalHeaders, professionalData),
-      ...createSection('PERFORMANCE POR SERVIÇO', serviceHeaders, serviceData),
-      ...createSection('ANÁLISE DE PERFORMANCE', analysisHeaders, analysisData),
-      '',
-      'StyleSwift - Sistema de Gestão para Barbearias',
-      'Relatório gerado automaticamente'
-    ];
-
-    // Criar CSV com encoding UTF-8 e BOM para compatibilidade com Excel
-    const csvContent = csvLines.join('\n');
-    const BOM = '\uFEFF'; // Byte Order Mark para UTF-8
-    const blob = new Blob([BOM + csvContent], { 
-      type: 'text/csv;charset=utf-8;' 
-    });
-    
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `relatorio-receita-${period}-dias-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
 
   const handleGenerateReport = () => {
     if (!canUseAdvancedAnalytics) {
@@ -715,16 +602,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             </Button>
           </motion.div>
           
-          <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportData}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-          </motion.div>
+          
 
           {canUseAdvancedAnalytics ? (
             <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
