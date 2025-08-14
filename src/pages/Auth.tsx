@@ -133,6 +133,7 @@ export default function Auth() {
     setLoading(true);
     try {
       const planSelected = localStorage.getItem('planSelected');
+      console.log('[AUTH] Plan selected from localStorage:', planSelected);
       
       // Primeiro cria o usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -146,6 +147,8 @@ export default function Auth() {
       if (authError) throw authError;
 
       if (authData.user) {
+        console.log('[AUTH] User created:', authData.user.id);
+        
         // Gerar slug único baseado no nome do estabelecimento
         const baseSlug = values.business_name
           .toLowerCase()
@@ -179,35 +182,50 @@ export default function Auth() {
           .eq("subscribed", true)
           .single();
 
+        console.log('[AUTH] Existing payment found:', existingPayment);
+
         // Cria o tenant com informações do plano
+        const tenantData = {
+          owner_id: authData.user.id,
+          name: values.business_name,
+          slug: finalSlug,
+          theme_variant: "barber", // Tema padrão
+          logo_url: values.logo_url || null,
+          plan: existingPayment?.subscription_tier || planSelected || 'essential',
+          plan_tier: existingPayment?.subscription_tier || planSelected || 'essential',
+          plan_status: existingPayment ? 'active' : 'unpaid',
+          payment_completed: !!existingPayment,
+          stripe_customer_id: existingPayment?.stripe_customer_id || null,
+          stripe_subscription_id: existingPayment?.stripe_subscription_id || null,
+        };
+
+        console.log('[AUTH] Creating tenant with data:', tenantData);
+
         const { data: tenantRow, error: tenantError } = await supabase
           .from("tenants")
-          .insert({
-            owner_id: authData.user.id,
-            name: values.business_name,
-            slug: finalSlug,
-            theme_variant: "barber", // Tema padrão
-            logo_url: values.logo_url || null,
-            plan: existingPayment?.subscription_tier || planSelected || 'essential',
-            plan_tier: existingPayment?.subscription_tier || planSelected || 'essential',
-            plan_status: existingPayment ? 'active' : 'pending',
-            payment_completed: !!existingPayment,
-            stripe_customer_id: existingPayment?.stripe_customer_id || null,
-            stripe_subscription_id: existingPayment?.stripe_subscription_id || null,
-          })
+          .insert(tenantData)
           .select("id")
           .single();
 
         if (tenantError) throw tenantError;
 
+        console.log('[AUTH] Tenant created:', tenantRow?.id);
+
         // Se existe pagamento, associar ao tenant
         if (existingPayment) {
-          await supabase.rpc('associate_payment_to_tenant', {
+          console.log('[AUTH] Associating payment to tenant...');
+          const { error: associateError } = await supabase.rpc('associate_payment_to_tenant', {
             p_user_id: authData.user.id,
             p_plan_tier: existingPayment.subscription_tier,
             p_stripe_customer_id: existingPayment.stripe_customer_id,
             p_stripe_subscription_id: existingPayment.stripe_subscription_id
           });
+          
+          if (associateError) {
+            console.error('[AUTH] Error associating payment:', associateError);
+          } else {
+            console.log('[AUTH] Payment associated successfully');
+          }
         }
 
         // Cria horários de funcionamento baseados na seleção do cadastro
@@ -241,6 +259,7 @@ export default function Auth() {
         }
       }
     } catch (error: any) {
+      console.error('[AUTH] Error during signup:', error);
       toast({
         title: "Erro",
         description: error.message,

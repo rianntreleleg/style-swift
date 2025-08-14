@@ -53,22 +53,38 @@ export async function handler(req: Request): Promise<Response> {
           break;
         }
 
+        console.log(`[WEBHOOK] Customer email: ${customerEmail}`);
+
         // Buscar usuário pelo email
         const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+        
+        if (userError) {
+          console.error("[WEBHOOK] Error listing users:", userError);
+          break;
+        }
+        
         const user = userData.users.find(u => u.email === customerEmail);
+        console.log(`[WEBHOOK] User found:`, user ? user.id : 'No user found');
 
         if (user) {
           // Usuário já existe, associar pagamento ao tenant
-          await supabase.rpc('associate_payment_to_tenant', {
+          console.log(`[WEBHOOK] Associating payment to existing user ${user.id}`);
+          const { error: associateError } = await supabase.rpc('associate_payment_to_tenant', {
             p_user_id: user.id,
             p_plan_tier: planTier,
             p_stripe_customer_id: customerId,
             p_stripe_subscription_id: session.subscription as string
           });
-          console.log(`[WEBHOOK] Associated payment to existing user ${user.id}`);
+          
+          if (associateError) {
+            console.error("[WEBHOOK] Error associating payment:", associateError);
+          } else {
+            console.log(`[WEBHOOK] Successfully associated payment to user ${user.id}`);
+          }
         } else {
           // Usuário não existe ainda, salvar informações para associação posterior
-          await supabase.from("subscribers").upsert({
+          console.log(`[WEBHOOK] User not found, saving payment info for future association`);
+          const { error: upsertError } = await supabase.from("subscribers").upsert({
             email: customerEmail,
             stripe_customer_id: customerId,
             stripe_subscription_id: session.subscription as string,
@@ -76,7 +92,12 @@ export async function handler(req: Request): Promise<Response> {
             subscription_tier: planTier,
             updated_at: new Date().toISOString(),
           });
-          console.log(`[WEBHOOK] Saved payment info for future user association`);
+          
+          if (upsertError) {
+            console.error("[WEBHOOK] Error upserting subscriber:", upsertError);
+          } else {
+            console.log(`[WEBHOOK] Successfully saved payment info for future user association`);
+          }
         }
         break;
       }
@@ -108,13 +129,24 @@ export async function handler(req: Request): Promise<Response> {
         const customerEmail = customer.email;
 
         if (customerEmail) {
+          console.log(`[WEBHOOK] Customer email: ${customerEmail}`);
+          
           // Buscar usuário pelo email
           const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+          
+          if (userError) {
+            console.error("[WEBHOOK] Error listing users:", userError);
+            break;
+          }
+          
           const user = userData.users.find(u => u.email === customerEmail);
+          console.log(`[WEBHOOK] User found:`, user ? user.id : 'No user found');
 
           if (user) {
+            console.log(`[WEBHOOK] Updating tenant for user ${user.id}`);
+            
             // Atualizar tenant com informações da subscription
-            await supabase.from("tenants").update({
+            const { error: tenantError } = await supabase.from("tenants").update({
               plan_status: sub.status,
               plan: planTier,
               plan_tier: planTier,
@@ -126,8 +158,14 @@ export async function handler(req: Request): Promise<Response> {
               updated_at: new Date().toISOString(),
             } as any).eq("owner_id", user.id);
 
+            if (tenantError) {
+              console.error("[WEBHOOK] Error updating tenant:", tenantError);
+            } else {
+              console.log(`[WEBHOOK] Successfully updated tenant for user ${user.id}`);
+            }
+
             // Atualizar subscribers
-            await supabase.from("subscribers").upsert({
+            const { error: subscriberError } = await supabase.from("subscribers").upsert({
               user_id: user.id,
               email: customerEmail,
               stripe_customer_id: customerId,
@@ -137,7 +175,17 @@ export async function handler(req: Request): Promise<Response> {
               subscription_end: new Date(sub.current_period_end * 1000).toISOString(),
               updated_at: new Date().toISOString(),
             });
+            
+            if (subscriberError) {
+              console.error("[WEBHOOK] Error updating subscriber:", subscriberError);
+            } else {
+              console.log(`[WEBHOOK] Successfully updated subscriber for user ${user.id}`);
+            }
+          } else {
+            console.log(`[WEBHOOK] User not found for email ${customerEmail}, payment will be associated later`);
           }
+        } else {
+          console.error("[WEBHOOK] No email found for customer", customerId);
         }
         break;
       }

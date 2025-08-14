@@ -30,31 +30,15 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Copy,
-  Check,
-  Crown,
-  Loader2,
-  AlertTriangle,
-  Home
+  Check
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import SubscriptionPlans from "@/components/SubscriptionPlans";
-import RevenueChart from "@/components/RevenueChart";
-import ServicesTable from "@/components/ServicesTable";
-import ProfessionalsTable from "@/components/ProfessionalsTable";
-import AppointmentsTable from "@/components/AppointmentsTable";
-import { DailyAppointments } from "@/components/DailyAppointments";
-import BusinessHoursManager from "@/components/BusinessHoursManager";
-import AutoConfirmationManager from "@/components/AutoConfirmationManager";
-import FinancialDashboard from "@/components/FinancialDashboard";
-import { ThemeApplicator } from "@/components/ThemeApplicator";
-import { formatBRL, cn } from "@/lib/utils";
-import { MobileNavigation } from "@/components/MobileNavigation";
-import { MobileTable, StatusBadge, ActionButton } from "@/components/MobileTable";
-import { FloatingActionButton, QuickActions } from "@/components/FloatingActionButton";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
+  slug: z.string().min(2, "Slug obrigatório").regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"),
+  theme_variant: z.enum(["barber", "salon"]).default("barber"),
   logo_url: z.string().url().optional().or(z.literal("")),
 });
 
@@ -81,62 +65,17 @@ type ProForm = z.infer<typeof ProSchema>;
 
 export default function Admin() {
   const { user, signOut } = useAuth();
-  
-  // Estados locais para gerenciar a subscrição
-  const [subscribed, setSubscribed] = useState(false);
-  const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
-  const [subLoading, setSubLoading] = useState(true);
   const navigate = useNavigate();
   const [tenants, setTenants] = useState<Array<{ id: string; name: string; slug: string; logo_url?: string | null; theme_variant?: string }>>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
   const [copied, setCopied] = useState(false);
-  
-  // Mobile navigation state
-  const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // Desktop tab state
-  const [desktopTab, setDesktopTab] = useState('dashboard');
-  
-  // Novos estados para funcionalidades
-  const [services, setServices] = useState<any[]>([]);
-  const [professionals, setProfessionals] = useState<any[]>([]);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [serviceRevenue, setServiceRevenue] = useState<any[]>([]);
 
-  // Verificar subscrição diretamente da tabela tenant
   useEffect(() => {
     if (!user) {
       navigate('/auth');
       return;
     }
-    
-    const checkSubscription = async () => {
-      try {
-        const { data: tenantData, error } = await supabase
-          .from("tenants")
-          .select("plan_tier, plan_status, payment_completed")
-          .eq("owner_id", user.id)
-          .single();
-          
-        if (!error && tenantData) {
-          // Verificar se tem pagamento ativo ou se o plano está ativo
-          const isSubscribed = (tenantData.plan_status === 'active' || tenantData.payment_completed === true) && 
-                              tenantData.plan_tier !== null && 
-                              tenantData.plan_tier !== 'free';
-          setSubscribed(isSubscribed);
-          setSubscriptionTier(tenantData.plan_tier);
-        }
-      } catch (err) {
-        console.error('Error checking subscription:', err);
-      } finally {
-        setSubLoading(false);
-      }
-    };
-    
-    checkSubscription();
   }, [user, navigate]);
 
   useEffect(() => {
@@ -174,7 +113,7 @@ export default function Admin() {
         supabase.from("appointments")
           .select("*", { count: "exact", head: true })
           .eq("tenant_id", selectedTenantId)
-          .gte("start_time", new Date().toISOString())
+          .gte("scheduled_at", new Date().toISOString())
       ]);
       setMetrics({
         services: servicesCount.count || 0,
@@ -185,36 +124,29 @@ export default function Admin() {
     fetchMetrics();
   }, [selectedTenantId]);
 
-  // Carregar dados quando tenant for selecionado
-  useEffect(() => {
-    if (selectedTenantId) {
-      fetchServices();
-      fetchProfessionals();
-      fetchAppointments();
-          // fetchRevenueData(); // Será substituído pelo FinancialDashboard
-        }
-      }, [selectedTenantId]);
-
   const tenantForm = useForm<TenantForm>({ resolver: zodResolver(TenantSchema) });
   const serviceForm = useForm<ServiceForm>({ resolver: zodResolver(ServiceSchema) });
   const proForm = useForm<ProForm>({ resolver: zodResolver(ProSchema) });
 
   const selectedTenant = useMemo(() => tenants.find(t => t.id === selectedTenantId) || null, [tenants, selectedTenantId]);
 
-  const onUpdateTenant = async (values: TenantForm) => {
-    if (!user || !selectedTenant) return;
+  const onCreateTenant = async (values: TenantForm) => {
+    if (!user) return;
 
-    const { error } = await supabase.from("tenants").update({
+    const { error } = await supabase.from("tenants").insert({
+      owner_id: user.id,
       name: values.name,
+      slug: values.slug,
+      theme_variant: values.theme_variant,
       logo_url: values.logo_url || null,
-    } as any).eq("id", selectedTenant.id);
+    } as any);
 
     if (error) {
-      toast({ title: "Erro ao atualizar estabelecimento", description: error.message });
+      toast({ title: "Erro ao criar estabelecimento", description: error.message });
       return;
     }
 
-    toast({ title: "Estabelecimento atualizado com sucesso!" });
+    toast({ title: "Estabelecimento criado com sucesso!" });
     tenantForm.reset();
     const { data } = await supabase
       .from("tenants")
@@ -243,114 +175,6 @@ export default function Admin() {
     if (selectedTenantId) {
       serviceForm.setValue("tenant_id", selectedTenantId);
     }
-    fetchServices();
-  };
-
-  const fetchServices = async () => {
-    if (!selectedTenantId) return;
-    const { data, error } = await supabase
-      .from("services")
-      .select("*")
-      .eq("tenant_id", selectedTenantId)
-      .order("name");
-    if (error) {
-      toast({ title: "Erro ao carregar serviços", description: error.message });
-      return;
-    }
-    setServices(data ?? []);
-  };
-
-  const fetchProfessionals = async () => {
-    if (!selectedTenantId) return;
-    const { data, error } = await supabase
-      .from("professionals")
-      .select("*")
-      .eq("tenant_id", selectedTenantId)
-      .order("name");
-    if (error) {
-      toast({ title: "Erro ao carregar profissionais", description: error.message });
-      return;
-    }
-    setProfessionals(data ?? []);
-  };
-
-  const fetchAppointments = async () => {
-    if (!selectedTenantId) return;
-    const { data, error } = await supabase
-      .from("appointments")
-      .select(`
-        *,
-        services(name, price_cents),
-        professionals(name)
-      `)
-      .eq("tenant_id", selectedTenantId)
-      .order("start_time", { ascending: false });
-    if (error) {
-      toast({ title: "Erro ao carregar agendamentos", description: error.message });
-      return;
-    }
-    setAppointments(data ?? []);
-  };
-
-  const fetchRevenueData = async () => {
-    if (!selectedTenantId) return;
-    
-    // Buscar agendamentos concluídos dos últimos 30 dias
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const { data: appointments, error } = await supabase
-      .from("appointments")
-      .select(`
-        *,
-        services!inner(name, price_cents)
-      `)
-      .eq("tenant_id", selectedTenantId)
-      .eq("status", "concluido")
-      .gte("start_time", thirtyDaysAgo.toISOString())
-      .order("start_time");
-
-    if (error) {
-      console.error("Erro ao carregar dados de receita:", error);
-      return;
-    }
-
-    // Processar dados para o gráfico
-    const revenueByDate = appointments?.reduce((acc: any, appointment: any) => {
-      const date = new Date(appointment.start_time).toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = 0;
-      }
-      acc[date] += appointment.services.price_cents / 100;
-      return acc;
-    }, {});
-
-    const chartData = Object.entries(revenueByDate || {}).map(([date, revenue]) => ({
-      date,
-      revenue: revenue as number
-    }));
-
-    setRevenueData(chartData);
-    setTotalRevenue(chartData.reduce((sum, item) => sum + item.revenue, 0));
-
-    // Processar receita por serviço
-    const revenueByService = appointments?.reduce((acc: any, appointment: any) => {
-      const serviceName = appointment.services.name;
-      if (!acc[serviceName]) {
-        acc[serviceName] = { count: 0, revenue: 0 };
-      }
-      acc[serviceName].count += 1;
-      acc[serviceName].revenue += appointment.services.price_cents / 100;
-      return acc;
-    }, {});
-
-    const serviceData = Object.entries(revenueByService || {}).map(([name, data]: [string, any]) => ({
-      name,
-      count: data.count,
-      revenue: data.revenue
-    }));
-
-    setServiceRevenue(serviceData);
   };
 
   const onCreatePro = async (values: ProForm) => {
@@ -372,36 +196,11 @@ export default function Admin() {
     if (selectedTenantId) {
       proForm.setValue("tenant_id", selectedTenantId);
     }
-    fetchProfessionals();
   };
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
-  };
-
-  const handleManageSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-      });
-
-      if (error) {
-        throw new Error('Erro ao abrir portal');
-      }
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível abrir o portal de assinatura.",
-        variant: "destructive",
-      });
-    }
   };
 
   const getPublicBookingUrl = () => {
@@ -445,1210 +244,454 @@ export default function Admin() {
     return null;
   }
 
-  if (subLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
-        >
-          <Loader2 className="h-16 w-16 text-primary mx-auto mb-4 animate-spin" />
-          <h2 className="text-2xl font-bold mb-2">Verificando assinatura...</h2>
-          <p className="text-muted-foreground">Aguarde um momento</p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!subscribed) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <header className="border-b bg-background/80 backdrop-blur-sm">
-          <div className="container flex items-center justify-between py-4">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3"
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <Scissors className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">StyleSwift Admin</h1>
-                <p className="text-muted-foreground">Bem-vindo, {user.email}</p>
-              </div>
-            </motion.div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        <main className="container py-8 space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-8"
-          >
-            <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="h-10 w-10 text-orange-600 dark:text-orange-400" />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">Assinatura Necessária</h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Para cadastrar sua barbearia/salão e começar a receber agendamentos online, você precisa escolher um plano de assinatura.
-            </p>
-          </motion.div>
-
-          <Card className="border-0 shadow-xl">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-                <Crown className="h-6 w-6 text-primary" />
-                Escolha seu Plano
-              </CardTitle>
-              <CardDescription className="text-base">
-                Planos mensais com cancelamento a qualquer momento
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <SubscriptionPlans currentTier={subscriptionTier} />
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <ThemeApplicator themeVariant={selectedTenant?.theme_variant} />
-      <div className="min-h-screen bg-background">
-        {/* Mobile Navigation */}
-        <MobileNavigation 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab}
-          desktopTab={desktopTab}
-          onDesktopTabChange={setDesktopTab}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      {/* Header */}
+      <header className="border-b bg-background/80 backdrop-blur-sm">
+        <div className="container flex items-center justify-between py-4">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-3"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+              <Scissors className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">StyleSwift Admin</h1>
+              <p className="text-muted-foreground">Bem-vindo, {user.email}</p>
+            </div>
 
-        {/* Desktop Top Navigation */}
-        <div className="hidden lg:block fixed top-0 left-0 right-0 z-40 bg-background border-b">
-          <div className="flex items-center justify-between px-4 lg:px-6 py-4">
-            <div className="flex items-center space-x-4 lg:space-x-6">
-              <h1 className="text-lg lg:text-xl font-bold">StyleSwift</h1>
-              <nav className="flex space-x-1">
-                {[
-                  { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 className="h-4 w-4" /> },
-                  { id: 'establishment', label: 'Estabelecimento', icon: <Building2 className="h-4 w-4" /> },
-                  { id: 'services', label: 'Serviços', icon: <Scissors className="h-4 w-4" /> },
-                  { id: 'pros', label: 'Profissionais', icon: <Users2 className="h-4 w-4" /> },
-                  { id: 'appointments', label: 'Agendamentos', icon: <Calendar className="h-4 w-4" /> },
-                  { id: 'daily', label: 'Hoje', icon: <Clock className="h-4 w-4" /> },
-                  { id: 'settings', label: 'Configurações', icon: <Settings className="h-4 w-4" /> }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setDesktopTab(item.id)}
-                    className={cn(
-                      "flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors",
-                      desktopTab === item.id
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    )}
-                  >
-                    {item.icon}
-                    <span className="hidden xl:inline">{item.label}</span>
-                  </button>
-                ))}
-              </nav>
+            <div className="flex items-center gap-4">
+              {tenants.length > 0 && (
+                <motion.div
+                  className="flex items-center gap-3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  <Select value={selectedTenantId ?? undefined} onValueChange={(v) => setSelectedTenantId(v)}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Selecione o estabelecimento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTenant && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href={`${window.location.origin}/agendamento?tenant=${selectedTenant.slug}`}
+                        target="_blank"
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Ver página
+                      </a>
+                    </Button>
+                  )}
+                </motion.div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sair
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/')}
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Início
-              </Button>
-              <ThemeToggle />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  await signOut();
-                  navigate('/auth');
-                }}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </Button>
-            </div>
-          </div>
+          </motion.div>
         </div>
+      </header>
 
-        {/* Main Content */}
-        <main className={cn(
-          "transition-all duration-300",
-          "lg:pt-20 lg:px-6 lg:pb-6", // Desktop spacing
-          "pt-16 px-4 pb-20" // Mobile spacing
-        )}>
-          <div className="max-w-7xl mx-auto">
-            {/* Mobile Content */}
-            <div className="lg:hidden space-y-6">
-              {activeTab === 'dashboard' && (
-                <div id="dashboard" className="space-y-6">
-                  {/* Dashboard content for mobile */}
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Serviços Ativos</CardTitle>
-                        <Scissors className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{metrics.services}</div>
-                        <p className="text-xs text-muted-foreground">
-                          +20.1% em relação ao mês passado
-                        </p>
-                      </CardContent>
-                    </Card>
+      <main className="container py-8 space-y-8">
+        <Tabs defaultValue="dashboard">
+          <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-lg">
+            <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <BarChart3 className="h-4 w-4" /> Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="services" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Scissors className="h-4 w-4" /> Serviços
+            </TabsTrigger>
+            <TabsTrigger value="pros" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Users2 className="h-4 w-4" /> Profissionais
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Settings className="h-4 w-4" /> Configurações
+            </TabsTrigger>
+          </TabsList>
 
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Profissionais</CardTitle>
-                        <Users2 className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{metrics.pros}</div>
-                        <p className="text-xs text-muted-foreground">
-                          +5 novos este mês
-                        </p>
-                      </CardContent>
-                    </Card>
+          <TabsContent value="dashboard" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-6"
+            >
+              {/* Métricas */}
+              <div className="grid gap-6 md:grid-cols-3">
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Serviços Ativos</CardTitle>
+                    <Scissors className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.services}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +20.1% em relação ao mês passado
+                    </p>
+                  </CardContent>
+                </Card>
 
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 sm:col-span-2 lg:col-span-1">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Próximos Agendamentos</CardTitle>
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{metrics.upcoming}</div>
-                        <p className="text-xs text-muted-foreground">
-                          Próximos agendamentos
-                        </p>
-                      </CardContent>
-                    </Card>
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Profissionais</CardTitle>
+                    <Users2 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.pros}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +5 novos este mês
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Próximos Agendamentos</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.upcoming}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Próximos agendamentos
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Link Público de Agendamento */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ExternalLink className="h-5 w-5" />
+                    Link Público de Agendamento
+                  </CardTitle>
+                  <CardDescription>
+                    Compartilhe este link com seus clientes para que possam agendar online
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="booking-url">URL de Agendamento</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="booking-url"
+                        value={getPublicBookingUrl()}
+                        readOnly
+                        className="font-mono text-sm"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCopyLink}
+                        className="shrink-0"
+                      >
+                        {copied ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleOpenLink}
+                        className="shrink-0"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="default"
+                        onClick={handleGoToBookingPage}
+                        className="shrink-0"
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Ir para Agendamento
+                      </Button>
+                    </div>
                   </div>
-                  
-                  {/* Link Público de Agendamento */}
-                  <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <ExternalLink className="h-5 w-5" />
-                        Link Público de Agendamento
-                      </CardTitle>
-                      <CardDescription>
-                        Compartilhe este link com seus clientes para que possam agendar online
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="booking-url">URL de Agendamento</Label>
-                        <div className="flex gap-2">
+                </CardContent>
+              </Card>
+
+              
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="services" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5" />
+                    Cadastrar Serviços
+                  </CardTitle>
+                  <CardDescription>
+                    Cadastre seus serviços e valores. Os preços devem ser informados em reais.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-8">
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Estabelecimento</Label>
+                        <Select onValueChange={(v) => serviceForm.setValue("tenant_id", v)}>
+                          <SelectTrigger className="h-12">
+                            <SelectValue placeholder="Selecione o estabelecimento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tenants.map(t => (
+                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Nome do Serviço</Label>
+                        <Input {...serviceForm.register("name")} placeholder="Ex: Corte masculino, Hidratação, etc." className="h-12" />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-3">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Preço (R$)</Label>
+                        <div className="relative">
                           <Input
-                            id="booking-url"
-                            value={getPublicBookingUrl()}
-                            readOnly
-                            className="font-mono text-sm"
+                            type="number"
+                            step="0.01"
+                            {...serviceForm.register("price_reais")}
+                            placeholder="50.00"
+                            className="h-12 pl-8"
                           />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={handleCopyLink}
-                            className="shrink-0"
-                          >
-                            {copied ? (
-                              <Check className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={handleOpenLink}
-                            className="shrink-0"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">
+                            R$
+                          </span>
                         </div>
-                        <Button
-                          variant="default"
-                          onClick={handleGoToBookingPage}
-                          className="w-full"
-                        >
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Ir para Agendamento
+                        
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Duração (minutos)</Label>
+                        <Input
+                          type="number"
+                          {...serviceForm.register("duration_minutes")}
+                          placeholder="45"
+                          className="h-12"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Status</Label>
+                        <Badge variant="secondary" className="w-full justify-center h-12 text-base">
+                          Ativo
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Descrição</Label>
+                      <Input
+                        {...serviceForm.register("description")}
+                        placeholder="Detalhes do serviço (opcional)"
+                        className="h-12"
+                      />
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
+                        <Plus className="mr-2 h-5 w-5" />
+                        Cadastrar Serviço
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="pros" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users2 className="h-5 w-5" />
+                    Cadastrar Profissionais
+                  </CardTitle>
+                  <CardDescription>
+                    Inclua os profissionais do seu time e suas especialidades.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-8">
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Estabelecimento</Label>
+                        <Select onValueChange={(v) => proForm.setValue("tenant_id", v)}>
+                          <SelectTrigger className="h-12">
+                            <SelectValue placeholder="Selecione o estabelecimento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tenants.map(t => (
+                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Nome do Profissional</Label>
+                        <Input {...proForm.register("name")} placeholder="Ex: João Silva, Maria Santos" className="h-12" />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Especialidade/Bio</Label>
+                        <Input
+                          {...proForm.register("bio")}
+                          placeholder="Ex: Especialista em fade e barba, Colorista, etc."
+                          className="h-12"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Avatar (URL)</Label>
+                        <Input
+                          {...proForm.register("avatar_url")}
+                          placeholder="https://exemplo.com/foto.jpg"
+                          className="h-12"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Link para foto do profissional (opcional)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
+                        <Plus className="mr-2 h-5 w-5" />
+                        Cadastrar Profissional
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Configurações do Estabelecimento
+                  </CardTitle>
+                  <CardDescription>
+                    Personalize a aparência e informações do seu estabelecimento.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {selectedTenant ? (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget as HTMLFormElement);
+                        const logo = formData.get("logo_url") as string;
+                        const { error } = await supabase.from("tenants")
+                          .update({ logo_url: logo || null } as any)
+                          .eq("id", selectedTenant.id);
+                        if (error) {
+                          toast({ title: "Erro ao salvar", description: error.message });
+                        } else {
+                          toast({ title: "Configurações atualizadas!" });
+                          const { data } = await supabase
+                            .from("tenants")
+                            .select("id,name,slug,logo_url,theme_variant")
+                            .eq("owner_id", user!.id);
+                          setTenants(data ?? []);
+                        }
+                      }}
+                      className="space-y-6"
+                    >
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
+                          <Input
+                            value={selectedTenant.name}
+                            disabled
+                            className="h-10 bg-muted"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Nome não pode ser alterado
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Slug da URL</Label>
+                          <Input
+                            value={selectedTenant.slug}
+                            disabled
+                            className="h-10 bg-muted"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Logo do Estabelecimento</Label>
+                        <Input
+                          id="logo_url"
+                          name="logo_url"
+                          defaultValue={selectedTenant.logo_url ?? ""}
+                          placeholder="https://exemplo.com/logo.png"
+                          className="h-10"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          URL da imagem do logo (recomendado: 200x200px, formato PNG ou JPG)
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Salvar Configurações
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Dashboard Financeiro */}
-                  <FinancialDashboard tenantId={selectedTenantId || ''} planTier={subscriptionTier} />
-                </div>
-              )}
-
-              {activeTab === 'establishment' && (
-                <div id="establishment" className="space-y-6">
-                  <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Building2 className="h-5 w-5" />
-                        Estabelecimento
-                      </CardTitle>
-                      <CardDescription>
-                        Seu estabelecimento foi criado automaticamente durante o registro. 
-                        Você pode editar apenas o nome e logo nas configurações.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedTenant ? (
-                        <div className="space-y-6">
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
-                              <Input 
-                                value={selectedTenant.name} 
-                                disabled 
-                                className="h-12 bg-muted" 
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Nome pode ser alterado nas configurações
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Slug da URL</Label>
-                              <Input 
-                                value={selectedTenant.slug} 
-                                disabled 
-                                className="h-12 bg-muted" 
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Tipo de Estabelecimento</Label>
-                            <Input 
-                              value={selectedTenant.theme_variant === 'barber' ? 'Barbearia' : 'Salão de Beleza'} 
-                              disabled 
-                              className="h-12 bg-muted" 
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Tipo não pode ser alterado
-                            </p>
-                          </div>
-                          <div className="pt-4">
-                            <Button 
-                              onClick={() => setActiveTab('settings')} 
-                              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 sm:px-8"
-                            >
-                              <Settings className="mr-2 h-4 w-4" />
-                              Editar nas Configurações
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">Selecione um estabelecimento para ver os detalhes.</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {activeTab === 'services' && (
-                <div id="services" className="space-y-6">
-                  {selectedTenant && (
-                    <ServicesTable
-                      services={services}
-                      tenantId={selectedTenant.id}
-                      onServiceUpdate={fetchServices}
-                    />
-                  )}
-                  
-                  {/* Formulário de Cadastro de Serviço */}
-                  <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Plus className="h-5 w-5" />
-                        Cadastrar Novo Serviço
-                      </CardTitle>
-                      <CardDescription>
-                        Cadastre seus serviços e valores. Os preços devem ser informados em reais.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-6">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Estabelecimento</Label>
-                            <Select onValueChange={(v) => serviceForm.setValue("tenant_id", v)}>
-                              <SelectTrigger className="h-12">
-                                <SelectValue placeholder="Selecione o estabelecimento" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {tenants.map(t => (
-                                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Nome do Serviço</Label>
-                            <Input {...serviceForm.register("name")} placeholder="Ex: Corte masculino, Hidratação, etc." className="h-12" />
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Preço (R$)</Label>
-                            <div className="relative">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                {...serviceForm.register("price_reais")}
-                                placeholder="50.00"
-                                className="h-12 pl-8"
-                              />
-                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">
-                                R$
-                              </span>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Duração (minutos)</Label>
-                            <Input
-                              type="number"
-                              {...serviceForm.register("duration_minutes")}
-                              placeholder="45"
-                              className="h-12"
-                            />
-                          </div>
-                          <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                            <Label className="text-sm font-medium">Status</Label>
-                            <Badge variant="secondary" className="w-full justify-center h-12 text-base">
-                              Ativo
-                            </Badge>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Descrição</Label>
-                          <Input
-                            {...serviceForm.register("description")}
-                            placeholder="Detalhes do serviço (opcional)"
-                            className="h-12"
-                          />
-                        </div>
-
-                        <div className="flex justify-end pt-4">
-                          <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 sm:px-8">
-                            <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                            <span className="hidden sm:inline">Cadastrar Serviço</span>
-                            <span className="sm:hidden">Cadastrar</span>
-                          </Button>
-                        </div>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {activeTab === 'professionals' && (
-                <div id="professionals" className="space-y-6">
-                  {selectedTenant && (
-                    <ProfessionalsTable
-                      professionals={professionals}
-                      tenantId={selectedTenant.id}
-                      onProfessionalUpdate={fetchProfessionals}
-                    />
-                  )}
-                  
-                  {/* Formulário de Cadastro de Profissional */}
-                  <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Plus className="h-5 w-5" />
-                        Cadastrar Novo Profissional
-                      </CardTitle>
-                      <CardDescription>
-                        Inclua os profissionais do seu time e suas especialidades.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-6">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Estabelecimento</Label>
-                            <Select onValueChange={(v) => proForm.setValue("tenant_id", v)}>
-                              <SelectTrigger className="h-12">
-                                <SelectValue placeholder="Selecione o estabelecimento" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {tenants.map(t => (
-                                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Nome do Profissional</Label>
-                            <Input {...proForm.register("name")} placeholder="Ex: João Silva, Maria Santos" className="h-12" />
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Especialidade/Bio</Label>
-                            <Input
-                              {...proForm.register("bio")}
-                              placeholder="Ex: Especialista em fade e barba, Colorista, etc."
-                              className="h-12"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Avatar (URL)</Label>
-                            <Input
-                              {...proForm.register("avatar_url")}
-                              placeholder="https://exemplo.com/foto.jpg"
-                              className="h-12"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Link para foto do profissional (opcional)
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end pt-4">
-                          <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 sm:px-8">
-                            <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                            <span className="hidden sm:inline">Cadastrar Profissional</span>
-                            <span className="sm:hidden">Cadastrar</span>
-                          </Button>
-                        </div>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {activeTab === 'settings' && (
-                <div id="settings" className="space-y-6">
-                  {/* Configurações Gerais */}
-                  <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        Configurações do Estabelecimento
-                      </CardTitle>
-                      <CardDescription>
-                        Personalize a aparência e informações do seu estabelecimento.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedTenant ? (
-                        <form onSubmit={tenantForm.handleSubmit(onUpdateTenant)} className="space-y-6">
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
-                              <Input
-                                {...tenantForm.register("name")}
-                                defaultValue={selectedTenant.name}
-                                placeholder="Nome do estabelecimento"
-                                className="h-12"
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Nome pode ser alterado
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Slug da URL</Label>
-                              <Input
-                                value={selectedTenant.slug}
-                                disabled
-                                className="h-12 bg-muted"
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Logo do Estabelecimento</Label>
-                            <Input
-                              {...tenantForm.register("logo_url")}
-                              defaultValue={selectedTenant.logo_url ?? ""}
-                              placeholder="https://exemplo.com/logo.png"
-                              className="h-12"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              URL da imagem do logo (recomendado: 200x200px, formato PNG ou JPG)
-                            </p>
-                          </div>
-
-                          <div className="flex justify-end">
-                            <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
-                              <Settings className="mr-2 h-4 w-4" />
-                              Salvar Configurações
-                            </Button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">Selecione um estabelecimento para configurar.</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Horários de Funcionamento */}
-                  {selectedTenant && (
-                    <BusinessHoursManager tenantId={selectedTenant.id} />
-                  )}
-
-                  {/* Confirmação Automática de Agendamentos */}
-                  {selectedTenant && (
-                    <AutoConfirmationManager />
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'appointments' && (
-                <div id="appointments" className="space-y-6">
-                  <AppointmentsTable 
-                    appointments={appointments} 
-                    onAppointmentUpdate={fetchAppointments}
-                    tenantId={selectedTenantId || ''}
-                  />
-                </div>
-              )}
-
-              {activeTab === 'today' && (
-                <div id="today" className="space-y-6">
-                  {selectedTenantId ? (
-                    <DailyAppointments tenantId={selectedTenantId} />
+                    </form>
                   ) : (
                     <div className="text-center py-8">
-                      <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">Selecione um estabelecimento para ver os agendamentos de hoje.</p>
+                      <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Selecione um estabelecimento para configurar.</p>
                     </div>
                   )}
-                </div>
-              )}
-            </div>
-
-            {/* Desktop Content */}
-            <div className="hidden lg:block">
-              <Tabs value={desktopTab} onValueChange={setDesktopTab}>
-                <TabsList className="grid w-full grid-cols-7 bg-muted/50 p-1 rounded-lg">
-                  <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <BarChart3 className="h-4 w-4" /> Dashboard
-                  </TabsTrigger>
-                  <TabsTrigger value="establishment" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Building2 className="h-4 w-4" /> Estabelecimento
-                  </TabsTrigger>
-                  <TabsTrigger value="services" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Scissors className="h-4 w-4" /> Serviços
-                  </TabsTrigger>
-                  <TabsTrigger value="pros" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Users2 className="h-4 w-4" /> Profissionais
-                  </TabsTrigger>
-                  <TabsTrigger value="appointments" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Calendar className="h-4 w-4" /> Agendamentos
-                  </TabsTrigger>
-                  <TabsTrigger value="daily" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Clock className="h-4 w-4" /> Hoje
-                  </TabsTrigger>
-                  <TabsTrigger value="settings" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Settings className="h-4 w-4" /> Configurações
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="dashboard" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6"
-                  >
-                    {/* Status da Assinatura */}
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
-                          <Crown className="h-5 w-5" />
-                          Status da Assinatura
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-green-800 dark:text-green-300">
-                              Plano {subscriptionTier?.charAt(0).toUpperCase() + subscriptionTier?.slice(1)}
-                            </p>
-                            <p className="text-sm text-green-600 dark:text-green-400">
-                              Assinatura ativa e funcionando
-                            </p>
-                          </div>
-                          <Button variant="outline" onClick={handleManageSubscription} className="border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20">
-                            Gerenciar Assinatura
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                                         {/* Métricas */}
-                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                       <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
-                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                           <CardTitle className="text-sm font-medium">Serviços Ativos</CardTitle>
-                           <Scissors className="h-4 w-4 text-muted-foreground" />
-                         </CardHeader>
-                         <CardContent>
-                           <div className="text-2xl font-bold">{metrics.services}</div>
-                           <p className="text-xs text-muted-foreground">
-                             +20.1% em relação ao mês passado
-                           </p>
-                         </CardContent>
-                       </Card>
-
-                       <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
-                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                           <CardTitle className="text-sm font-medium">Profissionais</CardTitle>
-                           <Users2 className="h-4 w-4 text-muted-foreground" />
-                         </CardHeader>
-                         <CardContent>
-                           <div className="text-2xl font-bold">{metrics.pros}</div>
-                           <p className="text-xs text-muted-foreground">
-                             +5 novos este mês
-                           </p>
-                         </CardContent>
-                       </Card>
-
-                       <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 sm:col-span-2 lg:col-span-1">
-                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                           <CardTitle className="text-sm font-medium">Próximos Agendamentos</CardTitle>
-                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                         </CardHeader>
-                         <CardContent>
-                           <div className="text-2xl font-bold">{metrics.upcoming}</div>
-                           <p className="text-xs text-muted-foreground">
-                             Próximos agendamentos
-                           </p>
-                         </CardContent>
-                       </Card>
-                     </div>
-                    
-                    {/* Link Público de Agendamento */}
-                    <Card className="border-0 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <ExternalLink className="h-5 w-5" />
-                          Link Público de Agendamento
-                        </CardTitle>
-                        <CardDescription>
-                          Compartilhe este link com seus clientes para que possam agendar online
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="booking-url">URL de Agendamento</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="booking-url"
-                              value={getPublicBookingUrl()}
-                              readOnly
-                              className="font-mono text-sm"
-                            />
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={handleCopyLink}
-                              className="shrink-0"
-                            >
-                              {copied ? (
-                                <Check className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={handleOpenLink}
-                              className="shrink-0"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <Button
-                            variant="default"
-                            onClick={handleGoToBookingPage}
-                            className="w-full"
-                          >
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Ir para Agendamento
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    {/* Dashboard Financeiro */}
-                    <FinancialDashboard tenantId={selectedTenantId || ''} planTier={subscriptionTier} />
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="establishment" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <Card className="border-0 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Building2 className="h-5 w-5" />
-                          Estabelecimento
-                        </CardTitle>
-                        <CardDescription>
-                          Seu estabelecimento foi criado automaticamente durante o registro. 
-                          Você pode editar apenas o nome e logo nas configurações.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedTenant ? (
-                          <div className="space-y-6">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
-                                <Input 
-                                  value={selectedTenant.name} 
-                                  disabled 
-                                  className="h-12 bg-muted" 
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Nome pode ser alterado nas configurações
-                                </p>
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Slug da URL</Label>
-                                <Input 
-                                  value={selectedTenant.slug} 
-                                  disabled 
-                                  className="h-12 bg-muted" 
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Tipo de Estabelecimento</Label>
-                              <Input 
-                                value={selectedTenant.theme_variant === 'barber' ? 'Barbearia' : 'Salão de Beleza'} 
-                                disabled 
-                                className="h-12 bg-muted" 
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Tipo não pode ser alterado
-                              </p>
-                            </div>
-                            <div className="pt-4">
-                              <Button 
-                                onClick={() => setDesktopTab('settings')} 
-                                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8"
-                              >
-                                <Settings className="mr-2 h-5 w-5" />
-                                Editar nas Configurações
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground">Selecione um estabelecimento para ver os detalhes.</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="services" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6"
-                  >
-                    {/* Tabela de Serviços */}
-                    <Card className="border-0 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Scissors className="h-5 w-5" />
-                          Serviços Cadastrados
-                        </CardTitle>
-                        <CardDescription>
-                          Gerencie todos os serviços do estabelecimento
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ServicesTable 
-                          services={services} 
-                          onServiceUpdate={fetchServices}
-                          tenantId={selectedTenantId || ''}
-                        />
-                      </CardContent>
-                    </Card>
-
-                    {/* Formulário de Cadastro */}
-                    <Card className="border-0 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Plus className="h-5 w-5" />
-                          Cadastrar Novo Serviço
-                        </CardTitle>
-                        <CardDescription>
-                          Cadastre seus serviços e valores. Os preços devem ser informados em reais.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-6">
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Estabelecimento</Label>
-                              <Select onValueChange={(v) => serviceForm.setValue("tenant_id", v)}>
-                                <SelectTrigger className="h-12">
-                                  <SelectValue placeholder="Selecione o estabelecimento" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {tenants.map(t => (
-                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Nome do Serviço</Label>
-                              <Input {...serviceForm.register("name")} placeholder="Ex: Corte masculino, Hidratação, etc." className="h-12" />
-                            </div>
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-3">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Preço (R$)</Label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  {...serviceForm.register("price_reais")}
-                                  placeholder="50.00"
-                                  className="h-12 pl-8"
-                                />
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">
-                                  R$
-                                </span>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Duração (minutos)</Label>
-                              <Input
-                                type="number"
-                                {...serviceForm.register("duration_minutes")}
-                                placeholder="45"
-                                className="h-12"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Status</Label>
-                              <Badge variant="secondary" className="w-full justify-center h-12 text-base">
-                                Ativo
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Descrição</Label>
-                            <Input
-                              {...serviceForm.register("description")}
-                              placeholder="Detalhes do serviço (opcional)"
-                              className="h-12"
-                            />
-                          </div>
-
-                          <div className="flex justify-end pt-4">
-                            <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
-                              <Plus className="mr-2 h-5 w-5" />
-                              Cadastrar Serviço
-                            </Button>
-                          </div>
-                        </form>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="pros" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6"
-                  >
-                    {/* Tabela de Profissionais */}
-                    <Card className="border-0 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Users2 className="h-5 w-5" />
-                          Profissionais Cadastrados
-                        </CardTitle>
-                        <CardDescription>
-                          Gerencie todos os profissionais do estabelecimento
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ProfessionalsTable 
-                          professionals={professionals} 
-                          onProfessionalUpdate={fetchProfessionals}
-                          tenantId={selectedTenantId || ''}
-                        />
-                      </CardContent>
-                    </Card>
-
-                    {/* Formulário de Cadastro */}
-                    <Card className="border-0 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Plus className="h-5 w-5" />
-                          Cadastrar Novo Profissional
-                        </CardTitle>
-                        <CardDescription>
-                          Inclua os profissionais do seu time e suas especialidades.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-6">
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Estabelecimento</Label>
-                              <Select onValueChange={(v) => proForm.setValue("tenant_id", v)}>
-                                <SelectTrigger className="h-12">
-                                  <SelectValue placeholder="Selecione o estabelecimento" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {tenants.map(t => (
-                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Nome do Profissional</Label>
-                              <Input {...proForm.register("name")} placeholder="Ex: João Silva, Maria Santos" className="h-12" />
-                            </div>
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Especialidade/Bio</Label>
-                              <Input
-                                {...proForm.register("bio")}
-                                placeholder="Ex: Especialista em fade e barba, Colorista, etc."
-                                className="h-12"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Avatar (URL)</Label>
-                              <Input
-                                {...proForm.register("avatar_url")}
-                                placeholder="https://exemplo.com/foto.jpg"
-                                className="h-12"
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Link para foto do profissional (opcional)
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-end pt-4">
-                            <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
-                              <Plus className="mr-2 h-5 w-5" />
-                              Cadastrar Profissional
-                            </Button>
-                          </div>
-                        </form>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="appointments" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6"
-                  >
-                    <AppointmentsTable 
-                      appointments={appointments} 
-                      onAppointmentUpdate={fetchAppointments}
-                      tenantId={selectedTenantId || ''}
-                    />
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="daily" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6"
-                  >
-                    {selectedTenantId ? (
-                      <DailyAppointments tenantId={selectedTenantId} />
-                    ) : (
-                      <div className="text-center py-8">
-                        <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">Selecione um estabelecimento para ver os agendamentos de hoje.</p>
-                      </div>
-                    )}
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="settings" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6"
-                  >
-                    {/* Configurações Gerais */}
-                    <Card className="border-0 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Settings className="h-5 w-5" />
-                          Configurações do Estabelecimento
-                        </CardTitle>
-                        <CardDescription>
-                          Personalize a aparência e informações do seu estabelecimento.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedTenant ? (
-                          <form
-                            onSubmit={async (e) => {
-                              e.preventDefault();
-                              const formData = new FormData(e.currentTarget as HTMLFormElement);
-                              const logo = formData.get("logo_url") as string;
-                              const { error } = await supabase.from("tenants")
-                                .update({ logo_url: logo || null } as any)
-                                .eq("id", selectedTenant.id);
-                              if (error) {
-                                toast({ title: "Erro ao salvar", description: error.message });
-                              } else {
-                                toast({ title: "Configurações atualizadas!" });
-                                const { data } = await supabase
-                                  .from("tenants")
-                                  .select("id,name,slug,logo_url,theme_variant")
-                                  .eq("owner_id", user!.id);
-                                setTenants(data ?? []);
-                              }
-                            }}
-                            className="space-y-6"
-                          >
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
-                                <Input
-                                  value={selectedTenant.name}
-                                  disabled
-                                  className="h-12 bg-muted"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Nome não pode ser alterado
-                                </p>
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Slug da URL</Label>
-                                <Input
-                                  value={selectedTenant.slug}
-                                  disabled
-                                  className="h-12 bg-muted"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Logo do Estabelecimento</Label>
-                              <Input
-                                id="logo_url"
-                                name="logo_url"
-                                defaultValue={selectedTenant.logo_url ?? ""}
-                                placeholder="https://exemplo.com/logo.png"
-                                className="h-12"
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                URL da imagem do logo (recomendado: 200x200px, formato PNG ou JPG)
-                              </p>
-                            </div>
-
-                            <div className="flex justify-end">
-                              <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
-                                <Settings className="mr-2 h-4 w-4" />
-                                Salvar Configurações
-                              </Button>
-                            </div>
-                          </form>
-                        ) : (
-                          <div className="text-center py-8">
-                            <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground">Selecione um estabelecimento para configurar.</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    {/* Horários de Funcionamento */}
-                    {selectedTenant && (
-                      <BusinessHoursManager tenantId={selectedTenant.id} />
-                    )}
-
-                    {/* Confirmação Automática de Agendamentos */}
-                    {selectedTenant && (
-                      <AutoConfirmationManager />
-                    )}
-                  </motion.div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </div>
-        </main>
-      </div>
-    </>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
   );
 }

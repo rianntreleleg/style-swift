@@ -303,3 +303,75 @@ Para produção, considere:
 2. Implementar notificações por email para confirmações automáticas
 3. Adicionar logs mais detalhados para auditoria
 4. Implementar backup automático antes de migrações críticas
+
+# ✅ Correções Implementadas - Erro de Constraint
+
+## 🚨 **Problema Resolvido**
+**Erro:** `new row for relation "tenants" violates check constraint "tenants_plan_status_check"`
+
+## 🔧 **Correções Aplicadas**
+
+### **1. Código Frontend (Auth.tsx)**
+**Arquivo:** `src/pages/Auth.tsx`
+**Linha:** 195
+**Mudança:**
+```typescript
+// ANTES:
+plan_status: existingPayment ? 'active' : 'pending',
+
+// DEPOIS:
+plan_status: existingPayment ? 'active' : 'unpaid',
+```
+
+### **2. Script SQL para Banco de Dados**
+**Arquivo:** `FIX_CONSTRAINTS.sql`
+
+**Comandos executados:**
+```sql
+-- Corrigir constraint de plan_status
+ALTER TABLE public.tenants DROP CONSTRAINT IF EXISTS tenants_plan_status_check;
+ALTER TABLE public.tenants ADD CONSTRAINT tenants_plan_status_check
+  CHECK (plan_status IN ('active', 'canceled', 'past_due', 'unpaid', 'pending'));
+
+-- Corrigir constraint de plan
+ALTER TABLE public.tenants DROP CONSTRAINT IF EXISTS tenants_plan_check;
+ALTER TABLE public.tenants ADD CONSTRAINT tenants_plan_check
+  CHECK (plan IN ('essential', 'professional', 'premium'));
+```
+
+## 📋 **Valores Válidos Definidos**
+
+### **plan_status:**
+- `'active'` - Plano ativo
+- `'canceled'` - Plano cancelado
+- `'past_due'` - Pagamento em atraso
+- `'unpaid'` - Não pago
+- `'pending'` - Pendente
+
+### **plan:**
+- `'essential'` - Plano essencial
+- `'professional'` - Plano profissional
+- `'premium'` - Plano premium
+
+## 🎯 **Resultado Esperado**
+Após aplicar essas correções:
+1. ✅ O registro de usuários não deve mais falhar
+2. ✅ A constraint aceitará o valor `'unpaid'` para novos tenants
+3. ✅ O fluxo de pagamento deve funcionar corretamente
+
+## 📝 **Próximos Passos**
+1. Execute o script `FIX_CONSTRAINTS.sql` no SQL Editor do Supabase
+2. Teste o fluxo de registro novamente
+3. Verifique se o erro foi resolvido
+
+## 🔍 **Verificação**
+Para verificar se as correções funcionaram:
+```sql
+-- Verificar constraints atuais
+SELECT 
+  conname as constraint_name,
+  pg_get_constraintdef(oid) as constraint_definition
+FROM pg_constraint 
+WHERE conrelid = 'public.tenants'::regclass
+  AND conname IN ('tenants_plan_status_check', 'tenants_plan_check');
+```
