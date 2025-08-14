@@ -42,7 +42,6 @@ import AppointmentsTable from "@/components/AppointmentsTable";
 import { DailyAppointments } from "@/components/DailyAppointments";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
-import AutoConfirmationManager from "@/components/AutoConfirmationManager";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
 import ServicesTable from "@/components/ServicesTable";
 import UpgradePrompt from "@/components/UpgradePrompt";
@@ -51,12 +50,12 @@ import { PWAStatus } from "@/components/PWAStatus";
 import { MobileSidebar } from "@/components/MobileSidebar";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { checkFeatureAccess, canAddProfessional, type PlanTier } from "@/config/plans";
+import LogoUpload from "@/components/LogoUpload";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
   slug: z.string().min(2, "Slug obrigatório").regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"),
   theme_variant: z.enum(["barber", "salon"]).default("barber"),
-  logo_url: z.string().url().optional().or(z.literal("")),
 });
 
 type TenantForm = z.infer<typeof TenantSchema>;
@@ -841,7 +840,6 @@ export default function Admin() {
           {activeTab === 'hours' && (
             <div className="space-y-6">
               <BusinessHoursManager tenantId={selectedTenantId} />
-              <AutoConfirmationManager planTier={selectedTenant?.plan_tier} tenantId={selectedTenantId} />
             </div>
           )}
 
@@ -921,19 +919,17 @@ export default function Admin() {
                             Escolha o tema visual do seu estabelecimento
                           </p>
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Logo do Estabelecimento</Label>
-                          <Input
-                            id="logo_url"
-                            name="logo_url"
-                            defaultValue={selectedTenant.logo_url ?? ""}
-                            placeholder="https://exemplo.com/logo.png"
-                            className="h-10"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            URL da imagem do logo (recomendado: 200x200px, formato PNG ou JPG)
-                          </p>
-                        </div>
+                        <LogoUpload
+                          tenantId={selectedTenant.id}
+                          currentLogoUrl={selectedTenant.logo_url}
+                          planTier={selectedTenant.plan_tier || 'essential'}
+                          onLogoUpdate={(logoUrl) => {
+                            // Atualizar estado local se necessário
+                            if (selectedTenant) {
+                              selectedTenant.logo_url = logoUrl;
+                            }
+                          }}
+                        />
                       </div>
 
                       <div className="flex justify-end">

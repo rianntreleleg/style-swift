@@ -13,17 +13,12 @@ import Footer from "@/components/landing/Footer";
 const Index = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const startCheckout = async (productId: string) => {
+  const startCheckout = async (planId: string) => {
     try {
-      setLoadingPlan(productId);
-      
-      // NOVO FLUXO: Redirecionar para página de cadastro
-      const planId = productId === 'prod_SqqVGzUIvJPVpt' ? 'essential' : 
-                   productId === 'prod_professional' ? 'professional' : 'premium';
+      setLoadingPlan(planId);
       
       // Salvar plano selecionado e redirecionar para cadastro
       localStorage.setItem('planSelected', planId);
-      localStorage.setItem('productSelected', productId);
       
       // Redirecionar para página de cadastro onde o usuário escolherá novamente o plano
       window.location.href = '/auth';
