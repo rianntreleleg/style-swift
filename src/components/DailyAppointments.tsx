@@ -17,6 +17,7 @@ import {
 import { format, isToday, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+
 interface Appointment {
   id: string;
   customer_name: string;
@@ -73,6 +74,7 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
         return;
       }
 
+      console.log('Fetched appointments:', data);
       setAppointments(data || []);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
@@ -89,8 +91,8 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
   useEffect(() => {
     fetchTodayAppointments();
     
-    // Atualizar a cada 5 minutos
-    const interval = setInterval(fetchTodayAppointments, 5 * 60 * 1000);
+    // Atualizar a cada 2 minutos
+    const interval = setInterval(fetchTodayAppointments, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, [tenantId]);
@@ -157,7 +159,7 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
     }
 
     const mensagem = `Olá ${nome || 'cliente'}, sua consulta está confirmada para hoje. Caso precise de alguma coisa, entre em contato conosco.`;
-    const numeroLimpo = telefone.replace(/\D/g, '');
+    let numeroLimpo = telefone.replace(/\D/g, '');
     
     // Garantir que o número tenha o código do país
     if (!numeroLimpo.startsWith('55')) {
@@ -168,12 +170,23 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
     window.open(url, '_blank');
   };
 
+
+
   // Estatísticas
   const totalAppointments = appointments.length;
   const confirmedAppointments = appointments.filter(a => a.status === 'confirmado').length;
   const pendingAppointments = appointments.filter(a => a.status === 'agendado').length;
   const completedAppointments = appointments.filter(a => a.status === 'concluido').length;
   const cancelledAppointments = appointments.filter(a => a.status === 'cancelado').length;
+  
+  console.log('Appointment statistics:', {
+    total: totalAppointments,
+    confirmed: confirmedAppointments,
+    pending: pendingAppointments,
+    completed: completedAppointments,
+    cancelled: cancelledAppointments,
+    allStatuses: appointments.map(a => a.status)
+  });
 
   // Receita total (em centavos)
   const totalRevenue = appointments
@@ -205,6 +218,8 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
           Última atualização: {format(new Date(), 'HH:mm', { locale: ptBR })}
         </div>
       </div>
+
+
 
       {/* Dashboard/Relatório */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">

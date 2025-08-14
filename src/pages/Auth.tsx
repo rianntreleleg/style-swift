@@ -37,7 +37,7 @@ const SignupSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
   business_name: z.string().min(2, "Nome do estabelecimento obrigatório"),
   logo_url: z.string().url().optional().or(z.literal("")),
-  theme_variant: z.enum(["default", "barber", "salon"]).default("default"),
+  theme_variant: z.enum(["barber", "salon"]).default("barber"),
   open_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   close_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   working_days: z.array(z.number().int().min(0).max(6)).min(1, "Selecione pelo menos um dia"),
@@ -56,7 +56,7 @@ export default function Auth() {
   const signupForm = useForm<SignupForm>({
     resolver: zodResolver(SignupSchema),
     defaultValues: {
-      theme_variant: "default",
+      theme_variant: "barber",
       open_time: "09:00",
       close_time: "18:00",
       working_days: [1,2,3,4,5,6],
@@ -529,12 +529,11 @@ export default function Auth() {
                            <Palette className="h-4 w-4" />
                            Tema do Estabelecimento
                          </Label>
-                         <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "default" | "barber" | "salon")}>
+                         <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "barber" | "salon")}>
                            <SelectTrigger className="h-12">
                              <SelectValue placeholder="Escolha o tema do seu estabelecimento" />
                            </SelectTrigger>
                            <SelectContent>
-                             <SelectItem value="default">Padrão (Site e Dashboard)</SelectItem>
                              <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
                              <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
                            </SelectContent>

@@ -36,14 +36,18 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePWA } from "@/hooks/usePWA";
 import { motion } from "framer-motion";
 import AppointmentsTable from "@/components/AppointmentsTable";
 import { DailyAppointments } from "@/components/DailyAppointments";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import AutoConfirmationManager from "@/components/AutoConfirmationManager";
-import { MobileNavigation } from "@/components/MobileNavigation";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
+import UpgradePrompt from "@/components/UpgradePrompt";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { PWAStatus } from "@/components/PWAStatus";
+import { checkFeatureAccess, canAddProfessional, type PlanTier } from "@/config/plans";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -76,6 +80,16 @@ type ProForm = z.infer<typeof ProSchema>;
 export default function Admin() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const {
+    isInstallable,
+    isInstalled,
+    isOnline,
+    isAdmin,
+    showInstallPrompt,
+    hideInstallPrompt,
+    installPWA,
+    showInstallPromptFn
+  } = usePWA();
   const [tenants, setTenants] = useState<Array<{ 
     id: string; 
     name: string; 
@@ -319,24 +333,22 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <MobileNavigation 
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
       {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-sm">
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="container flex flex-col lg:flex-row items-start lg:items-center justify-between py-4 gap-4">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3"
+            className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full"
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-              <Scissors className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">StyleSwift Admin</h1>
-              <p className="text-muted-foreground">Bem-vindo, {user.email}</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <Scissors className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">StyleSwift Admin</h1>
+                <p className="text-muted-foreground text-sm">Bem-vindo, {user.email}</p>
+              </div>
             </div>
 
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto">
@@ -371,13 +383,21 @@ export default function Admin() {
                 </motion.div>
               )}
 
-              <div className="flex items-center gap-2 w-full lg:w-auto justify-between lg:justify-start">
-                <ThemeToggle />
-                <Button variant="outline" size="sm" onClick={handleSignOut}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sair
-                </Button>
-              </div>
+                             <div className="flex items-center gap-2 w-full lg:w-auto justify-between lg:justify-start">
+                 <PWAStatus
+                   isInstallable={isInstallable}
+                   isInstalled={isInstalled}
+                   isOnline={isOnline}
+                   isAdmin={isAdmin}
+                   onInstall={installPWA}
+                   onShowPrompt={showInstallPromptFn}
+                 />
+                 <ThemeToggle />
+                 <Button variant="outline" size="sm" onClick={handleSignOut}>
+                   <LogOut className="h-4 w-4 mr-2" />
+                   Sair
+                 </Button>
+               </div>
             </div>
           </motion.div>
         </div>
@@ -386,30 +406,30 @@ export default function Admin() {
       <main className="container py-4 lg:py-8 space-y-6 lg:space-y-8 px-4 lg:px-0">
         <Tabs defaultValue="dashboard">
           <div className="overflow-x-auto">
-            <TabsList className="grid w-full grid-cols-8 bg-muted/50 p-1 rounded-lg min-w-[800px] lg:min-w-0">
-            <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <BarChart3 className="h-4 w-4" /> Dashboard
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 bg-muted/50 p-1 rounded-lg">
+            <TabsTrigger value="dashboard" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <BarChart3 className="h-3 w-3 lg:h-4 lg:w-4" /> Dashboard
             </TabsTrigger>
-            <TabsTrigger value="today" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Calendar className="h-4 w-4" /> Hoje
+            <TabsTrigger value="today" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <Calendar className="h-3 w-3 lg:h-4 lg:w-4" /> Hoje
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Eye className="h-4 w-4" /> Agendamentos
+            <TabsTrigger value="appointments" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <Eye className="h-3 w-3 lg:h-4 lg:w-4" /> Agendamentos
             </TabsTrigger>
-            <TabsTrigger value="financial" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <DollarSign className="h-4 w-4" /> Financeiro
+            <TabsTrigger value="financial" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <DollarSign className="h-3 w-3 lg:h-4 lg:w-4" /> Financeiro
             </TabsTrigger>
-            <TabsTrigger value="services" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Scissors className="h-4 w-4" /> Serviços
+            <TabsTrigger value="services" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <Scissors className="h-3 w-3 lg:h-4 lg:w-4" /> Serviços
             </TabsTrigger>
-            <TabsTrigger value="pros" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Users2 className="h-4 w-4" /> Profissionais
+            <TabsTrigger value="pros" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <Users2 className="h-3 w-3 lg:h-4 lg:w-4" /> Profissionais
             </TabsTrigger>
-            <TabsTrigger value="hours" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Clock className="h-4 w-4" /> Horários
+            <TabsTrigger value="hours" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <Clock className="h-3 w-3 lg:h-4 lg:w-4" /> Horários
             </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Settings className="h-4 w-4" /> Configurações
+            <TabsTrigger value="settings" className="gap-1 lg:gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs lg:text-sm">
+              <Settings className="h-3 w-3 lg:h-4 lg:w-4" /> Configurações
             </TabsTrigger>
           </TabsList>
           </div>
@@ -422,14 +442,14 @@ export default function Admin() {
               className="space-y-4 lg:space-y-6"
             >
               {/* Métricas */}
-              <div className="grid gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Serviços Ativos</CardTitle>
                     <Scissors className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{metrics.services}</div>
+                    <div className="text-xl lg:text-2xl font-bold">{metrics.services}</div>
                     <p className="text-xs text-muted-foreground">
                       +20.1% em relação ao mês passado
                     </p>
@@ -442,7 +462,7 @@ export default function Admin() {
                     <Users2 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{metrics.pros}</div>
+                    <div className="text-xl lg:text-2xl font-bold">{metrics.pros}</div>
                     <p className="text-xs text-muted-foreground">
                       +5 novos este mês
                     </p>
@@ -455,7 +475,7 @@ export default function Admin() {
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{metrics.upcoming}</div>
+                    <div className="text-xl lg:text-2xl font-bold">{metrics.upcoming}</div>
                     <p className="text-xs text-muted-foreground">
                       Próximos agendamentos
                     </p>
@@ -475,29 +495,29 @@ export default function Admin() {
                       Informações sobre seu plano de assinatura
                     </CardDescription>
                   </CardHeader>
-                                     <CardContent>
-                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                       <div>
-                         <p className="text-sm font-medium">Plano: {selectedTenant.plan_tier || 'essential'}</p>
-                         <p className="text-xs text-muted-foreground">
-                           Status: {selectedTenant.plan_status || 'unpaid'}
-                         </p>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <Badge variant={selectedTenant.plan_status === 'active' ? 'default' : 'secondary'}>
-                           {selectedTenant.plan_status === 'active' ? 'Ativo' : 'Pendente'}
-                         </Badge>
-                         <Button
-                           variant="outline"
-                           size="icon"
-                           onClick={fetchTenants}
-                           className="h-8 w-8"
-                         >
-                           <RefreshCw className="h-4 w-4" />
-                         </Button>
-                       </div>
-                     </div>
-                   </CardContent>
+                  <CardContent>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">Plano: {selectedTenant.plan_tier || 'essential'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Status: {selectedTenant.plan_status || 'unpaid'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Badge variant={selectedTenant.plan_status === 'active' ? 'default' : 'secondary'} className="flex-1 sm:flex-none">
+                          {selectedTenant.plan_status === 'active' ? 'Ativo' : 'Pendente'}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={fetchTenants}
+                          className="h-8 w-8 flex-shrink-0"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
               )}
 
@@ -512,49 +532,50 @@ export default function Admin() {
                     Compartilhe este link com seus clientes para que possam agendar online
                   </CardDescription>
                 </CardHeader>
-                                 <CardContent className="space-y-4">
-                   <div className="space-y-2">
-                     <Label htmlFor="booking-url">URL de Agendamento</Label>
-                     <div className="flex flex-col sm:flex-row gap-2">
-                       <Input
-                         id="booking-url"
-                         value={getPublicBookingUrl()}
-                         readOnly
-                         className="font-mono text-sm"
-                       />
-                       <div className="flex gap-2">
-                         <Button
-                           variant="outline"
-                           size="icon"
-                           onClick={handleCopyLink}
-                           className="shrink-0"
-                         >
-                           {copied ? (
-                             <Check className="h-4 w-4 text-green-600" />
-                           ) : (
-                             <Copy className="h-4 w-4" />
-                           )}
-                         </Button>
-                         <Button
-                           variant="outline"
-                           size="icon"
-                           onClick={handleOpenLink}
-                           className="shrink-0"
-                         >
-                           <ExternalLink className="h-4 w-4" />
-                         </Button>
-                         <Button
-                           variant="default"
-                           onClick={handleGoToBookingPage}
-                           className="shrink-0"
-                         >
-                           <Calendar className="h-4 w-4 mr-2" />
-                           Ir para Agendamento
-                         </Button>
-                       </div>
-                     </div>
-                   </div>
-                 </CardContent>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="booking-url">URL de Agendamento</Label>
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        id="booking-url"
+                        value={getPublicBookingUrl()}
+                        readOnly
+                        className="font-mono text-xs lg:text-sm"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handleCopyLink}
+                          className="shrink-0"
+                        >
+                          {copied ? (
+                            <Check className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handleOpenLink}
+                          className="shrink-0"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="default"
+                          onClick={handleGoToBookingPage}
+                          className="shrink-0 flex-1 sm:flex-none"
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span className="hidden sm:inline">Ir para Agendamento</span>
+                          <span className="sm:hidden">Abrir</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
 
               
@@ -568,7 +589,9 @@ export default function Admin() {
               transition={{ duration: 0.5 }}
             >
               {selectedTenantId ? (
-                <DailyAppointments tenantId={selectedTenantId} />
+                <DailyAppointments 
+                  tenantId={selectedTenantId} 
+                />
               ) : (
                 <Card className="border-0 shadow-lg">
                   <CardContent className="text-center py-8">
@@ -610,10 +633,18 @@ export default function Admin() {
               transition={{ duration: 0.5 }}
             >
               {selectedTenantId ? (
-                <FinancialDashboard 
-                  tenantId={selectedTenantId}
-                  planTier={selectedTenant?.plan_tier || null}
-                />
+                checkFeatureAccess(selectedTenant?.plan_tier, 'hasFinancialDashboard') ? (
+                  <FinancialDashboard 
+                    tenantId={selectedTenantId}
+                    planTier={selectedTenant?.plan_tier || null}
+                  />
+                ) : (
+                  <UpgradePrompt
+                    requiredPlan="professional"
+                    featureName="Dashboard Financeiro"
+                    currentPlan={selectedTenant?.plan_tier}
+                  />
+                )
               ) : (
                 <Card className="border-0 shadow-lg">
                   <CardContent className="text-center py-8">
@@ -726,79 +757,92 @@ export default function Admin() {
                transition={{ duration: 0.5 }}
                className="space-y-6"
              >
-               {/* Formulário de Cadastro */}
-               <Card className="border-0 shadow-lg">
-                 <CardHeader>
-                   <CardTitle className="flex items-center gap-2">
-                     <Users2 className="h-5 w-5" />
-                     Cadastrar Profissionais
-                   </CardTitle>
-                   <CardDescription>
-                     Inclua os profissionais do seu time e suas especialidades.
-                   </CardDescription>
-                 </CardHeader>
-                 <CardContent>
-                   <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-6 lg:space-y-8">
-                     <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2">
-                       <div className="space-y-3">
-                         <Label className="text-sm font-medium">Estabelecimento</Label>
-                         <Select onValueChange={(v) => proForm.setValue("tenant_id", v)}>
-                           <SelectTrigger className="h-12">
-                             <SelectValue placeholder="Selecione o estabelecimento" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {tenants.map(t => (
-                               <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                       <div className="space-y-3">
-                         <Label className="text-sm font-medium">Nome do Profissional</Label>
-                         <Input {...proForm.register("name")} placeholder="Ex: João Silva, Maria Santos" className="h-12" />
-                       </div>
-                     </div>
-
-                     <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2">
-                       <div className="space-y-3">
-                         <Label className="text-sm font-medium">Especialidade/Bio</Label>
-                         <Input
-                           {...proForm.register("bio")}
-                           placeholder="Ex: Especialista em fade e barba, Colorista, etc."
-                           className="h-12"
-                         />
-                       </div>
-                       <div className="space-y-3">
-                         <Label className="text-sm font-medium">Avatar (URL)</Label>
-                         <Input
-                           {...proForm.register("avatar_url")}
-                           placeholder="https://exemplo.com/foto.jpg"
-                           className="h-12"
-                         />
-                         <p className="text-xs text-muted-foreground">
-                           Link para foto do profissional (opcional)
-                         </p>
-                       </div>
-                     </div>
-
-                     <div className="flex justify-end pt-4">
-                       <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 lg:px-8 w-full sm:w-auto">
-                         <Plus className="mr-2 h-5 w-5" />
-                         <span className="hidden sm:inline">Cadastrar Profissional</span>
-                         <span className="sm:hidden">Cadastrar</span>
-                       </Button>
-                     </div>
-                   </form>
-                 </CardContent>
-               </Card>
-
-               {/* Tabela de Profissionais */}
                {selectedTenantId ? (
-                 <ProfessionalsTable 
-                   professionals={professionals} 
-                   tenantId={selectedTenantId}
-                   onProfessionalUpdate={fetchProfessionals}
-                 />
+                 <>
+                   {/* Check professional limit */}
+                   {canAddProfessional(selectedTenant?.plan_tier, professionals.length) ? (
+                     <>
+                       {/* Formulário de Cadastro */}
+                       <Card className="border-0 shadow-lg">
+                         <CardHeader>
+                           <CardTitle className="flex items-center gap-2">
+                             <Users2 className="h-5 w-5" />
+                             Cadastrar Profissionais
+                           </CardTitle>
+                           <CardDescription>
+                             Inclua os profissionais do seu time e suas especialidades.
+                           </CardDescription>
+                         </CardHeader>
+                         <CardContent>
+                           <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-6 lg:space-y-8">
+                             <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2">
+                               <div className="space-y-3">
+                                 <Label className="text-sm font-medium">Estabelecimento</Label>
+                                 <Select onValueChange={(v) => proForm.setValue("tenant_id", v)}>
+                                   <SelectTrigger className="h-12">
+                                     <SelectValue placeholder="Selecione o estabelecimento" />
+                                   </SelectTrigger>
+                                   <SelectContent>
+                                     {tenants.map(t => (
+                                       <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                     ))}
+                                   </SelectContent>
+                                 </Select>
+                               </div>
+                               <div className="space-y-3">
+                                 <Label className="text-sm font-medium">Nome do Profissional</Label>
+                                 <Input {...proForm.register("name")} placeholder="Ex: João Silva, Maria Santos" className="h-12" />
+                               </div>
+                             </div>
+
+                             <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2">
+                               <div className="space-y-3">
+                                 <Label className="text-sm font-medium">Especialidade/Bio</Label>
+                                 <Input
+                                   {...proForm.register("bio")}
+                                   placeholder="Ex: Especialista em fade e barba, Colorista, etc."
+                                   className="h-12"
+                                 />
+                               </div>
+                               <div className="space-y-3">
+                                 <Label className="text-sm font-medium">Avatar (URL)</Label>
+                                 <Input
+                                   {...proForm.register("avatar_url")}
+                                   placeholder="https://exemplo.com/foto.jpg"
+                                   className="h-12"
+                                 />
+                                 <p className="text-xs text-muted-foreground">
+                                   Link para foto do profissional (opcional)
+                                 </p>
+                               </div>
+                             </div>
+
+                             <div className="flex justify-end pt-4">
+                               <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 lg:px-8 w-full sm:w-auto">
+                                 <Plus className="mr-2 h-5 w-5" />
+                                 <span className="hidden sm:inline">Cadastrar Profissional</span>
+                                 <span className="sm:hidden">Cadastrar</span>
+                               </Button>
+                             </div>
+                           </form>
+                         </CardContent>
+                       </Card>
+                     </>
+                   ) : (
+                     <UpgradePrompt
+                       requiredPlan={selectedTenant?.plan_tier === 'essential' ? 'professional' : 'premium'}
+                       featureName="Mais Profissionais"
+                       currentPlan={selectedTenant?.plan_tier}
+                     />
+                   )}
+
+                   {/* Tabela de Profissionais */}
+                   <ProfessionalsTable 
+                     professionals={professionals} 
+                     tenantId={selectedTenantId}
+                     onProfessionalUpdate={fetchProfessionals}
+                   />
+                 </>
                ) : (
                  <Card className="border-0 shadow-lg">
                    <CardContent className="text-center py-8">
@@ -819,7 +863,7 @@ export default function Admin() {
               {selectedTenantId ? (
                 <div className="space-y-6">
                   <BusinessHoursManager tenantId={selectedTenantId} />
-                  <AutoConfirmationManager />
+                  <AutoConfirmationManager planTier={selectedTenant?.plan_tier} />
                 </div>
               ) : (
                 <Card className="border-0 shadow-lg">
@@ -900,7 +944,7 @@ export default function Admin() {
                          <div className="space-y-2">
                            <Label className="text-sm font-medium">Tema do Estabelecimento</Label>
                            <Select 
-                             defaultValue={selectedTenant.theme_variant || 'default'}
+                             defaultValue={selectedTenant.theme_variant || 'barber'}
                              onValueChange={async (value) => {
                                const { error } = await supabase
                                  .from("tenants")
@@ -918,7 +962,6 @@ export default function Admin() {
                                <SelectValue placeholder="Escolha o tema" />
                              </SelectTrigger>
                              <SelectContent>
-                               <SelectItem value="default">Padrão (Site e Dashboard)</SelectItem>
                                <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
                                <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
                              </SelectContent>
@@ -960,8 +1003,17 @@ export default function Admin() {
               </Card>
             </motion.div>
           </TabsContent>
-        </Tabs>
-      </main>
-    </div>
-  );
-}
+                 </Tabs>
+       </main>
+
+       {/* PWA Install Prompt */}
+       <PWAInstallPrompt
+         isVisible={showInstallPrompt}
+         isOnline={isOnline}
+         isAdmin={isAdmin}
+         onInstall={installPWA}
+         onClose={hideInstallPrompt}
+       />
+     </div>
+   );
+ }

@@ -244,6 +244,35 @@ export const TimeSlotSelector = ({
     return false;
   };
 
+  // Nova função: verificar se um slot está parcialmente ocupado por um agendamento longo
+  const isTimeSlotPartiallyOccupied = (timeSlot: Date) => {
+    return appointments.some(appointment => {
+      if (appointment.status === 'cancelado') return false;
+      
+      const appointmentStart = parseISO(appointment.start_time);
+      const appointmentEnd = parseISO(appointment.end_time);
+      
+      // Verificar se o slot está dentro do período de um agendamento existente
+      return isSameDay(appointmentStart, timeSlot) &&
+        timeSlot.getTime() >= appointmentStart.getTime() &&
+        timeSlot.getTime() < appointmentEnd.getTime();
+    });
+  };
+
+  // Nova função: obter informações do agendamento que ocupa este slot
+  const getOccupyingAppointment = (timeSlot: Date) => {
+    return appointments.find(appointment => {
+      if (appointment.status === 'cancelado') return false;
+      
+      const appointmentStart = parseISO(appointment.start_time);
+      const appointmentEnd = parseISO(appointment.end_time);
+      
+      return isSameDay(appointmentStart, timeSlot) &&
+        timeSlot.getTime() >= appointmentStart.getTime() &&
+        timeSlot.getTime() < appointmentEnd.getTime();
+    });
+  };
+
   const getAppointmentForTimeSlot = (timeSlot: Date) => {
     return appointments.find(appointment => {
       const appointmentTime = parseISO(appointment.start_time);
@@ -254,7 +283,7 @@ export const TimeSlotSelector = ({
   };
 
   const handleTimeSlotClick = (timeSlot: Date) => {
-    if (isTimeSlotBooked(timeSlot) || isTimeSlotBlocked(timeSlot) || isTimeSlotPast(timeSlot) || isTimeSlotOccupiedByMultiSlot(timeSlot)) {
+    if (isTimeSlotBooked(timeSlot) || isTimeSlotBlocked(timeSlot) || isTimeSlotPast(timeSlot) || isTimeSlotOccupiedByMultiSlot(timeSlot) || isTimeSlotPartiallyOccupied(timeSlot)) {
       return;
     }
 
@@ -342,23 +371,36 @@ export const TimeSlotSelector = ({
                const isBlocked = isTimeSlotBlocked(timeSlot);
                const isPast = isTimeSlotPast(timeSlot);
                const isMultiSlotOccupied = isTimeSlotOccupiedByMultiSlot(timeSlot);
+               const isPartiallyOccupied = isTimeSlotPartiallyOccupied(timeSlot);
                const appointment = getAppointmentForTimeSlot(timeSlot);
+               const occupyingAppointment = getOccupyingAppointment(timeSlot);
                const isSelected = selectedTime === timeSlot.toISOString();
+
+               let buttonClass = '';
+               if (isBooked) {
+                 buttonClass = 'bg-red-100 text-red-800 border-red-300 cursor-not-allowed';
+               } else if (isBlocked) {
+                 buttonClass = 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed';
+               } else if (isPast) {
+                 buttonClass = 'bg-orange-100 text-orange-800 border-orange-300 cursor-not-allowed';
+               } else if (isMultiSlotOccupied) {
+                 buttonClass = 'bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed';
+               } else if (isPartiallyOccupied) {
+                 buttonClass = 'bg-blue-100 text-blue-800 border-blue-300 cursor-not-allowed';
+               } else if (isSelected) {
+                 buttonClass = 'bg-primary text-primary-foreground';
+               } else {
+                 buttonClass = 'hover:bg-primary/10';
+               }
 
                return (
                  <Button
                    type="button"
                    key={index}
                    variant={isSelected ? "default" : "outline"}
-                   className={`h-14 md:h-16 flex flex-col items-center justify-center p-2 text-xs min-h-[44px] ${isBooked ? 'bg-red-100 text-red-800 border-red-300 cursor-not-allowed' :
-                       isBlocked ? 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed' :
-                         isPast ? 'bg-orange-100 text-orange-800 border-orange-300 cursor-not-allowed' :
-                           isMultiSlotOccupied ? 'bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed' :
-                             isSelected ? 'bg-primary text-primary-foreground' :
-                               'hover:bg-primary/10'
-                     }`}
+                   className={`h-14 md:h-16 flex flex-col items-center justify-center p-2 text-xs min-h-[44px] ${buttonClass}`}
                    onClick={() => handleTimeSlotClick(timeSlot)}
-                   disabled={isBooked || isBlocked || isPast || isMultiSlotOccupied}
+                   disabled={isBooked || isBlocked || isPast || isMultiSlotOccupied || isPartiallyOccupied}
                  >
                    <div className="font-medium">
                      {format(timeSlot, 'HH:mm')}
@@ -366,6 +408,11 @@ export const TimeSlotSelector = ({
                    {appointment && (
                      <div className="text-xs opacity-75 truncate max-w-full">
                        {appointment.customer_name}
+                     </div>
+                   )}
+                   {occupyingAppointment && (
+                     <div className="text-xs opacity-75 truncate max-w-full text-blue-600">
+                       {occupyingAppointment.customer_name}
                      </div>
                    )}
                  </Button>
@@ -398,6 +445,10 @@ export const TimeSlotSelector = ({
            <span>Conflito</span>
          </div>
          <div className="flex items-center gap-2">
+           <div className="w-3 h-3 md:w-4 md:h-4 bg-blue-100 border-2 border-blue-300 rounded"></div>
+           <span>Ocupado por agendamento longo</span>
+         </div>
+         <div className="flex items-center gap-2">
            <div className="w-3 h-3 md:w-4 md:h-4 bg-primary border-2 border-primary rounded"></div>
            <span>Selecionado</span>
          </div>
@@ -425,6 +476,18 @@ export const TimeSlotSelector = ({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Informações sobre o sistema de slots */}
+      {selectedService && serviceSlots > 1 && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Informação sobre slots</AlertTitle>
+          <AlertDescription>
+            Este serviço ocupa {serviceSlots} slots de 30 minutos ({serviceDuration} min total). 
+            Todos os slots necessários devem estar disponíveis para o agendamento.
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );

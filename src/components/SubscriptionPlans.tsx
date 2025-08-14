@@ -13,14 +13,14 @@ const plans = [
     id: "essential",
     name: "Essencial",
     price: 2990, // R$ 29,90 em centavos
-    description: "Perfeito para começar",
+    description: "Para quem está começando e quer simplicidade.",
     icon: Zap,
     features: [
-      "1 profissional",
-      "Agendamentos ilimitados",
-      "Gerenciamento de clientes",
-      "Notificações por email",
-      "Suporte básico"
+      "Dashboard comum",
+      "Agendamentos do dia e histórico",
+      "Serviços ilimitados",
+      "1 profissional cadastrado",
+      "Página pública"
     ],
     popular: false
   },
@@ -28,15 +28,14 @@ const plans = [
     id: "professional",
     name: "Profissional",
     price: 4390, // R$ 43,90 em centavos
-    description: "Para equipes pequenas",
+    description: "Ideal para negócios em crescimento.",
     icon: Star,
     features: [
-      "Até 3 profissionais",
-      "Agendamentos ilimitados",
-      "Gerenciamento avançado",
-      "Notificações SMS + Email",
-      "Relatórios básicos",
-      "Suporte prioritário"
+      "Dashboard financeiro + todas as funções do Essencial",
+      "Até 3 profissionais cadastrados",
+      "Lembrete automático 1h antes + e-mail de confirmação",
+      "Tema personalizado",
+      "Suporte completo"
     ],
     popular: true
   },
@@ -44,15 +43,18 @@ const plans = [
     id: "premium",
     name: "Premium",
     price: 7990, // R$ 79,90 em centavos
-    description: "Para grandes estabelecimentos",
+    description: "Para máxima performance e automação.",
     icon: Crown,
     features: [
+      "Dashboard financeiro",
+      "Relatórios completos",
       "Profissionais ilimitados",
-      "Todas as funcionalidades",
-      "Relatórios avançados",
-      "API customizada",
-      "White-label",
-      "Suporte 24/7"
+      "Robô de atendimento 24h",
+      "Lembrete automático 1h antes",
+      "E-mail de confirmação",
+      "Tema persoalizado",
+      "Suporte 24h",
+      "Todas as funcionalidades"
     ],
     popular: false
   }

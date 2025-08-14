@@ -140,18 +140,22 @@ export default function PublicBooking() {
       throw new Error("Horários de funcionamento não configurados para este dia");
     }
 
-    // Converter horários para comparação
+    // Converter horários para comparação usando apenas o horário local
     const [openHour, openMinute] = businessHour.open_time.split(':').map(Number);
     const [closeHour, closeMinute] = businessHour.close_time.split(':').map(Number);
     
+    // Criar horários de comparação no mesmo dia do agendamento
     const openTime = new Date(start);
     openTime.setHours(openHour, openMinute, 0, 0);
     
     const closeTime = new Date(start);
     closeTime.setHours(closeHour, closeMinute, 0, 0);
 
+
+
     // Verificar se o agendamento está dentro do horário de funcionamento
-    if (start < openTime || end > closeTime) {
+    // Usar getTime() para comparação numérica precisa
+    if (start.getTime() < openTime.getTime() || end.getTime() > closeTime.getTime()) {
       throw new Error(`Agendamento deve ser feito entre ${businessHour.open_time} e ${businessHour.close_time}`);
     }
 
@@ -297,7 +301,7 @@ export default function PublicBooking() {
 
     queueInterval.current = setInterval(() => {
       processQueue();
-    }, 5000); // Processa a cada 5 segundos
+    }, 2000); // Processa a cada 2 segundos
 
     console.log("[FILA] Processador de fila iniciado");
   };
@@ -685,7 +689,11 @@ export default function PublicBooking() {
                             serviceId={form.watch("service_id")}
                             professionalId={form.watch("professional_id")}
                             onTimeSelect={(time) => {
-                              const timeStr = format(parseISO(time), 'HH:mm');
+                              // Extract time from the ISO string without timezone conversion
+                              const date = new Date(time);
+                              const hours = date.getHours().toString().padStart(2, '0');
+                              const minutes = date.getMinutes().toString().padStart(2, '0');
+                              const timeStr = `${hours}:${minutes}`;
                               form.setValue("time", timeStr);
                             }}
                             selectedTime={form.watch("time") ?

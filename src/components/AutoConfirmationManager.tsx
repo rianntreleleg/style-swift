@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, Clock, AlertCircle, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { checkFeatureAccess } from '@/config/plans';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 interface AutoConfirmationStats {
   total_appointments: number;
@@ -24,7 +26,11 @@ interface PendingAppointment {
   action_taken: string;
 }
 
-export default function AutoConfirmationManager() {
+interface AutoConfirmationManagerProps {
+  planTier?: string | null;
+}
+
+export default function AutoConfirmationManager({ planTier }: AutoConfirmationManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<AutoConfirmationStats | null>(null);
   const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([]);
@@ -43,7 +49,7 @@ export default function AutoConfirmationManager() {
       
       // Primeiro, vamos verificar se a função existe
       const { data: functionExists, error: checkError } = await supabase
-        .rpc('get_auto_confirmation_stats', {
+        .rpc('get_auto_confirmation_stats' as any, {
           start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           end_date: new Date().toISOString()
         });
@@ -55,7 +61,7 @@ export default function AutoConfirmationManager() {
         return;
       }
 
-      setStats(functionExists[0] || {
+      setStats((functionExists && functionExists[0]) || {
         total_appointments: 0,
         auto_confirmed: 0,
         manually_confirmed: 0,
@@ -110,7 +116,7 @@ export default function AutoConfirmationManager() {
     try {
       // Primeiro, verificar agendamentos pendentes
       const { data: pendingData, error: pendingError } = await supabase
-        .rpc('check_and_confirm_appointments');
+        .rpc('check_and_confirm_appointments' as any);
 
       if (pendingError) {
         console.error('Erro na função check_and_confirm_appointments:', pendingError);
@@ -119,13 +125,13 @@ export default function AutoConfirmationManager() {
         return;
       }
 
-      setPendingAppointments(pendingData || []);
+      setPendingAppointments((pendingData as any) || []);
       setLastRun(new Date());
 
       // Recarregar estatísticas
       await loadStats();
 
-      const confirmedCount = pendingData?.length || 0;
+      const confirmedCount = (pendingData as any)?.length || 0;
       
       if (confirmedCount > 0) {
         toast({
@@ -202,98 +208,108 @@ export default function AutoConfirmationManager() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Confirmação Automática de Agendamentos
-          </CardTitle>
-          <CardDescription>
-            Sistema que confirma automaticamente agendamentos não cancelados após 24 horas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Agendamentos que não foram cancelados e estão há mais de 24 horas são automaticamente confirmados.
-            </AlertDescription>
-          </Alert>
+      {checkFeatureAccess(planTier, 'hasAutoConfirmation') ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Confirmação Automática de Agendamentos
+              </CardTitle>
+              <CardDescription>
+                Sistema que confirma automaticamente agendamentos não cancelados após 24 horas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Agendamentos que não foram cancelados e estão há mais de 24 horas são automaticamente confirmados.
+                </AlertDescription>
+              </Alert>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{stats?.total_appointments || 0}</div>
-              <div className="text-sm text-muted-foreground">Total</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{stats?.auto_confirmed || 0}</div>
-              <div className="text-sm text-muted-foreground">Auto Confirmados</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{stats?.manually_confirmed || 0}</div>
-              <div className="text-sm text-muted-foreground">Manual Confirmados</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-red-600">{stats?.cancelled || 0}</div>
-              <div className="text-sm text-muted-foreground">Cancelados</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">{stats?.pending || 0}</div>
-              <div className="text-sm text-muted-foreground">Pendentes</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Button 
-              onClick={runAutoConfirmation} 
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              Executar Confirmação Automática
-            </Button>
-            
-            {lastRun && (
-              <div className="text-sm text-muted-foreground">
-                Última execução: {formatDate(lastRun.toISOString())}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Agendamentos Pendentes */}
-      {pendingAppointments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Agendamentos Confirmados Automaticamente
-            </CardTitle>
-            <CardDescription>
-              Agendamentos que foram confirmados na última execução.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {pendingAppointments.map((appointment, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <div className="font-medium">{appointment.customer_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {appointment.service_name} - {formatDate(appointment.scheduled_at)}
-                    </div>
-                  </div>
-                  <Badge variant="outline">{appointment.action_taken}</Badge>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{stats?.total_appointments || 0}</div>
+                  <div className="text-sm text-muted-foreground">Total</div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{stats?.auto_confirmed || 0}</div>
+                  <div className="text-sm text-muted-foreground">Auto Confirmados</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{stats?.manually_confirmed || 0}</div>
+                  <div className="text-sm text-muted-foreground">Manual Confirmados</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">{stats?.cancelled || 0}</div>
+                  <div className="text-sm text-muted-foreground">Cancelados</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">{stats?.pending || 0}</div>
+                  <div className="text-sm text-muted-foreground">Pendentes</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <Button 
+                  onClick={runAutoConfirmation} 
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )}
+                  Executar Confirmação Automática
+                </Button>
+                
+                {lastRun && (
+                  <div className="text-sm text-muted-foreground">
+                    Última execução: {formatDate(lastRun.toISOString())}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Agendamentos Pendentes */}
+          {pendingAppointments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Agendamentos Confirmados Automaticamente
+                </CardTitle>
+                <CardDescription>
+                  Agendamentos que foram confirmados na última execução.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {pendingAppointments.map((appointment, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <div className="font-medium">{appointment.customer_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {appointment.service_name} - {formatDate(appointment.scheduled_at)}
+                        </div>
+                      </div>
+                      <Badge variant="outline">{appointment.action_taken}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      ) : (
+        <UpgradePrompt
+          requiredPlan="professional"
+          featureName="Confirmação Automática"
+          currentPlan={planTier}
+        />
       )}
     </div>
   );
