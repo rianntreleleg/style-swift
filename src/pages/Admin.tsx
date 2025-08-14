@@ -30,10 +30,18 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Copy,
-  Check
+  Check,
+  Eye,
+  Crown,
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
+import AppointmentsTable from "@/components/AppointmentsTable";
+import { DailyAppointments } from "@/components/DailyAppointments";
+import BusinessHoursManager from "@/components/BusinessHoursManager";
+import FinancialDashboard from "@/components/FinancialDashboard";
+import AutoConfirmationManager from "@/components/AutoConfirmationManager";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -66,10 +74,19 @@ type ProForm = z.infer<typeof ProSchema>;
 export default function Admin() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [tenants, setTenants] = useState<Array<{ id: string; name: string; slug: string; logo_url?: string | null; theme_variant?: string }>>([]);
+  const [tenants, setTenants] = useState<Array<{ 
+    id: string; 
+    name: string; 
+    slug: string; 
+    logo_url?: string | null; 
+    theme_variant?: string;
+    plan_tier?: string;
+    plan_status?: string;
+  }>>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
   const [copied, setCopied] = useState(false);
+  const [appointments, setAppointments] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) {
@@ -78,22 +95,23 @@ export default function Admin() {
     }
   }, [user, navigate]);
 
+  const fetchTenants = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("tenants")
+      .select("id,name,slug,logo_url,theme_variant,plan_tier,plan_status")
+      .eq("owner_id", user.id);
+    if (error) {
+      toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
+      return;
+    }
+    setTenants(data ?? []);
+    if (!selectedTenantId && data && data.length) {
+      setSelectedTenantId(data[0].id);
+    }
+  };
+
   useEffect(() => {
-    const fetchTenants = async () => {
-      if (!user) return;
-      const { data, error } = await supabase
-        .from("tenants")
-        .select("id,name,slug,logo_url,theme_variant")
-        .eq("owner_id", user.id);
-      if (error) {
-        toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
-        return;
-      }
-      setTenants(data ?? []);
-      if (!selectedTenantId && data && data.length) {
-        setSelectedTenantId(data[0].id);
-      }
-    };
     fetchTenants();
   }, [user]);
 
@@ -101,8 +119,35 @@ export default function Admin() {
     if (selectedTenantId) {
       serviceForm.setValue("tenant_id", selectedTenantId);
       proForm.setValue("tenant_id", selectedTenantId);
+      fetchAppointments();
     }
   }, [selectedTenantId]);
+
+  const fetchAppointments = async () => {
+    if (!selectedTenantId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          services(name, price_cents),
+          professionals(name)
+        `)
+        .eq('tenant_id', selectedTenantId)
+        .order('start_time', { ascending: false });
+
+      if (error) throw error;
+      setAppointments(data || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar agendamentos:', error);
+      toast({
+        title: 'Erro ao carregar agendamentos',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -150,7 +195,7 @@ export default function Admin() {
     tenantForm.reset();
     const { data } = await supabase
       .from("tenants")
-      .select("id,name,slug,logo_url,theme_variant")
+      .select("id,name,slug,logo_url,theme_variant,plan_tier,plan_status")
       .eq("owner_id", user.id);
     setTenants(data ?? []);
   };
@@ -308,15 +353,27 @@ export default function Admin() {
 
       <main className="container py-8 space-y-8">
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-lg">
+          <TabsList className="grid w-full grid-cols-8 bg-muted/50 p-1 rounded-lg">
             <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <BarChart3 className="h-4 w-4" /> Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="today" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Calendar className="h-4 w-4" /> Hoje
+            </TabsTrigger>
+            <TabsTrigger value="appointments" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Eye className="h-4 w-4" /> Agendamentos
+            </TabsTrigger>
+            <TabsTrigger value="financial" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <DollarSign className="h-4 w-4" /> Financeiro
             </TabsTrigger>
             <TabsTrigger value="services" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Scissors className="h-4 w-4" /> Serviços
             </TabsTrigger>
             <TabsTrigger value="pros" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Users2 className="h-4 w-4" /> Profissionais
+            </TabsTrigger>
+            <TabsTrigger value="hours" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Clock className="h-4 w-4" /> Horários
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Settings className="h-4 w-4" /> Configurações
@@ -371,6 +428,44 @@ export default function Admin() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Informações do Plano */}
+              {selectedTenant && (
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Crown className="h-5 w-5" />
+                      Plano Atual
+                    </CardTitle>
+                    <CardDescription>
+                      Informações sobre seu plano de assinatura
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Plano: {selectedTenant.plan_tier || 'essential'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Status: {selectedTenant.plan_status || 'unpaid'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={selectedTenant.plan_status === 'active' ? 'default' : 'secondary'}>
+                          {selectedTenant.plan_status === 'active' ? 'Ativo' : 'Pendente'}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={fetchTenants}
+                          className="h-8 w-8"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Link Público de Agendamento */}
               <Card className="border-0 shadow-lg">
@@ -427,6 +522,70 @@ export default function Admin() {
               </Card>
 
               
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="today" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {selectedTenantId ? (
+                <DailyAppointments tenantId={selectedTenantId} />
+              ) : (
+                <Card className="border-0 shadow-lg">
+                  <CardContent className="text-center py-8">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Selecione um estabelecimento para ver os agendamentos de hoje.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="appointments" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {selectedTenantId ? (
+                <AppointmentsTable 
+                  appointments={appointments} 
+                  tenantId={selectedTenantId}
+                  onAppointmentUpdate={fetchAppointments}
+                />
+              ) : (
+                <Card className="border-0 shadow-lg">
+                  <CardContent className="text-center py-8">
+                    <Eye className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Selecione um estabelecimento para ver todos os agendamentos.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="financial" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {selectedTenantId ? (
+                <FinancialDashboard 
+                  tenantId={selectedTenantId}
+                  planTier={selectedTenant?.plan_tier || null}
+                />
+              ) : (
+                <Card className="border-0 shadow-lg">
+                  <CardContent className="text-center py-8">
+                    <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Selecione um estabelecimento para ver o dashboard financeiro.</p>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           </TabsContent>
 
@@ -592,6 +751,28 @@ export default function Admin() {
                   </form>
                 </CardContent>
               </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="hours" className="mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {selectedTenantId ? (
+                <div className="space-y-6">
+                  <BusinessHoursManager tenantId={selectedTenantId} />
+                  <AutoConfirmationManager />
+                </div>
+              ) : (
+                <Card className="border-0 shadow-lg">
+                  <CardContent className="text-center py-8">
+                    <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Selecione um estabelecimento para configurar horários.</p>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           </TabsContent>
 

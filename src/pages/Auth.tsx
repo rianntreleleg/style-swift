@@ -157,7 +157,7 @@ export default function Auth() {
           .replace(/[^a-z0-9\s-]/g, '')
           .replace(/\s+/g, '-')
           .replace(/-+/g, '-')
-          .trim('-');
+          .trim();
         
         // Verificar se o slug já existe e adicionar número se necessário
         let finalSlug = baseSlug;
@@ -196,7 +196,6 @@ export default function Auth() {
           plan_status: existingPayment ? 'active' : 'unpaid',
           payment_completed: !!existingPayment,
           stripe_customer_id: existingPayment?.stripe_customer_id || null,
-          stripe_subscription_id: existingPayment?.stripe_subscription_id || null,
         };
 
         console.log('[AUTH] Creating tenant with data:', tenantData);
@@ -214,11 +213,10 @@ export default function Auth() {
         // Se existe pagamento, associar ao tenant
         if (existingPayment) {
           console.log('[AUTH] Associating payment to tenant...');
-          const { error: associateError } = await supabase.rpc('associate_payment_to_tenant', {
+          const { error: associateError } = await supabase.rpc('update_tenant_subscription', {
             p_user_id: authData.user.id,
-            p_plan_tier: existingPayment.subscription_tier,
-            p_stripe_customer_id: existingPayment.stripe_customer_id,
-            p_stripe_subscription_id: existingPayment.stripe_subscription_id
+            p_subscription_tier: existingPayment.subscription_tier,
+            p_subscribed: true
           });
           
           if (associateError) {
