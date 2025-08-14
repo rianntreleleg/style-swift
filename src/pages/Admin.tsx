@@ -101,7 +101,7 @@ export default function Admin() {
     theme_variant?: string;
     plan_tier?: string;
     plan_status?: string;
-    plan?: any;
+    plan: 'essential' | 'professional' | 'premium';
   }>>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
@@ -127,10 +127,13 @@ export default function Admin() {
       toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
       return;
     }
-    setTenants(data ?? []);
-    if (!selectedTenantId && data && data.length) {
-      setSelectedTenantId(data[0].id);
-    }
+         setTenants((data ?? []).map(tenant => ({
+       ...tenant,
+       plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential'
+     })));
+     if (!selectedTenantId && data && data.length) {
+       setSelectedTenantId(data[0].id);
+     }
   };
 
   useEffect(() => {
@@ -238,11 +241,14 @@ export default function Admin() {
 
     toast({ title: "Estabelecimento criado com sucesso!" });
     tenantForm.reset();
-    const { data } = await supabase
-      .from("tenants")
-      .select("id,name,slug,logo_url,theme_variant,plan_tier,plan_status")
-      .eq("owner_id", user.id);
-    setTenants(data ?? []);
+         const { data } = await supabase
+       .from("tenants")
+       .select("id,name,slug,logo_url,theme_variant,plan_tier,plan_status")
+       .eq("owner_id", user.id);
+     setTenants((data ?? []).map(tenant => ({
+       ...tenant,
+       plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential'
+     })));
   };
 
   const onCreateService = async (values: ServiceForm) => {
@@ -379,8 +385,12 @@ export default function Admin() {
 
              {/* Desktop Logo and Title */}
              <div className="hidden lg:flex items-center gap-3">
-               <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                 <Scissors className="h-5 w-5 text-primary-foreground" />
+               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                 <img 
+                   src="/style_swift_logo_no_bg.png" 
+                   alt="StyleSwift Logo" 
+                   className="w-full h-full object-contain"
+                 />
                </div>
                <div>
                  <h1 className="text-xl font-bold">StyleSwift Admin</h1>
@@ -708,11 +718,12 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              <ProfessionalsTable 
-                professionals={professionals}
-                tenantId={selectedTenantId}
-                onProfessionalUpdate={fetchProfessionals}
-              />
+                             <ProfessionalsTable 
+                 professionals={professionals}
+                 tenantId={selectedTenantId}
+                 onProfessionalUpdate={fetchProfessionals}
+                 planTier={selectedTenant?.plan_tier}
+               />
             </div>
           )}
 

@@ -69,17 +69,38 @@ export async function handler(req: Request): Promise<Response> {
         if (user) {
           // Usuário já existe, associar pagamento ao tenant
           console.log(`[WEBHOOK] Associating payment to existing user ${user.id}`);
-          const { error: associateError } = await supabase.rpc('associate_payment_to_tenant', {
-            p_user_id: user.id,
-            p_plan_tier: planTier,
-            p_stripe_customer_id: customerId,
-            p_stripe_subscription_id: session.subscription as string
-          });
           
-          if (associateError) {
-            console.error("[WEBHOOK] Error associating payment:", associateError);
-          } else {
-            console.log(`[WEBHOOK] Successfully associated payment to user ${user.id}`);
+          try {
+            const { error: associateError } = await supabase.rpc('associate_payment_to_tenant', {
+              p_user_id: user.id,
+              p_plan_tier: planTier,
+              p_stripe_customer_id: customerId,
+              p_stripe_subscription_id: session.subscription as string
+            });
+            
+            if (associateError) {
+              console.error("[WEBHOOK] Error associating payment:", associateError);
+              // Fallback: try direct update if RPC fails
+              const { error: fallbackError } = await supabase.from("tenants").update({
+                plan: planTier,
+                plan_tier: planTier,
+                plan_status: "active",
+                stripe_customer_id: customerId,
+                stripe_subscription_id: session.subscription as string,
+                payment_completed: true,
+                updated_at: new Date().toISOString(),
+              } as any).eq("owner_id", user.id);
+              
+              if (fallbackError) {
+                console.error("[WEBHOOK] Fallback update also failed:", fallbackError);
+              } else {
+                console.log(`[WEBHOOK] Fallback update successful for user ${user.id}`);
+              }
+            } else {
+              console.log(`[WEBHOOK] Successfully associated payment to user ${user.id}`);
+            }
+          } catch (error) {
+            console.error("[WEBHOOK] Exception in payment association:", error);
           }
         } else {
           // Usuário não existe ainda, salvar informações para associação posterior

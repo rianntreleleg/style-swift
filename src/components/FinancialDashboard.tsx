@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { checkFeatureAccess } from "@/config/plans";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 interface FinancialDashboardProps {
   tenantId: string;
@@ -45,6 +47,9 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
   const [growth, setGrowth] = useState<number | null>(null);
 
   const isAdvanced = planTier === 'premium';
+  
+  // Verificar acesso ao dashboard financeiro
+  const hasFinancialAccess = checkFeatureAccess('financial_dashboard', planTier);
 
   useEffect(() => {
     if (tenantId) {
@@ -190,6 +195,17 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
       setLoading(false);
     }
   };
+
+  // Se não tem acesso, mostrar prompt de upgrade
+  if (!hasFinancialAccess) {
+    return (
+      <UpgradePrompt
+        requiredPlan="professional"
+        featureName="Dashboard Financeiro"
+        currentPlan={planTier}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

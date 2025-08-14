@@ -62,15 +62,19 @@ const navigationItems = [
 // Subcomponente para o cabeçalho
 const SidebarHeader = ({ closeSidebar }) => (
   <div className="flex items-center justify-between p-4 border-b">
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-        <Scissors className="h-4 w-4 text-primary-foreground" />
-      </div>
-      <div>
-        <h2 className="font-semibold text-sm">StyleSwift</h2>
-        <p className="text-xs text-muted-foreground">Admin Panel</p>
-      </div>
-    </div>
+         <div className="flex items-center gap-3">
+       <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+         <img 
+           src="/style_swift_logo_no_bg.png" 
+           alt="StyleSwift Logo" 
+           className="w-full h-full object-contain"
+         />
+       </div>
+       <div>
+         <h2 className="font-semibold text-sm">StyleSwift</h2>
+         <p className="text-xs text-muted-foreground">Admin Panel</p>
+       </div>
+     </div>
     <Button
       variant="ghost"
       size="sm"

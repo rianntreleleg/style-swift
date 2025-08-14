@@ -531,6 +531,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      associate_payment_to_tenant: {
+        Args: {
+          p_user_id: string
+          p_plan_tier: string
+          p_stripe_customer_id: string
+          p_stripe_subscription_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

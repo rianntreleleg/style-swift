@@ -27,6 +27,8 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
+import { checkFeatureAccess, canAddProfessional } from '@/config/plans';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 interface Professional {
   id: string;
@@ -40,15 +42,20 @@ interface ProfessionalsTableProps {
   professionals: Professional[];
   tenantId: string;
   onProfessionalUpdate: () => void;
+  planTier?: string;
 }
 
-export default function ProfessionalsTable({ professionals, tenantId, onProfessionalUpdate }: ProfessionalsTableProps) {
+export default function ProfessionalsTable({ professionals, tenantId, onProfessionalUpdate, planTier }: ProfessionalsTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
     bio: '',
     avatar_url: ''
   });
+
+  // Verificar acesso aos profissionais
+  const hasProfessionalsAccess = checkFeatureAccess(planTier, 'hasFinancialDashboard');
+  const canAdd = canAddProfessional(planTier, professionals.length);
 
   const handleEdit = (professional: Professional) => {
     setEditingId(professional.id);
@@ -174,6 +181,17 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Se não tem acesso, mostrar prompt de upgrade
+  if (!hasProfessionalsAccess) {
+    return (
+      <UpgradePrompt
+        requiredPlan="professional"
+        featureName="Gerenciamento de Profissionais"
+        currentPlan={planTier}
+      />
+    );
+  }
 
   return (
     <Card>
