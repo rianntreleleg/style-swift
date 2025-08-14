@@ -49,12 +49,12 @@ export default function LogoUpload({
         allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
       });
 
-      if (result.url) {
-        // Deletar logo anterior se existir
-        if (logoUrl && logoUrl.includes('supabase')) {
-          const oldPath = logoUrl.split('/').slice(-2).join('/');
-          await deleteImage('tenant-assets', oldPath);
-        }
+             if (result.url) {
+         // Deletar logo anterior se existir
+         if (logoUrl && (logoUrl.includes('supabase') || logoUrl.includes('avatars'))) {
+           const oldPath = logoUrl.split('/').slice(-2).join('/');
+           await deleteImage('tenant-assets', oldPath);
+         }
 
         // Atualizar no banco
         const { error } = await supabase
@@ -86,12 +86,12 @@ export default function LogoUpload({
   const handleRemoveLogo = async () => {
     if (!logoUrl || !canUseLogo) return;
 
-    try {
-      // Deletar da storage se for arquivo do Supabase
-      if (logoUrl.includes('supabase')) {
-        const path = logoUrl.split('/').slice(-2).join('/');
-        await deleteImage('tenant-assets', path);
-      }
+         try {
+       // Deletar da storage se for arquivo do Supabase ou avatars
+       if (logoUrl.includes('supabase') || logoUrl.includes('avatars')) {
+         const path = logoUrl.split('/').slice(-2).join('/');
+         await deleteImage('tenant-assets', path);
+       }
 
       // Atualizar no banco
       const { error } = await supabase

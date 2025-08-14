@@ -191,23 +191,115 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
   };
 
   const handleExportData = () => {
-    // Implementar exportação de dados
-    const csvData = revenueData.map(item => ({
-      Data: new Date(item.date).toLocaleDateString('pt-BR'),
-      Receita: formatBRL(item.revenue),
-      Agendamentos: item.appointments
-    }));
+    // Função para escapar campos CSV
+    const escapeCSV = (value: string) => {
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    // Função para criar linha CSV
+    const createCSVRow = (values: string[]) => {
+      return values.map(escapeCSV).join(',');
+    };
+
+    // Função para criar seção com título
+    const createSection = (title: string, headers: string[], data: string[][]) => {
+      const section = [];
+      section.push(''); // Linha em branco
+      section.push(title); // Título da seção
+      section.push(createCSVRow(headers)); // Cabeçalhos
+      data.forEach(row => section.push(createCSVRow(row))); // Dados
+      return section;
+    };
+
+    // Cabeçalho do relatório
+    const reportHeader = [
+      'Relatório de Receita - StyleSwift',
+      '',
+      `Período: ${period} dias`,
+      `Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`,
+      '',
+      'RESUMO EXECUTIVO',
+      `Receita Total,${formatBRL(totalRevenue)}`,
+      `Total Agendamentos,${totalAppointments}`,
+      `Ticket Médio,${formatBRL(ticketMedio)}`,
+      `Crescimento,${growth !== null ? `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%` : 'N/A'}`,
+      `Média de Receita por Dia,${formatBRL(totalRevenue / revenueData.length)}`,
+      `Média de Agendamentos por Dia,${(totalAppointments / revenueData.length).toFixed(1)}`
+    ];
+
+    // Dados diários
+    const dailyHeaders = ['Data', 'Receita', 'Agendamentos', 'Ticket Médio'];
+    const dailyData = revenueData.map(item => [
+      new Date(item.date).toLocaleDateString('pt-BR'),
+      formatBRL(item.revenue),
+      item.appointments.toString(),
+      formatBRL(item.revenue / item.appointments)
+    ]);
+
+    // Dados por profissional
+    const professionalHeaders = ['Profissional', 'Receita', 'Agendamentos', '% do Total'];
+    const professionalData = professionalRevenue
+      .sort((a, b) => b.revenue - a.revenue)
+      .map(p => [
+        p.professional_name,
+        formatBRL(p.revenue),
+        p.appointments.toString(),
+        `${((p.revenue / totalRevenue) * 100).toFixed(1)}%`
+      ]);
+
+    // Dados por serviço
+    const serviceHeaders = ['Serviço', 'Receita', 'Vendas', '% do Total'];
+    const serviceData = serviceRevenue
+      .sort((a, b) => b.revenue - a.revenue)
+      .map(s => [
+        s.service_name,
+        formatBRL(s.revenue),
+        s.count.toString(),
+        `${((s.revenue / totalRevenue) * 100).toFixed(1)}%`
+      ]);
+
+    // Análise de performance
+    const analysisHeaders = ['Métrica', 'Valor'];
+    const bestDay = revenueData.reduce((max, item) => 
+      item.revenue > max.revenue ? item : max
+    );
+    const worstDay = revenueData.reduce((min, item) => 
+      item.revenue < min.revenue ? item : min
+    );
     
-    const csv = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
+    const analysisData = [
+      ['Melhor Dia', `${new Date(bestDay.date).toLocaleDateString('pt-BR')} - ${formatBRL(bestDay.revenue)} (${bestDay.appointments} agendamentos)`],
+      ['Dia com Menor Receita', `${new Date(worstDay.date).toLocaleDateString('pt-BR')} - ${formatBRL(worstDay.revenue)} (${worstDay.appointments} agendamentos)`],
+      ['Profissional Top', `${topProfessional?.professional_name || 'N/A'} - ${topProfessional ? formatBRL(topProfessional.revenue) : 'N/A'}`],
+      ['Serviço Mais Vendido', `${topService?.service_name || 'N/A'} - ${topService ? formatBRL(topService.revenue) : 'N/A'}`]
+    ];
+
+    // Combinar todas as seções
+    const csvLines = [
+      ...reportHeader,
+      ...createSection('DADOS DIÁRIOS', dailyHeaders, dailyData),
+      ...createSection('PERFORMANCE POR PROFISSIONAL', professionalHeaders, professionalData),
+      ...createSection('PERFORMANCE POR SERVIÇO', serviceHeaders, serviceData),
+      ...createSection('ANÁLISE DE PERFORMANCE', analysisHeaders, analysisData),
+      '',
+      'StyleSwift - Sistema de Gestão para Barbearias',
+      'Relatório gerado automaticamente'
+    ];
+
+    // Criar CSV com encoding UTF-8 e BOM para compatibilidade com Excel
+    const csvContent = csvLines.join('\n');
+    const BOM = '\uFEFF'; // Byte Order Mark para UTF-8
+    const blob = new Blob([BOM + csvContent], { 
+      type: 'text/csv;charset=utf-8;' 
+    });
     
-    const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `receita-${period}-dias.csv`;
+    a.download = `relatorio-receita-${period}-dias-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -221,7 +313,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
     const reportData = {
       periodo: `${period} dias`,
       receitaTotal: formatBRL(totalRevenue),
-      totalAgendamentos,
+      totalAgendamentos: totalAppointments,
       ticketMedio: formatBRL(ticketMedio),
       crescimento: growth !== null ? `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%` : 'N/A',
       profissionais: professionalRevenue.map(p => ({
@@ -243,121 +335,218 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
       }))
     };
 
-    // Criar HTML para o relatório
+    // Criar HTML para o relatório com design moderno
     const htmlContent = `
       <!DOCTYPE html>
-      <html>
+      <html lang="pt-BR">
       <head>
         <meta charset="UTF-8">
-        <title>Relatório Financeiro</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Relatório de Receita - StyleSwift</title>
+        <script src="https://cdn.tailwindcss.com"></script>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-          .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
-          .card h3 { margin: 0 0 10px 0; color: #333; }
-          .card .value { font-size: 24px; font-weight: bold; color: #2563eb; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-          th { background-color: #f5f5f5; }
-          .section { margin: 30px 0; }
-          .section h2 { color: #1f2937; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+          }
         </style>
       </head>
-      <body>
-        <div class="header">
-          <h1>Relatório Financeiro</h1>
-          <p>Período: ${reportData.periodo}</p>
-          <p>Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-        </div>
-
-        <div class="summary">
-          <div class="card">
-            <h3>Receita Total</h3>
-            <div class="value">${reportData.receitaTotal}</div>
+      <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-7xl">
+          <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">📊 Relatório de Receita</h1>
+            <p class="text-gray-600">StyleSwift - Sistema de Gestão para Barbearias</p>
+            <p class="text-sm text-gray-500 mt-2">Período: ${reportData.periodo} | Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
-          <div class="card">
-            <h3>Agendamentos</h3>
-            <div class="value">${reportData.totalAgendamentos}</div>
-          </div>
-          <div class="card">
-            <h3>Ticket Médio</h3>
-            <div class="value">${reportData.ticketMedio}</div>
-          </div>
-          <div class="card">
-            <h3>Crescimento</h3>
-            <div class="value">${reportData.crescimento}</div>
-          </div>
-        </div>
 
-        <div class="section">
-          <h2>Performance por Profissional</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Profissional</th>
-                <th>Receita</th>
-                <th>Agendamentos</th>
-                <th>% do Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${reportData.profissionais.map(p => `
-                <tr>
-                  <td>${p.nome}</td>
-                  <td>${p.receita}</td>
-                  <td>${p.agendamentos}</td>
-                  <td>${p.percentual}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
+          <!-- Resumo do Período -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-xl text-white">
+              <div class="text-sm font-medium opacity-90">Receita Total</div>
+              <div class="text-2xl font-bold mt-1">${reportData.receitaTotal}</div>
+            </div>
+            <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl text-white">
+              <div class="text-sm font-medium opacity-90">Total Agendamentos</div>
+              <div class="text-2xl font-bold mt-1">${reportData.totalAgendamentos}</div>
+            </div>
+            <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-xl text-white">
+              <div class="text-sm font-medium opacity-90">Ticket Médio</div>
+              <div class="text-2xl font-bold mt-1">${reportData.ticketMedio}</div>
+            </div>
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-xl text-white">
+              <div class="text-sm font-medium opacity-90">Crescimento</div>
+              <div class="text-2xl font-bold mt-1">${reportData.crescimento}</div>
+            </div>
+          </div>
 
-        <div class="section">
-          <h2>Performance por Serviço</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Serviço</th>
-                <th>Receita</th>
-                <th>Vendas</th>
-                <th>% do Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${reportData.servicos.map(s => `
-                <tr>
-                  <td>${s.nome}</td>
-                  <td>${s.receita}</td>
-                  <td>${s.vendas}</td>
-                  <td>${s.percentual}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
+          <!-- Performance por Profissional -->
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">👥 Performance por Profissional</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-lg">
+              <table class="min-w-full divide-y divide-gray-200 bg-white">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Profissional
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Receita
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Agendamentos
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      % do Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  ${reportData.profissionais.map(p => `
+                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${p.nome}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                        ${p.receita}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        ${p.agendamentos}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        ${p.percentual}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        <div class="section">
-          <h2>Receita Diária</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Receita</th>
-                <th>Agendamentos</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${reportData.dadosDiarios.map(d => `
-                <tr>
-                  <td>${d.data}</td>
-                  <td>${d.receita}</td>
-                  <td>${d.agendamentos}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+          <!-- Performance por Serviço -->
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">🛠️ Performance por Serviço</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-lg">
+              <table class="min-w-full divide-y divide-gray-200 bg-white">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Serviço
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Receita
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Vendas
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      % do Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  ${reportData.servicos.map(s => `
+                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${s.nome}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                        ${s.receita}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        ${s.vendas}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        ${s.percentual}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Receita Diária -->
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📅 Receita Diária</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-lg">
+              <table class="min-w-full divide-y divide-gray-200 bg-white">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Data
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Receita
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Agendamentos
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Ticket Médio
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  ${reportData.dadosDiarios.map(d => `
+                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${d.data}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                        ${d.receita}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        ${d.agendamentos} agendamentos
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        ${formatBRL(parseFloat(d.receita.replace(/[^\d,]/g, '').replace(',', '.')) / d.agendamentos)}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Análise de Performance -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">📈 Melhor Dia</h3>
+              ${(() => {
+                const bestDay = revenueData.reduce((max, item) => 
+                  item.revenue > max.revenue ? item : max
+                );
+                return `
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600">${formatBRL(bestDay.revenue)}</div>
+                    <div class="text-sm text-gray-600">${new Date(bestDay.date).toLocaleDateString('pt-BR')}</div>
+                    <div class="text-xs text-gray-500">${bestDay.appointments} agendamentos</div>
+                  </div>
+                `;
+              })()}
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">📉 Dia com Menor Receita</h3>
+              ${(() => {
+                const worstDay = revenueData.reduce((min, item) => 
+                  item.revenue < min.revenue ? item : min
+                );
+                return `
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-red-600">${formatBRL(worstDay.revenue)}</div>
+                    <div class="text-sm text-gray-600">${new Date(worstDay.date).toLocaleDateString('pt-BR')}</div>
+                    <div class="text-xs text-gray-500">${worstDay.appointments} agendamentos</div>
+                  </div>
+                `;
+              })()}
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="text-center text-gray-500 text-sm border-t pt-6">
+            <p>Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+            <p class="mt-1">StyleSwift - Transformando a gestão do seu negócio</p>
+          </div>
         </div>
       </body>
       </html>

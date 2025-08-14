@@ -24,6 +24,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import LogoIcon from '@/components/LogoIcon';
 
 // Tipagem mais clara e específica para os objetos
 interface Tenant {
@@ -63,13 +64,7 @@ const navigationItems = [
 const SidebarHeader = ({ closeSidebar }) => (
   <div className="flex items-center justify-between p-4 border-b">
          <div className="flex items-center gap-3">
-       <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-         <img 
-           src="/style_swift_logo_no_bg.png" 
-           alt="StyleSwift Logo" 
-           className="w-full h-full object-contain"
-         />
-       </div>
+       <LogoIcon size="md" />
        <div>
          <h2 className="font-semibold text-sm">StyleSwift</h2>
          <p className="text-xs text-muted-foreground">Admin Panel</p>

@@ -20,6 +20,7 @@ import {
   Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import LogoIcon from '@/components/LogoIcon';
 
 interface DesktopSidebarProps {
   activeTab: string;
@@ -105,13 +106,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
          <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-30 lg:bg-background lg:border-r">
              {/* Header */}
        <div className="flex items-center gap-3 p-6 border-b">
-         <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-           <img 
-             src="/style_swift_logo_no_bg.png" 
-             alt="StyleSwift Logo" 
-             className="w-full h-full object-contain"
-           />
-         </div>
+         <LogoIcon size="lg" />
          <div>
            <h2 className="font-semibold">StyleSwift</h2>
            <p className="text-sm text-muted-foreground">Admin Panel</p>

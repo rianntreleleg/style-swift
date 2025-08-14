@@ -101,21 +101,41 @@ export const useImageUpload = () => {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = options.folder ? `${options.folder}/${fileName}` : fileName;
 
-      // Upload para Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(options.bucket)
+      // Verificar se o bucket existe, se não, usar um bucket padrão
+      let bucketName = options.bucket;
+      
+      // Tentar fazer upload no bucket especificado
+      let { data, error } = await supabase.storage
+        .from(bucketName)
         .upload(filePath, processedFile, {
           cacheControl: '3600',
           upsert: false,
         });
 
-      if (error) {
+      // Se o bucket não existir, usar o bucket padrão 'avatars'
+      if (error && error.message.includes('Bucket not found')) {
+        console.warn(`Bucket ${bucketName} não encontrado, usando bucket padrão 'avatars'`);
+        bucketName = 'avatars';
+        
+        const { data: fallbackData, error: fallbackError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, processedFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+        
+        if (fallbackError) {
+          throw fallbackError;
+        }
+        
+        data = fallbackData;
+      } else if (error) {
         throw error;
       }
 
       // Obter URL pública
       const { data: urlData } = supabase.storage
-        .from(options.bucket)
+        .from(bucketName)
         .getPublicUrl(data.path);
 
       return {
@@ -142,11 +162,21 @@ export const useImageUpload = () => {
 
   const deleteImage = async (bucket: string, path: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.storage
+      let { error } = await supabase.storage
         .from(bucket)
         .remove([path]);
 
-      if (error) {
+      // Se o bucket não existir, tentar no bucket padrão
+      if (error && error.message.includes('Bucket not found')) {
+        console.warn(`Bucket ${bucket} não encontrado, tentando no bucket padrão 'avatars'`);
+        const { error: fallbackError } = await supabase.storage
+          .from('avatars')
+          .remove([path]);
+        
+        if (fallbackError) {
+          throw fallbackError;
+        }
+      } else if (error) {
         throw error;
       }
 

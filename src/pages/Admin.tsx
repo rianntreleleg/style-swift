@@ -51,6 +51,7 @@ import { MobileSidebar } from "@/components/MobileSidebar";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { checkFeatureAccess, canAddProfessional, type PlanTier } from "@/config/plans";
 import LogoUpload from "@/components/LogoUpload";
+import LogoIcon from "@/components/LogoIcon";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -254,7 +255,6 @@ export default function Admin() {
       name: values.name,
       slug: values.slug,
       theme_variant: values.theme_variant,
-      logo_url: values.logo_url || null,
     } as any);
 
     if (error) {
@@ -467,13 +467,7 @@ export default function Admin() {
 
             {/* Desktop Logo and Title */}
             <div className="hidden lg:flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                <img
-                  src="/style_swift_logo_no_bg.png"
-                  alt="StyleSwift Logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
+              <LogoIcon size="lg" />
               <div>
                 <h1 className="text-xl font-bold">StyleSwift Admin</h1>
                 <p className="text-muted-foreground text-sm">Bem-vindo, {user.email}</p>

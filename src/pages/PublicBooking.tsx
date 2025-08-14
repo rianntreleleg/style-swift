@@ -54,7 +54,7 @@ const BookingSchema = z.object({
 type BookingForm = z.infer<typeof BookingSchema>;
 
 export default function PublicBooking() {
-  const { slug = "" } = useParams();
+  const { slug } = useParams<{ slug?: string }>();
   const [searchParams] = useSearchParams();
   const tenantParam = searchParams.get('tenant');
   const [tenant, setTenant] = useState<any>(null);
@@ -115,7 +115,7 @@ export default function PublicBooking() {
       .single();
 
     // Processar horário usando utilitários de data
-    const start = createLocalDateTime(values.date, values.time);
+    const start = createLocalDateTime(values.date.toISOString().split('T')[0], values.time);
     const end = new Date(start.getTime() + (service?.duration_minutes ?? 30) * 60000);
     
     console.log(`[AGENDAMENTO] Horário selecionado: ${values.time}`);
@@ -214,7 +214,7 @@ export default function PublicBooking() {
     // Usar função utilitária para conversão ISO local
 
     // Criar agendamento
-    const { error: appointmentError } = await supabase.from("appointments").insert({
+    const { data: appointmentData, error: appointmentError } = await supabase.from("appointments").insert({
       tenant_id: tenant.id,
       service_id: values.service_id,
       professional_id: values.professional_id,
@@ -226,7 +226,7 @@ export default function PublicBooking() {
       end_time: toLocalISOString(end),
       status: "agendado",
       notes: values.notes,
-    } as any);
+    } as any).select().single();
     
     console.log(`[AGENDAMENTO] Salvando no banco - start_time: ${toLocalISOString(start)}`);
     console.log(`[AGENDAMENTO] Salvando no banco - end_time: ${toLocalISOString(end)}`);
@@ -237,7 +237,7 @@ export default function PublicBooking() {
     try {
       const webhookData = {
         appointment: {
-          id: customerId, // Usando customerId como identificador temporário
+          id: appointmentData.id, // Usando o ID real do agendamento
           customer_name: values.name,
           customer_email: values.email,
           customer_phone: values.phone,
@@ -676,7 +676,7 @@ export default function PublicBooking() {
                                 // Allow same-day appointments, but disable past dates
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
-                                const selectedDate = new Date(date);
+                                const selectedDate = new Date(date.getTime());
                                 selectedDate.setHours(0, 0, 0, 0);
                                 return selectedDate < today || date > addDays(new Date(), 14);
                               }}

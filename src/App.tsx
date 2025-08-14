@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { MobileOptimizer } from "@/components/MobileOptimizer";
+import Favicon from "@/components/Favicon";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
@@ -22,6 +23,7 @@ const App = () => (
     <ThemeProvider defaultTheme="system" storageKey="style-swift-theme">
       <AuthProvider>
         <TooltipProvider>
+          <Favicon />
           <MobileOptimizer>
             <Toaster />
             <Sonner />
