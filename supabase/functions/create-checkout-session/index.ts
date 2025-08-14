@@ -25,13 +25,33 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
-    const { productId } = await req.json();
+    const { productId, customerId, tenantId, userEmail } = await req.json();
+    
+    logStep("Request data received", { productId, customerId, tenantId, userEmail });
+    
     if (!productId) {
+      logStep("ERROR: Missing productId");
       throw new Error("productId is required");
     }
-    logStep("Product ID received", { productId });
+    if (!customerId) {
+      logStep("ERROR: Missing customerId");
+      throw new Error("customerId is required");
+    }
+    if (!tenantId) {
+      logStep("ERROR: Missing tenantId");
+      throw new Error("tenantId is required");
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+
+    // Verificar se o customer existe no Stripe
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      logStep("Customer verified in Stripe", { customerId, email: customer.email });
+    } catch (customerError) {
+      logStep("ERROR: Customer not found in Stripe", { customerId, error: customerError });
+      throw new Error(`Customer ${customerId} not found in Stripe`);
+    }
 
     // Mapear produtos para preços
     const productPricing = {
@@ -48,8 +68,9 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "http://localhost:8080";
 
-    // Criar sessão de checkout
+    // Criar sessão de checkout com customer existente e metadados do tenant
     const session = await stripe.checkout.sessions.create({
+      customer: customerId, // Usar customer já criado
       line_items: [
         {
           price_data: {
@@ -71,6 +92,8 @@ serve(async (req) => {
       metadata: {
         productId: productId,
         planName: pricing.name,
+        tenantId: tenantId, // IMPORTANTE: Incluir tenant_id nos metadados
+        userEmail: userEmail || "",
       },
     });
 

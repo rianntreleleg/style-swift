@@ -26,7 +26,8 @@ import {
   Palette,
   CheckCircle2,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Crown
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
@@ -38,6 +39,7 @@ const SignupSchema = z.object({
   business_name: z.string().min(2, "Nome do estabelecimento obrigatório"),
   logo_url: z.string().url().optional().or(z.literal("")),
   theme_variant: z.enum(["barber", "salon"]).default("barber"),
+  plan_tier: z.enum(["essential", "professional", "premium"]).default("professional"),
   open_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   close_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   working_days: z.array(z.number().int().min(0).max(6)).min(1, "Selecione pelo menos um dia"),
@@ -57,6 +59,7 @@ export default function Auth() {
     resolver: zodResolver(SignupSchema),
     defaultValues: {
       theme_variant: "barber",
+      plan_tier: "professional",
       open_time: "09:00",
       close_time: "18:00",
       working_days: [1,2,3,4,5,6],
@@ -79,9 +82,8 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Verificar se há plano selecionado para permitir cadastro
-  const planSelected = localStorage.getItem('planSelected');
-  const canAccessSignup = !!planSelected;
+  // NOVO FLUXO: Permitir cadastro direto (plano é selecionado no formulário)
+  const canAccessSignup = true;
 
   // Verificar se veio do checkout de pagamento
   const checkoutSuccess = searchParams.get('checkout') === 'success';
@@ -123,19 +125,11 @@ export default function Auth() {
   };
 
   const handleSignup = async (values: SignupForm) => {
-    if (!canAccessSignup) {
-      toast({
-        title: "Pagamento necessário",
-        description: "Você precisa escolher um plano antes de se cadastrar.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     setLoading(true);
     try {
-      const planSelected = localStorage.getItem('planSelected');
-      console.log('[AUTH] Plan selected from localStorage:', planSelected);
+      const planSelected = values.plan_tier; // Usar o plano selecionado no formulário
+      console.log('[AUTH] Plan selected from form:', planSelected);
       
       // Primeiro cria o usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -176,6 +170,27 @@ export default function Auth() {
           counter++;
         }
 
+        // NOVO FLUXO: CRIAR CUSTOMER NO STRIPE IMEDIATAMENTE
+        console.log('[AUTH] Criando customer no Stripe para:', values.email);
+        const { data: customerData, error: customerError } = await supabase.functions.invoke('create-customer', {
+          body: { 
+            email: values.email,
+            name: values.name,
+            metadata: {
+              planTier: planSelected || 'essential',
+              businessName: values.business_name,
+              themeVariant: values.theme_variant
+            }
+          }
+        });
+
+        if (customerError) {
+          console.error('[AUTH] Erro ao criar customer:', customerError);
+          throw new Error('Erro ao criar customer no Stripe: ' + customerError.message);
+        }
+
+        console.log('[AUTH] Customer criado no Stripe:', customerData.customer_id);
+
         // Verificar se já existe pagamento para este email
         const { data: existingPayment } = await supabase
           .from("subscribers")
@@ -186,19 +201,19 @@ export default function Auth() {
 
         console.log('[AUTH] Existing payment found:', existingPayment);
 
-                 // Cria o tenant com informações do plano
-         const tenantData = {
-           owner_id: authData.user.id,
-           name: values.business_name,
-           slug: finalSlug,
-           theme_variant: values.theme_variant,
-           logo_url: values.logo_url || null,
-           plan: existingPayment?.subscription_tier || planSelected || 'essential',
-           plan_tier: existingPayment?.subscription_tier || planSelected || 'essential',
-           plan_status: existingPayment ? 'active' : 'unpaid',
-           payment_completed: !!existingPayment,
-           stripe_customer_id: existingPayment?.stripe_customer_id || null,
-         };
+        // Cria o tenant com customer_id SEMPRE (payment_completed = false por padrão)
+        const tenantData = {
+          owner_id: authData.user.id,
+          name: values.business_name,
+          slug: finalSlug,
+          theme_variant: values.theme_variant,
+          logo_url: values.logo_url || null,
+          plan: planSelected || 'essential',
+          plan_tier: planSelected || 'essential',
+          plan_status: existingPayment ? 'active' : 'pending', // PENDING = esperando pagamento
+          payment_completed: !!existingPayment,
+          stripe_customer_id: customerData.customer_id, // SEMPRE tem customer_id
+        };
 
         console.log('[AUTH] Creating tenant with data:', tenantData);
 
@@ -247,20 +262,41 @@ export default function Auth() {
         localStorage.removeItem('planSelected');
         localStorage.removeItem('productSelected');
 
-        toast({
-          title: "Conta criada com sucesso!",
-          description: existingPayment 
-            ? "Sua conta foi criada e o pagamento foi associado. Você pode fazer login agora."
-            : "Verifique seu email para confirmar a conta e acessar o painel."
-        });
-        
-        signupForm.reset();
-        
-        // Se já tem pagamento, redirecionar para login
         if (existingPayment) {
+          toast({
+            title: "Conta criada com sucesso!",
+            description: "Sua conta foi criada e o pagamento foi associado. Você pode fazer login agora."
+          });
+          
+          // Se já tem pagamento, redirecionar para login
           setIsLogin(true);
           setEmail(values.email);
+        } else {
+          // NOVO FLUXO: Redirecionar automaticamente para o checkout
+          toast({
+            title: "Conta criada com sucesso! 🎉",
+            description: "Redirecionando para finalizar o pagamento em 2 segundos..."
+          });
+          
+          // Salvar dados para o checkout
+          localStorage.setItem('tenantId', tenantRow!.id);
+          localStorage.setItem('planSelected', planSelected || 'essential');
+          localStorage.setItem('userEmail', values.email);
+          localStorage.setItem('customerId', customerData.customer_id);
+          localStorage.setItem('needsPayment', 'true');
+          
+          // Mostrar loading e redirecionar automaticamente
+          setLoading(true);
+          
+          // Redirecionar automaticamente para o checkout após 2 segundos
+          console.log('[AUTH] Agendando redirecionamento automático para checkout...');
+          setTimeout(() => {
+            console.log('[AUTH] Executando redirecionamento automático...');
+            handleProceedToPayment();
+          }, 2000);
         }
+        
+        signupForm.reset();
       }
     } catch (error: any) {
       console.error('[AUTH] Error during signup:', error);
@@ -274,7 +310,66 @@ export default function Auth() {
     }
   };
 
+  const handleProceedToPayment = async () => {
+    const tenantId = localStorage.getItem('tenantId');
+    const planSelected = localStorage.getItem('planSelected');
+    const userEmail = localStorage.getItem('userEmail');
+    const customerId = localStorage.getItem('customerId');
 
+    if (!tenantId || !planSelected || !userEmail || !customerId) {
+      toast({
+        title: "Erro",
+        description: "Dados de pagamento não encontrados. Tente se cadastrar novamente.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('[AUTH] Iniciando checkout automático com dados:', {
+      tenantId, planSelected, userEmail, customerId
+    });
+
+    setLoading(true);
+    try {
+      console.log('[AUTH] Iniciando checkout com dados salvos:', {
+        tenantId, planSelected, userEmail, customerId
+      });
+
+      const productId = planSelected === 'professional' ? 'prod_professional' 
+                      : planSelected === 'premium' ? 'prod_premium' 
+                      : 'prod_SqqVGzUIvJPVpt';
+
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout-session', {
+        body: { 
+          productId,
+          customerId,
+          tenantId,
+          userEmail
+        }
+      });
+      
+      if (checkoutError) {
+        console.error('[AUTH] Erro no checkout:', checkoutError);
+        throw new Error(checkoutError.message || 'Erro na função de checkout');
+      }
+      
+      if (checkoutData?.url) {
+        console.log('[AUTH] Redirecionando para checkout:', checkoutData.url);
+        window.location.href = checkoutData.url;
+      } else {
+        throw new Error('URL de checkout não recebida');
+      }
+    } catch (e: any) {
+      console.error('[AUTH] Erro ao processar pagamento:', e);
+      toast({ 
+        title: 'Erro ao iniciar pagamento', 
+        description: e.message || 'Erro desconhecido. Tente novamente.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background to-muted/20">
@@ -349,10 +444,10 @@ export default function Auth() {
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="px-4 py-2">
                 <Sparkles className="w-4 h-4 mr-2" />
-                Gratuito para sempre
+                Setup em minutos
               </Badge>
               <Badge variant="outline" className="px-4 py-2">
-                500+ barbearias ativas
+                500+ estabelecimentos ativos
               </Badge>
             </div>
           </motion.div>
@@ -365,25 +460,35 @@ export default function Auth() {
             className="flex items-center justify-center lg:col-start-2"
           >
             <Card className="w-full max-w-md border-0 shadow-2xl bg-background/80 backdrop-blur-sm">
-              <CardHeader className="text-center space-y-2">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CardHeader className="text-center space-y-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto">
                   <Scissors className="h-8 w-8 text-primary-foreground" />
                 </div>
                 <CardTitle className="text-2xl font-bold">
-                  {isLogin ? "Bem-vindo de volta!" : "Crie sua conta"}
+                  {isLogin ? "Bem-vindo de volta!" : "Criar Estabelecimento"}
                 </CardTitle>
                 <CardDescription className="text-base">
                   {isLogin
                     ? "Entre na sua conta para acessar o painel"
-                    : "Comece gratuitamente e automatize seus agendamentos"
+                    : "Configure seu estabelecimento em 3 passos simples"
                   }
                 </CardDescription>
                 {!isLogin && (
-                  <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      <strong>Importante:</strong> Cada usuário pode criar apenas um estabelecimento. 
-                      O slug da URL será gerado automaticamente baseado no nome do estabelecimento.
-                    </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">1</div>
+                      <span>Dados</span>
+                    </div>
+                    <ArrowRight className="h-3 w-3" />
+                    <div className="flex items-center gap-1">
+                      <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-medium">2</div>
+                      <span>Pagamento</span>
+                    </div>
+                    <ArrowRight className="h-3 w-3" />
+                    <div className="flex items-center gap-1">
+                      <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-medium">3</div>
+                      <span>Dashboard</span>
+                    </div>
                   </div>
                 )}
               </CardHeader>
@@ -543,6 +648,40 @@ export default function Auth() {
                          </p>
                        </div>
                        <div className="space-y-3 md:col-span-2">
+                         <Label htmlFor="plan_tier" className="text-sm font-medium flex items-center gap-2">
+                           <Crown className="h-4 w-4" />
+                           Plano de Assinatura
+                         </Label>
+                         <Select onValueChange={(v) => signupForm.setValue("plan_tier", v as "essential" | "professional" | "premium")}>
+                           <SelectTrigger className="h-12">
+                             <SelectValue placeholder="Escolha seu plano" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="essential">
+                               <div className="flex flex-col">
+                                 <span className="font-medium">Essencial - R$ 29,90/mês</span>
+                                 <span className="text-xs text-muted-foreground">Ideal para começar</span>
+                               </div>
+                             </SelectItem>
+                             <SelectItem value="professional">
+                               <div className="flex flex-col">
+                                 <span className="font-medium">Profissional - R$ 43,90/mês</span>
+                                 <span className="text-xs text-muted-foreground">Mais popular - Dashboard financeiro</span>
+                               </div>
+                             </SelectItem>
+                             <SelectItem value="premium">
+                               <div className="flex flex-col">
+                                 <span className="font-medium">Premium - R$ 79,90/mês</span>
+                                 <span className="text-xs text-muted-foreground">Recursos avançados completos</span>
+                               </div>
+                             </SelectItem>
+                           </SelectContent>
+                         </Select>
+                         <p className="text-xs text-muted-foreground">
+                           Você finalizará o pagamento após criar a conta
+                         </p>
+                       </div>
+                       <div className="space-y-3 md:col-span-2">
                          <Label htmlFor="logo_url" className="text-sm font-medium">
                            Logo (URL - opcional)
                          </Label>
@@ -563,30 +702,43 @@ export default function Auth() {
                       disabled={loading}
                     >
                       {loading ? (
-                        <Loading size="sm" text="Criando conta..." />
+                        <Loading size="sm" text="Criando estabelecimento..." />
                       ) : (
                         <>
-                          Criar conta gratuita
+                          Registrar e Criar Meu Estabelecimento
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </>
                       )}
                     </Button>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">
+                        🔒 Após o registro, você será redirecionado para o pagamento seguro
+                      </p>
+                    </div>
                   </form>
                 ) : (
                   <div className="text-center space-y-4">
-                    <div className="p-6 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                      <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">
-                        Plano Necessário
+                    <div className="p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                        Novo Fluxo Simplificado! 🚀
                       </h3>
-                      <p className="text-sm text-orange-600 dark:text-orange-300 mb-4">
-                        Para se cadastrar, você precisa primeiro escolher um plano de assinatura.
+                      <p className="text-sm text-blue-600 dark:text-blue-300 mb-4">
+                        Agora você pode se cadastrar diretamente e escolher seu plano durante o processo!
+                        Basta preencher os dados e finalizar o pagamento.
                       </p>
                       <Button 
-                        onClick={() => window.location.href = '/#planos'} 
+                        onClick={() => {
+                          // Definir um plano padrão para permitir cadastro direto
+                          localStorage.setItem('planSelected', 'professional');
+                          window.location.reload();
+                        }}
                         className="w-full"
                       >
-                        Escolher Plano
+                        Começar Cadastro
                       </Button>
+                      <p className="text-xs text-blue-600 dark:text-blue-300 mt-2">
+                        Você poderá escolher entre Essencial, Profissional ou Premium
+                      </p>
                     </div>
                   </div>
                 )}

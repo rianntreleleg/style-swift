@@ -75,6 +75,7 @@ export const usePWA = () => {
   // Detectar evento de instalação
   const handleBeforeInstallPrompt = useCallback((e: BeforeInstallPromptEvent) => {
     e.preventDefault();
+    console.log('PWA install prompt detected');
     setPwaState(prev => ({
       ...prev,
       deferredPrompt: e,
@@ -84,13 +85,13 @@ export const usePWA = () => {
 
   // Detectar se o app foi instalado
   const handleAppInstalled = useCallback(() => {
+    console.log('PWA installed successfully');
     setPwaState(prev => ({
       ...prev,
       isInstalled: true,
       isInstallable: false,
       deferredPrompt: null
     }));
-    console.log('PWA instalado com sucesso!');
   }, []);
 
   // Detectar mudanças de conectividade
@@ -103,17 +104,21 @@ export const usePWA = () => {
 
   // Função para instalar o PWA
   const installPWA = useCallback(async () => {
-    if (!pwaState.deferredPrompt || !pwaState.isAdmin) {
-      console.log('Não é possível instalar: usuário não é admin ou prompt não disponível');
+    if (!pwaState.deferredPrompt) {
+      console.log('Não é possível instalar: prompt não disponível');
       return false;
     }
 
     try {
+      console.log('Iniciando instalação do PWA...');
+      
       // Mostrar prompt de instalação
       await pwaState.deferredPrompt.prompt();
       
       // Aguardar escolha do usuário
       const { outcome } = await pwaState.deferredPrompt.userChoice;
+      
+      console.log('Resultado da instalação:', outcome);
       
       if (outcome === 'accepted') {
         console.log('Usuário aceitou a instalação');
@@ -132,14 +137,14 @@ export const usePWA = () => {
       console.error('Erro durante a instalação:', error);
       return false;
     }
-  }, [pwaState.deferredPrompt, pwaState.isAdmin]);
+  }, [pwaState.deferredPrompt]);
 
   // Mostrar prompt de instalação manual
   const showInstallPrompt = useCallback(() => {
-    if (pwaState.isAdmin && pwaState.isInstallable) {
+    if (pwaState.isInstallable) {
       setPwaState(prev => ({ ...prev, showInstallPrompt: true }));
     }
-  }, [pwaState.isAdmin, pwaState.isInstallable]);
+  }, [pwaState.isInstallable]);
 
   // Esconder prompt de instalação
   const hideInstallPrompt = useCallback(() => {
@@ -151,6 +156,7 @@ export const usePWA = () => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                         (window.navigator as any).standalone === true;
     
+    console.log('Standalone mode check:', isStandalone);
     setPwaState(prev => ({ ...prev, isInstalled: isStandalone }));
   }, []);
 

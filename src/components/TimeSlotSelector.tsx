@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Clock, Calendar, User, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { format, parseISO, isSameDay, setHours, setMinutes, isWithinInterval, addDays, startOfDay, endOfDay, isBefore, isAfter, addMinutes } from 'date-fns';
+import { format, parseISO, isSameDay, setHours, setMinutes, isWithinInterval, addDays, startOfDay, endOfDay, isBefore, isAfter, addMinutes, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Tag } from "lucide-react";
@@ -67,8 +67,6 @@ export const TimeSlotSelector = ({
   const [loading, setLoading] = useState(true);
   const [businessHours, setBusinessHours] = useState<any[]>([]);
   const { toast } = useToast();
-
-
 
   const fetchData = async () => {
     setLoading(true);
@@ -136,8 +134,6 @@ export const TimeSlotSelector = ({
     fetchData();
   }, [selectedDate, tenantId]);
 
-
-
   const getBusinessHoursForDay = (date: Date) => {
     const weekday = date.getDay(); // 0 = domingo, 1 = segunda, etc.
     const businessHour = businessHours.find(bh => bh.weekday === weekday);
@@ -172,12 +168,24 @@ export const TimeSlotSelector = ({
     }
 
     const slots = [];
+    
+    // Parsear horários de abertura e fechamento
     const [openHour, openMinute] = hours.open.split(':').map(Number);
     const [closeHour, closeMinute] = hours.close.split(':').map(Number);
 
-    let currentTime = setMinutes(setHours(selectedDate, openHour), openMinute);
-    const closeTime = setMinutes(setHours(selectedDate, closeHour), closeMinute);
+    // Criar data base para o dia selecionado (sem timezone)
+    const baseDate = new Date(selectedDate);
+    baseDate.setHours(0, 0, 0, 0);
 
+    // Definir horário de início
+    let currentTime = new Date(baseDate);
+    currentTime.setHours(openHour, openMinute, 0, 0);
+
+    // Definir horário de fechamento
+    const closeTime = new Date(baseDate);
+    closeTime.setHours(closeHour, closeMinute, 0, 0);
+
+    // Gerar slots de 30 em 30 minutos
     while (currentTime < closeTime) {
       slots.push(new Date(currentTime));
       currentTime = new Date(currentTime.getTime() + 30 * 60 * 1000); // 30 minutos
@@ -287,7 +295,12 @@ export const TimeSlotSelector = ({
       return;
     }
 
-    onTimeSelect(timeSlot.toISOString());
+    // Converter para ISO string mantendo o horário local
+    const localISOString = new Date(
+      timeSlot.getTime() - (timeSlot.getTimezoneOffset() * 60000)
+    ).toISOString();
+    
+    onTimeSelect(localISOString);
   };
 
   // Obter informações do serviço selecionado
@@ -365,94 +378,94 @@ export const TimeSlotSelector = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-                     <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-             {timeSlots.map((timeSlot, index) => {
-               const isBooked = isTimeSlotBooked(timeSlot);
-               const isBlocked = isTimeSlotBlocked(timeSlot);
-               const isPast = isTimeSlotPast(timeSlot);
-               const isMultiSlotOccupied = isTimeSlotOccupiedByMultiSlot(timeSlot);
-               const isPartiallyOccupied = isTimeSlotPartiallyOccupied(timeSlot);
-               const appointment = getAppointmentForTimeSlot(timeSlot);
-               const occupyingAppointment = getOccupyingAppointment(timeSlot);
-               const isSelected = selectedTime === timeSlot.toISOString();
+          <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+            {timeSlots.map((timeSlot, index) => {
+              const isBooked = isTimeSlotBooked(timeSlot);
+              const isBlocked = isTimeSlotBlocked(timeSlot);
+              const isPast = isTimeSlotPast(timeSlot);
+              const isMultiSlotOccupied = isTimeSlotOccupiedByMultiSlot(timeSlot);
+              const isPartiallyOccupied = isTimeSlotPartiallyOccupied(timeSlot);
+              const appointment = getAppointmentForTimeSlot(timeSlot);
+              const occupyingAppointment = getOccupyingAppointment(timeSlot);
+              const isSelected = selectedTime === timeSlot.toISOString();
 
-               let buttonClass = '';
-               if (isBooked) {
-                 buttonClass = 'bg-red-100 text-red-800 border-red-300 cursor-not-allowed';
-               } else if (isBlocked) {
-                 buttonClass = 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed';
-               } else if (isPast) {
-                 buttonClass = 'bg-orange-100 text-orange-800 border-orange-300 cursor-not-allowed';
-               } else if (isMultiSlotOccupied) {
-                 buttonClass = 'bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed';
-               } else if (isPartiallyOccupied) {
-                 buttonClass = 'bg-blue-100 text-blue-800 border-blue-300 cursor-not-allowed';
-               } else if (isSelected) {
-                 buttonClass = 'bg-primary text-primary-foreground';
-               } else {
-                 buttonClass = 'hover:bg-primary/10';
-               }
+              let buttonClass = '';
+              if (isBooked) {
+                buttonClass = 'bg-red-100 text-red-800 border-red-300 cursor-not-allowed';
+              } else if (isBlocked) {
+                buttonClass = 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed';
+              } else if (isPast) {
+                buttonClass = 'bg-orange-100 text-orange-800 border-orange-300 cursor-not-allowed';
+              } else if (isMultiSlotOccupied) {
+                buttonClass = 'bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed';
+              } else if (isPartiallyOccupied) {
+                buttonClass = 'bg-blue-100 text-blue-800 border-blue-300 cursor-not-allowed';
+              } else if (isSelected) {
+                buttonClass = 'bg-primary text-primary-foreground';
+              } else {
+                buttonClass = 'hover:bg-primary/10';
+              }
 
-               return (
-                 <Button
-                   type="button"
-                   key={index}
-                   variant={isSelected ? "default" : "outline"}
-                   className={`h-14 md:h-16 flex flex-col items-center justify-center p-2 text-xs min-h-[44px] ${buttonClass}`}
-                   onClick={() => handleTimeSlotClick(timeSlot)}
-                   disabled={isBooked || isBlocked || isPast || isMultiSlotOccupied || isPartiallyOccupied}
-                 >
-                   <div className="font-medium">
-                     {format(timeSlot, 'HH:mm')}
-                   </div>
-                   {appointment && (
-                     <div className="text-xs opacity-75 truncate max-w-full">
-                       {appointment.customer_name}
-                     </div>
-                   )}
-                   {occupyingAppointment && (
-                     <div className="text-xs opacity-75 truncate max-w-full text-blue-600">
-                       {occupyingAppointment.customer_name}
-                     </div>
-                   )}
-                 </Button>
-               );
-             })}
-           </div>
+              return (
+                <Button
+                  type="button"
+                  key={index}
+                  variant={isSelected ? "default" : "outline"}
+                  className={`h-14 md:h-16 flex flex-col items-center justify-center p-2 text-xs min-h-[44px] ${buttonClass}`}
+                  onClick={() => handleTimeSlotClick(timeSlot)}
+                  disabled={isBooked || isBlocked || isPast || isMultiSlotOccupied || isPartiallyOccupied}
+                >
+                  <div className="font-medium">
+                    {format(timeSlot, 'HH:mm')}
+                  </div>
+                  {appointment && (
+                    <div className="text-xs opacity-75 truncate max-w-full">
+                      {appointment.customer_name}
+                    </div>
+                  )}
+                  {occupyingAppointment && (
+                    <div className="text-xs opacity-75 truncate max-w-full text-blue-600">
+                      {occupyingAppointment.customer_name}
+                    </div>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
-             {/* Legenda */}
-       <div className="grid grid-cols-2 md:flex md:items-center gap-2 md:gap-4 text-xs md:text-sm flex-wrap">
-         <div className="flex items-center gap-2">
-           <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-gray-300 bg-white rounded"></div>
-           <span>Disponível</span>
-         </div>
-         <div className="flex items-center gap-2">
-           <div className="w-3 h-3 md:w-4 md:h-4 bg-red-100 border-2 border-red-300 rounded"></div>
-           <span>Ocupado</span>
-         </div>
-         <div className="flex items-center gap-2">
-           <div className="w-3 h-3 md:w-4 md:h-4 bg-gray-100 border-2 border-gray-300 rounded"></div>
-           <span>Bloqueado</span>
-         </div>
-         <div className="flex items-center gap-2">
-           <div className="w-3 h-3 md:w-4 md:h-4 bg-orange-100 border-2 border-orange-300 rounded"></div>
-           <span>Horário passou</span>
-         </div>
-         <div className="flex items-center gap-2">
-           <div className="w-3 h-3 md:w-4 md:h-4 bg-yellow-100 border-2 border-yellow-300 rounded"></div>
-           <span>Conflito</span>
-         </div>
-         <div className="flex items-center gap-2">
-           <div className="w-3 h-3 md:w-4 md:h-4 bg-blue-100 border-2 border-blue-300 rounded"></div>
-           <span>Ocupado por agendamento longo</span>
-         </div>
-         <div className="flex items-center gap-2">
-           <div className="w-3 h-3 md:w-4 md:h-4 bg-primary border-2 border-primary rounded"></div>
-           <span>Selecionado</span>
-         </div>
-       </div>
+      {/* Legenda */}
+      <div className="grid grid-cols-2 md:flex md:items-center gap-2 md:gap-4 text-xs md:text-sm flex-wrap">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-gray-300 bg-white rounded"></div>
+          <span>Disponível</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+          <span>Ocupado</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-gray-100 border-2 border-gray-300 rounded"></div>
+          <span>Bloqueado</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-orange-100 border-2 border-orange-300 rounded"></div>
+          <span>Horário passou</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-yellow-100 border-2 border-yellow-300 rounded"></div>
+          <span>Conflito</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-blue-100 border-2 border-blue-300 rounded"></div>
+          <span>Ocupado por agendamento longo</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-primary border-2 border-primary rounded"></div>
+          <span>Selecionado</span>
+        </div>
+      </div>
 
       {/* Informações do horário selecionado */}
       {selectedTime && (

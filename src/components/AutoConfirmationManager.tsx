@@ -28,9 +28,10 @@ interface PendingAppointment {
 
 interface AutoConfirmationManagerProps {
   planTier?: string | null;
+  tenantId?: string | null;
 }
 
-export default function AutoConfirmationManager({ planTier }: AutoConfirmationManagerProps) {
+export default function AutoConfirmationManager({ planTier, tenantId }: AutoConfirmationManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<AutoConfirmationStats | null>(null);
   const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([]);
@@ -40,8 +41,10 @@ export default function AutoConfirmationManager({ planTier }: AutoConfirmationMa
 
   // Carregar estatísticas iniciais
   useEffect(() => {
-    loadStats();
-  }, []);
+    if (tenantId) {
+      loadStats();
+    }
+  }, [tenantId]);
 
   const loadStats = async () => {
     try {
@@ -82,6 +85,7 @@ export default function AutoConfirmationManager({ planTier }: AutoConfirmationMa
       const { data: appointments, error } = await supabase
         .from('appointments')
         .select('*')
+        .eq('tenant_id', tenantId)
         .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .lte('start_time', new Date().toISOString());
 
@@ -163,6 +167,7 @@ export default function AutoConfirmationManager({ planTier }: AutoConfirmationMa
       const { data, error } = await supabase
         .from('appointments')
         .update({ status: 'confirmado' })
+        .eq('tenant_id', tenantId)
         .eq('status', 'agendado')
         .lt('start_time', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
         .gt('start_time', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());

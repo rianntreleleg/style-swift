@@ -41,7 +41,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
     }
   };
 
-  if (!isVisible || !isAdmin) {
+  if (!isVisible) {
     return null;
   }
 
@@ -109,12 +109,14 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
                 </div>
               </div>
 
-              {/* Badge de Admin */}
-              <div className="flex justify-center">
-                <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
-                  Acesso Exclusivo para Administradores
-                </Badge>
-              </div>
+              {/* Badge de Admin (apenas se for admin) */}
+              {isAdmin && (
+                <div className="flex justify-center">
+                  <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                    Acesso Exclusivo para Administradores
+                  </Badge>
+                </div>
+              )}
 
               {/* Botões */}
               <div className="flex gap-2">

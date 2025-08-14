@@ -1,12 +1,14 @@
-const CACHE_NAME = 'styleswift-v1.0.0';
+const CACHE_NAME = 'styleswift-v1.2.0';
 const urlsToCache = [
   '/',
-  '/admin',
   '/auth',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
+  '/admin',
+  '/subscription',
+  '/agendamento',
   '/manifest.json',
-  '/favicon.ico'
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/style_swift_logo_no_bg.png'
 ];
 
 // Instalação do Service Worker

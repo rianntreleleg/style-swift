@@ -13,12 +13,12 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Building2, 
-  Scissors, 
-  Users2, 
-  LogOut, 
-  ExternalLink, 
+import {
+  Building2,
+  Scissors,
+  Users2,
+  LogOut,
+  ExternalLink,
   Plus,
   Calendar,
   TrendingUp,
@@ -93,11 +93,11 @@ export default function Admin() {
     installPWA,
     showInstallPromptFn
   } = usePWA();
-  const [tenants, setTenants] = useState<Array<{ 
-    id: string; 
-    name: string; 
-    slug: string; 
-    logo_url?: string | null; 
+  const [tenants, setTenants] = useState<Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo_url?: string | null;
     theme_variant?: string;
     plan_tier?: string;
     plan_status?: string;
@@ -108,6 +108,7 @@ export default function Admin() {
   const [copied, setCopied] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
@@ -127,13 +128,13 @@ export default function Admin() {
       toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
       return;
     }
-         setTenants((data ?? []).map(tenant => ({
-       ...tenant,
-       plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential'
-     })));
-     if (!selectedTenantId && data && data.length) {
-       setSelectedTenantId(data[0].id);
-     }
+    setTenants((data ?? []).map(tenant => ({
+      ...tenant,
+      plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential'
+    })));
+    if (!selectedTenantId && data && data.length) {
+      setSelectedTenantId(data[0].id);
+    }
   };
 
   useEffect(() => {
@@ -146,12 +147,13 @@ export default function Admin() {
       proForm.setValue("tenant_id", selectedTenantId);
       fetchAppointments();
       fetchProfessionals();
+      fetchServices();
     }
   }, [selectedTenantId]);
 
   const fetchAppointments = async () => {
     if (!selectedTenantId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -177,7 +179,7 @@ export default function Admin() {
 
   const fetchProfessionals = async () => {
     if (!selectedTenantId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('professionals')
@@ -191,6 +193,28 @@ export default function Admin() {
       console.error('Erro ao carregar profissionais:', error);
       toast({
         title: 'Erro ao carregar profissionais',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const fetchServices = async () => {
+    if (!selectedTenantId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('tenant_id', selectedTenantId)
+        .order('name');
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar serviços:', error);
+      toast({
+        title: 'Erro ao carregar serviços',
         description: error.message,
         variant: 'destructive'
       });
@@ -241,14 +265,14 @@ export default function Admin() {
 
     toast({ title: "Estabelecimento criado com sucesso!" });
     tenantForm.reset();
-         const { data } = await supabase
-       .from("tenants")
-       .select("id,name,slug,logo_url,theme_variant,plan_tier,plan_status")
-       .eq("owner_id", user.id);
-     setTenants((data ?? []).map(tenant => ({
-       ...tenant,
-       plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential'
-     })));
+    const { data } = await supabase
+      .from("tenants")
+      .select("id,name,slug,logo_url,theme_variant,plan_tier,plan_status")
+      .eq("owner_id", user.id);
+    setTenants((data ?? []).map(tenant => ({
+      ...tenant,
+      plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential'
+    })));
   };
 
   const onCreateService = async (values: ServiceForm) => {
@@ -270,28 +294,74 @@ export default function Admin() {
     serviceForm.reset();
     if (selectedTenantId) {
       serviceForm.setValue("tenant_id", selectedTenantId);
+      fetchServices();
     }
   };
 
   const onCreatePro = async (values: ProForm) => {
-    const { error } = await supabase.from("professionals").insert({
-      tenant_id: values.tenant_id,
-      name: values.name,
-      bio: values.bio,
-      avatar_url: values.avatar_url || null,
-      active: true
-    } as any);
-
-    if (error) {
-      toast({ title: "Erro ao criar profissional", description: error.message });
+    // Verificar se o tenant_id existe nos tenants do usuário
+    const selectedTenant = tenants.find(t => t.id === values.tenant_id);
+    if (!selectedTenant) {
+      toast({
+        title: "Erro ao criar profissional",
+        description: "Estabelecimento selecionado inválido",
+        variant: 'destructive'
+      });
       return;
     }
 
-    toast({ title: "Profissional criado com sucesso!" });
-    proForm.reset();
-    if (selectedTenantId) {
-      proForm.setValue("tenant_id", selectedTenantId);
-      fetchProfessionals();
+    // Verificar limite de profissionais baseado no plano
+    try {
+      const { count } = await supabase
+        .from("professionals")
+        .select("id", { count: "exact", head: true })
+        .eq("professionals.tenant_id", values.tenant_id)
+        .eq("professionals.active", true);
+
+      const limits = {
+        essential: 1,
+        professional: 3,
+        premium: 999
+      };
+
+      const maxAllowed = limits[selectedTenant.plan as keyof typeof limits] || 1;
+
+      if ((count || 0) >= maxAllowed) {
+        toast({
+          title: "Limite atingido",
+          description: `Seu plano ${selectedTenant.plan_tier} permite no máximo ${maxAllowed} profissional(is). Faça upgrade para adicionar mais.`,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const { error } = await supabase.from("professionals").insert({
+        tenant_id: values.tenant_id,
+        name: values.name,
+        bio: values.bio,
+        avatar_url: values.avatar_url || null,
+        active: true
+      } as any);
+
+      if (error) {
+        toast({ title: "Erro ao criar profissional", description: error.message });
+        return;
+      }
+
+      toast({ title: "Profissional criado com sucesso!" });
+      proForm.reset();
+      
+      // Resetar para o tenant selecionado
+      if (selectedTenantId) {
+        proForm.setValue("tenant_id", selectedTenantId);
+        fetchProfessionals();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao verificar limites",
+        description: error.message,
+        variant: 'destructive'
+      });
     }
   };
 
@@ -343,81 +413,81 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-             {/* Desktop Sidebar */}
-       <DesktopSidebar
-         activeTab={activeTab}
-         onTabChange={setActiveTab}
-         isInstallable={isInstallable}
-         isInstalled={isInstalled}
-         isOnline={isOnline}
-         isAdmin={isAdmin}
-         onInstall={installPWA}
-         onShowPrompt={showInstallPromptFn}
-         onSignOut={handleSignOut}
-         selectedTenant={selectedTenant}
-         tenants={tenants}
-         onTenantChange={setSelectedTenantId}
-       />
+      {/* Desktop Sidebar */}
+      <DesktopSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isInstallable={isInstallable}
+        isInstalled={isInstalled}
+        isOnline={isOnline}
+        isAdmin={isAdmin}
+        onInstall={installPWA}
+        onShowPrompt={showInstallPromptFn}
+        onSignOut={handleSignOut}
+        selectedTenant={selectedTenant}
+        tenants={tenants}
+        onTenantChange={setSelectedTenantId}
+      />
 
-               {/* Header */}
-        <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50 lg:ml-64">
-         <div className="container flex items-center justify-between py-4 gap-4">
-           <motion.div
-             initial={{ opacity: 0, x: -20 }}
-             animate={{ opacity: 1, x: 0 }}
-             className="flex items-center gap-4 w-full"
-           >
-             {/* Mobile Sidebar Toggle */}
-             <MobileSidebar
-               activeTab={activeTab}
-               onTabChange={setActiveTab}
-               isInstallable={isInstallable}
-               isInstalled={isInstalled}
-               isOnline={isOnline}
-               isAdmin={isAdmin}
-               onInstall={installPWA}
-               onShowPrompt={showInstallPromptFn}
-               onSignOut={handleSignOut}
-               selectedTenant={selectedTenant}
-               tenants={tenants}
-               onTenantChange={setSelectedTenantId}
-             />
+      {/* Header */}
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50 lg:ml-64">
+        <div className="container flex items-center justify-between py-4 gap-4">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-4 w-full"
+          >
+            {/* Mobile Sidebar Toggle */}
+            <MobileSidebar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              isInstallable={isInstallable}
+              isInstalled={isInstalled}
+              isOnline={isOnline}
+              isAdmin={isAdmin}
+              onInstall={installPWA}
+              onShowPrompt={showInstallPromptFn}
+              onSignOut={handleSignOut}
+              selectedTenant={selectedTenant}
+              tenants={tenants}
+              onTenantChange={setSelectedTenantId}
+            />
 
-             {/* Desktop Logo and Title */}
-             <div className="hidden lg:flex items-center gap-3">
-               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                 <img 
-                   src="/style_swift_logo_no_bg.png" 
-                   alt="StyleSwift Logo" 
-                   className="w-full h-full object-contain"
-                 />
-               </div>
-               <div>
-                 <h1 className="text-xl font-bold">StyleSwift Admin</h1>
-                 <p className="text-muted-foreground text-sm">Bem-vindo, {user.email}</p>
-               </div>
-             </div>
+            {/* Desktop Logo and Title */}
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                <img
+                  src="/style_swift_logo_no_bg.png"
+                  alt="StyleSwift Logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">StyleSwift Admin</h1>
+                <p className="text-muted-foreground text-sm">Bem-vindo, {user.email}</p>
+              </div>
+            </div>
 
-             {/* Mobile Title */}
-             <div className="lg:hidden">
-               <h1 className="text-lg font-bold">StyleSwift</h1>
-               <p className="text-muted-foreground text-xs">Admin</p>
-             </div>
+            {/* Mobile Title */}
+            <div className="lg:hidden">
+              <h1 className="text-lg font-bold">StyleSwift</h1>
+              <p className="text-muted-foreground text-xs">Admin</p>
+            </div>
 
-             {/* Right Side Actions */}
-             <div className="flex items-center gap-2 ml-auto">
-               <ThemeToggle />
-               <Button variant="outline" size="sm" onClick={handleSignOut} className="hidden lg:flex">
-                 <LogOut className="h-4 w-4 mr-2" />
-                 Sair
-               </Button>
-             </div>
-           </motion.div>
-         </div>
-       </header>
+            {/* Right Side Actions */}
+            <div className="flex items-center gap-2 ml-auto">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="hidden lg:flex">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </header>
 
-               <main className="lg:ml-64">
-          <div className="container py-4 lg:py-8 space-y-6 lg:space-y-8 px-4 lg:px-6 lg:pt-20">
+      <main className="lg:ml-64">
+        <div className="container py-4 lg:py-8 space-y-6 lg:space-y-8 px-4 lg:px-6 lg:pt-20">
 
           {/* Content based on active tab */}
           {activeTab === 'dashboard' && (
@@ -485,26 +555,33 @@ export default function Admin() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={selectedTenant.plan_status === 'paid' ? 'default' : 'secondary'}>
-                            {selectedTenant.plan_tier === 'essential' ? 'Essencial' : 
-                             selectedTenant.plan_tier === 'professional' ? 'Profissional' : 
-                             selectedTenant.plan_tier === 'premium' ? 'Premium' : 'Gratuito'}
+                          {/* Lógica para a Badge do Plano: Apenas o tipo do plano é exibido. */}
+                          <Badge
+                            variant={
+                              selectedTenant.plan_tier === 'essential' ? 'secondary' :
+                                selectedTenant.plan_tier === 'professional' ? 'default' :
+                                  'default'
+                            }
+                          >
+                            {selectedTenant.plan_tier === 'essential' ? 'Essencial' :
+                              selectedTenant.plan_tier === 'professional' ? 'Profissional' :
+                                selectedTenant.plan_tier === 'premium' ? 'Premium' : 'Gratuito'}
                           </Badge>
-                          <Badge variant={selectedTenant.plan_status === 'paid' ? 'default' : 'destructive'}>
-                            {selectedTenant.plan_status === 'paid' ? 'Pago' : 'Não Pago'}
+
+                          {/* Lógica para a Badge do Status: Usa 'active' para sucesso e 'unpaid' para falha. */}
+                          <Badge variant={selectedTenant.plan_status === 'active' ? 'default' : 'destructive'}>
+                            {selectedTenant.plan_status === 'active' ? 'Ativo' : 'Não Pago'}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
                           {selectedTenant.plan_tier === 'essential' ? 'Plano básico para pequenos estabelecimentos' :
-                           selectedTenant.plan_tier === 'professional' ? 'Plano intermediário com recursos avançados' :
-                           selectedTenant.plan_tier === 'premium' ? 'Plano completo com todos os recursos' : 'Plano gratuito limitado'}
+                            selectedTenant.plan_tier === 'professional' ? 'Plano intermediário com recursos avançados' :
+                              selectedTenant.plan_tier === 'premium' ? 'Plano completo com todos os recursos' : 'Plano gratuito limitado'}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href="/pre-auth" target="_blank">
-                          <ArrowUpRight className="h-4 w-4 mr-2" />
-                          Ver Planos
-                        </a>
+                      <Button variant="outline" size="sm" onClick={() => navigate('/subscription')}>
+                        <Crown className="h-4 w-4 mr-2" />
+                        Gerenciar Assinatura
                       </Button>
                     </div>
                   </CardContent>
@@ -562,13 +639,13 @@ export default function Admin() {
           )}
 
           {activeTab === 'today' && (
-            <DailyAppointments 
-              tenantId={selectedTenantId} 
+            <DailyAppointments
+              tenantId={selectedTenantId}
             />
           )}
 
           {activeTab === 'appointments' && (
-            <AppointmentsTable 
+            <AppointmentsTable
               appointments={appointments}
               tenantId={selectedTenantId}
               onAppointmentUpdate={fetchAppointments}
@@ -576,8 +653,8 @@ export default function Admin() {
           )}
 
           {activeTab === 'financial' && (
-            <FinancialDashboard 
-              tenantId={selectedTenantId} 
+            <FinancialDashboard
+              tenantId={selectedTenantId}
               planTier={selectedTenant?.plan_tier}
             />
           )}
@@ -656,10 +733,10 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              <ServicesTable 
-                services={[]} 
+              <ServicesTable
+                services={services}
                 tenantId={selectedTenantId}
-                onServiceUpdate={() => {}}
+                onServiceUpdate={fetchServices}
               />
             </div>
           )}
@@ -678,6 +755,27 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tenant_select">Estabelecimento</Label>
+                      <Select
+                        onValueChange={(value) => proForm.setValue("tenant_id", value)}
+                        defaultValue={selectedTenantId || ""}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Selecione o estabelecimento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tenants.map((tenant) => (
+                            <SelectItem key={tenant.id} value={tenant.id}>
+                              {tenant.name} ({tenant.plan_tier})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {proForm.formState.errors.tenant_id && (
+                        <p className="text-xs text-red-500">{proForm.formState.errors.tenant_id.message}</p>
+                      )}
+                    </div>
                     <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="pro_name">Nome do Profissional</Label>
@@ -718,19 +816,19 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-                             <ProfessionalsTable 
-                 professionals={professionals}
-                 tenantId={selectedTenantId}
-                 onProfessionalUpdate={fetchProfessionals}
-                 planTier={selectedTenant?.plan_tier}
-               />
+              <ProfessionalsTable
+                professionals={professionals}
+                tenantId={selectedTenantId}
+                onProfessionalUpdate={fetchProfessionals}
+                planTier={selectedTenant?.plan_tier}
+              />
             </div>
           )}
 
           {activeTab === 'hours' && (
             <div className="space-y-6">
               <BusinessHoursManager tenantId={selectedTenantId} />
-              <AutoConfirmationManager planTier={selectedTenant?.plan_tier} />
+              <AutoConfirmationManager planTier={selectedTenant?.plan_tier} tenantId={selectedTenantId} />
             </div>
           )}
 
@@ -783,7 +881,7 @@ export default function Admin() {
                       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Tema do Estabelecimento</Label>
-                          <Select 
+                          <Select
                             defaultValue={selectedTenant.theme_variant || 'barber'}
                             onValueChange={async (value) => {
                               const { error } = await supabase

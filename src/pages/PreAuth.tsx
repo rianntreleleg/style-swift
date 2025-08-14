@@ -95,27 +95,101 @@ export default function PreAuth() {
 
     setLoading(true);
     try {
-      // Salvar seleções no localStorage
-      localStorage.setItem('planSelected', selectedPlan);
-      localStorage.setItem('themeSelected', selectedTheme);
+      console.log('[PREAUTH] Iniciando novo fluxo - Tenant ANTES do checkout');
       
-      const productId = getProductId(selectedPlan);
+      // 1. CRIAR USUÁRIO TEMPORÁRIO PRIMEIRO
+      const tempEmail = `temp_${Date.now()}@checkout.styleswift.com`;
+      const tempPassword = Math.random().toString(36) + "Temp123!";
       
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { productId }
+      console.log('[PREAUTH] Criando usuário temporário:', tempEmail);
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: tempEmail,
+        password: tempPassword,
       });
-      
-      if (error) {
-        throw new Error(error.message || 'Erro na função');
+
+      if (authError || !authData.user) {
+        throw new Error("Erro ao criar usuário temporário: " + authError?.message);
+      }
+      console.log('[PREAUTH] Usuário temporário criado:', authData.user.id);
+
+      // 2. CRIAR CUSTOMER NO STRIPE
+      console.log('[PREAUTH] Criando customer no Stripe...');
+      const { data: customerData, error: customerError } = await supabase.functions.invoke('create-customer', {
+        body: { 
+          email: tempEmail,
+          name: `Cliente ${selectedPlan}`,
+          metadata: {
+            planTier: selectedPlan,
+            themeVariant: selectedTheme
+          }
+        }
+      });
+
+      if (customerError || !customerData?.customer_id) {
+        throw new Error("Erro ao criar customer no Stripe: " + customerError?.message);
+      }
+      console.log('[PREAUTH] Customer criado:', customerData.customer_id);
+
+      // 3. CRIAR TENANT COM payment_completed = false
+      console.log('[PREAUTH] Criando tenant...');
+      const { data: tenantData, error: tenantError } = await supabase.rpc('create_tenant_for_checkout', {
+        p_user_id: authData.user.id,
+        p_email: tempEmail,
+        p_plan_tier: selectedPlan,
+        p_theme_variant: selectedTheme
+      });
+
+      if (tenantError || !tenantData?.[0]?.tenant_id) {
+        throw new Error("Erro ao criar tenant: " + tenantError?.message);
       }
       
-      if (data?.url) {
-        window.location.href = data.url;
+      const tenantId = tenantData[0].tenant_id;
+      console.log('[PREAUTH] Tenant criado:', tenantId);
+
+      // 4. ATUALIZAR TENANT COM CUSTOMER ID REAL DO STRIPE
+      const { error: updateError } = await supabase
+        .from('tenants')
+        .update({ stripe_customer_id: customerData.customer_id })
+        .eq('id', tenantId);
+
+      if (updateError) {
+        throw new Error("Erro ao atualizar tenant: " + updateError.message);
+      }
+      console.log('[PREAUTH] Tenant atualizado com customer ID real');
+
+      // 5. SALVAR DADOS NO LOCALSTORAGE PARA USO POSTERIOR
+      localStorage.setItem('planSelected', selectedPlan);
+      localStorage.setItem('themeSelected', selectedTheme);
+      localStorage.setItem('tempUserId', authData.user.id);
+      localStorage.setItem('tempEmail', tempEmail);
+      localStorage.setItem('tenantId', tenantId);
+      localStorage.setItem('customerId', customerData.customer_id);
+      
+      // 6. CRIAR CHECKOUT SESSION COM TODOS OS METADADOS
+      const productId = getProductId(selectedPlan);
+      console.log('[PREAUTH] Criando checkout session...');
+      
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout-session', {
+        body: { 
+          productId,
+          customerId: customerData.customer_id,
+          tenantId: tenantId,
+          userEmail: tempEmail
+        }
+      });
+      
+      if (checkoutError) {
+        throw new Error(checkoutError.message || 'Erro na função de checkout');
+      }
+      
+      if (checkoutData?.url) {
+        console.log('[PREAUTH] Redirecionando para checkout:', checkoutData.url);
+        window.location.href = checkoutData.url;
       } else {
         throw new Error('URL de checkout não recebida');
       }
     } catch (e: any) {
-      console.error('Checkout error:', e);
+      console.error('[PREAUTH] Erro no novo fluxo:', e);
       toast({ 
         title: 'Erro ao iniciar pagamento', 
         description: e.message || 'Erro desconhecido. Tente novamente.', 
