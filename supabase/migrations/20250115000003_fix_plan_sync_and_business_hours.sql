@@ -69,16 +69,16 @@ $function$;
 -- Atualizar planos existentes baseado no plan_tier
 UPDATE public.tenants 
 SET plan = CASE plan_tier
-  WHEN 'essential' THEN 'free'
-  WHEN 'professional' THEN 'pro'
-  WHEN 'premium' THEN 'plus'
-  ELSE 'free'
+  WHEN 'essential' THEN 'essential'
+  WHEN 'professional' THEN 'professional'
+  WHEN 'premium' THEN 'premium'
+  ELSE 'essential'
 END
 WHERE plan_tier IS NOT NULL AND plan IS DISTINCT FROM CASE plan_tier
-  WHEN 'essential' THEN 'free'
-  WHEN 'professional' THEN 'pro'
-  WHEN 'premium' THEN 'plus'
-  ELSE 'free'
+  WHEN 'essential' THEN 'essential'
+  WHEN 'professional' THEN 'professional'
+  WHEN 'premium' THEN 'premium'
+  ELSE 'essential'
 END;
 
 -- 4. GARANTIR QUE BUSINESS_HOURS TENHA DADOS CORRETOS

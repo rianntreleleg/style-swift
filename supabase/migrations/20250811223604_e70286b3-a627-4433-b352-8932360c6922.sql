@@ -111,12 +111,19 @@ end;
 $$ language plpgsql;
 
 -- Triggers
+DROP TRIGGER IF EXISTS trg_tenants_updated ON public.tenants;
 create trigger trg_tenants_updated before update on public.tenants for each row execute function public.update_updated_at_column();
+DROP TRIGGER IF EXISTS trg_services_updated ON public.services;
 create trigger trg_services_updated before update on public.services for each row execute function public.update_updated_at_column();
+DROP TRIGGER IF EXISTS trg_professionals_updated ON public.professionals;
 create trigger trg_professionals_updated before update on public.professionals for each row execute function public.update_updated_at_column();
+DROP TRIGGER IF EXISTS trg_customers_updated ON public.customers;
 create trigger trg_customers_updated before update on public.customers for each row execute function public.update_updated_at_column();
+DROP TRIGGER IF EXISTS trg_business_hours_updated ON public.business_hours;
 create trigger trg_business_hours_updated before update on public.business_hours for each row execute function public.update_updated_at_column();
+DROP TRIGGER IF EXISTS trg_appointments_updated ON public.appointments;
 create trigger trg_appointments_updated before update on public.appointments for each row execute function public.update_updated_at_column();
+DROP TRIGGER IF EXISTS trg_notifications_updated ON public.notifications;
 create trigger trg_notifications_updated before update on public.notifications for each row execute function public.update_updated_at_column();
 
 -- Enable RLS
@@ -130,56 +137,70 @@ alter table public.notifications enable row level security;
 
 -- Policies
 -- Tenants: owner can do everything; public can read by slug (for booking)
+DROP POLICY IF EXISTS "Owner can manage their tenant" ON public.tenants;
 create policy "Owner can manage their tenant" on public.tenants
 for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
 
+DROP POLICY IF EXISTS "Public can view tenants" ON public.tenants;
 create policy "Public can view tenants" on public.tenants
 for select using (true);
 
 -- Services
+DROP POLICY IF EXISTS "Owner manage services" ON public.services;
 create policy "Owner manage services" on public.services
 for all using (exists (select 1 from public.tenants t where t.id = services.tenant_id and t.owner_id = auth.uid()))
 with check (exists (select 1 from public.tenants t where t.id = services.tenant_id and t.owner_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Public can view services" ON public.services;
 create policy "Public can view services" on public.services
 for select using (true);
 
 -- Professionals
+DROP POLICY IF EXISTS "Owner manage professionals" ON public.professionals;
 create policy "Owner manage professionals" on public.professionals
 for all using (exists (select 1 from public.tenants t where t.id = professionals.tenant_id and t.owner_id = auth.uid()))
 with check (exists (select 1 from public.tenants t where t.id = professionals.tenant_id and t.owner_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Public can view professionals" ON public.professionals;
 create policy "Public can view professionals" on public.professionals
 for select using (true);
 
 -- Customers
+DROP POLICY IF EXISTS "Owner manage customers" ON public.customers;
 create policy "Owner manage customers" on public.customers
 for all using (exists (select 1 from public.tenants t where t.id = customers.tenant_id and t.owner_id = auth.uid()))
 with check (exists (select 1 from public.tenants t where t.id = customers.tenant_id and t.owner_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Public can insert customers" ON public.customers;
 create policy "Public can insert customers" on public.customers
 for insert with check (true);
 
 -- Business hours
+DROP POLICY IF EXISTS "Owner manage business hours" ON public.business_hours;
 create policy "Owner manage business hours" on public.business_hours
 for all using (exists (select 1 from public.tenants t where t.id = business_hours.tenant_id and t.owner_id = auth.uid()))
 with check (exists (select 1 from public.tenants t where t.id = business_hours.tenant_id and t.owner_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Public can view business hours" ON public.business_hours;
 create policy "Public can view business hours" on public.business_hours
 for select using (true);
 
 -- Appointments
+DROP POLICY IF EXISTS "Owner manage appointments" ON public.appointments;
 create policy "Owner manage appointments" on public.appointments
 for all using (exists (select 1 from public.tenants t where t.id = appointments.tenant_id and t.owner_id = auth.uid()))
 with check (exists (select 1 from public.tenants t where t.id = appointments.tenant_id and t.owner_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Public can create appointments" ON public.appointments;
 create policy "Public can create appointments" on public.appointments
 for insert with check (true);
 
+DROP POLICY IF EXISTS "Public can view appointments by tenant (read-only)" ON public.appointments;
 create policy "Public can view appointments by tenant (read-only)" on public.appointments
 for select using (true);
 
 -- Notifications (owner manage only)
+DROP POLICY IF EXISTS "Owner manage notifications" ON public.notifications;
 create policy "Owner manage notifications" on public.notifications
 for all using (exists (select 1 from public.tenants t where t.id = notifications.tenant_id and t.owner_id = auth.uid()))
 with check (exists (select 1 from public.tenants t where t.id = notifications.tenant_id and t.owner_id = auth.uid()));

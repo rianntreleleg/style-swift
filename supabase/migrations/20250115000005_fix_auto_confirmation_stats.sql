@@ -25,7 +25,7 @@ BEGIN
     COUNT(*) FILTER (WHERE status = 'cancelado') as cancelled,
     COUNT(*) FILTER (WHERE status NOT IN ('confirmado', 'cancelado')) as pending
   FROM public.appointments
-  WHERE scheduled_at BETWEEN start_date AND end_date;
+  WHERE start_time BETWEEN start_date AND end_date;
 END;
 $$;
 
@@ -43,7 +43,7 @@ END $$;
 
 -- Atualizar registros existentes que não têm created_at
 UPDATE public.appointments 
-SET created_at = scheduled_at 
+SET created_at = start_time 
 WHERE created_at IS NULL;
 
 -- Comentário atualizado

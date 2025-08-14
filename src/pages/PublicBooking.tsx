@@ -118,6 +118,43 @@ export default function PublicBooking() {
     start.setHours(h, m, 0, 0);
     const end = new Date(start.getTime() + (service?.duration_minutes ?? 30) * 60000);
 
+    // VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
+    const weekday = start.getDay(); // 0 = domingo, 1 = segunda, etc.
+    const { data: businessHour, error: bhError } = await supabase
+      .from("business_hours")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .eq("weekday", weekday)
+      .single();
+
+    if (bhError) {
+      console.error("Erro ao buscar horários de funcionamento:", bhError);
+      throw new Error("Erro ao verificar horários de funcionamento");
+    }
+
+    if (!businessHour || businessHour.closed) {
+      throw new Error("Estabelecimento fechado neste dia");
+    }
+
+    if (!businessHour.open_time || !businessHour.close_time) {
+      throw new Error("Horários de funcionamento não configurados para este dia");
+    }
+
+    // Converter horários para comparação
+    const [openHour, openMinute] = businessHour.open_time.split(':').map(Number);
+    const [closeHour, closeMinute] = businessHour.close_time.split(':').map(Number);
+    
+    const openTime = new Date(start);
+    openTime.setHours(openHour, openMinute, 0, 0);
+    
+    const closeTime = new Date(start);
+    closeTime.setHours(closeHour, closeMinute, 0, 0);
+
+    // Verificar se o agendamento está dentro do horário de funcionamento
+    if (start < openTime || end > closeTime) {
+      throw new Error(`Agendamento deve ser feito entre ${businessHour.open_time} e ${businessHour.close_time}`);
+    }
+
     // Validação de conflito no backend
     const startOfDay = new Date(start);
     startOfDay.setHours(0, 0, 0, 0);

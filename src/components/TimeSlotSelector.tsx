@@ -68,16 +68,7 @@ export const TimeSlotSelector = ({
   const [businessHours, setBusinessHours] = useState<any[]>([]);
   const { toast } = useToast();
 
-  // Horários de funcionamento padrão
-  const defaultHours = {
-    monday: { open: '08:00', close: '18:00', closed: false },
-    tuesday: { open: '08:00', close: '18:00', closed: false },
-    wednesday: { open: '08:00', close: '18:00', closed: false },
-    thursday: { open: '08:00', close: '18:00', closed: false },
-    friday: { open: '08:00', close: '18:00', closed: false },
-    saturday: { open: '08:00', close: '17:00', closed: false },
-    sunday: { open: '08:00', close: '17:00', closed: true }
-  };
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -145,14 +136,11 @@ export const TimeSlotSelector = ({
     fetchData();
   }, [selectedDate, tenantId]);
 
-  const getDayOfWeek = (date: Date) => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    return days[date.getDay()];
-  };
+
 
   const getBusinessHoursForDay = (date: Date) => {
-    const dayOfWeek = getDayOfWeek(date);
-    const businessHour = businessHours.find(bh => bh.day_of_week === dayOfWeek);
+    const weekday = date.getDay(); // 0 = domingo, 1 = segunda, etc.
+    const businessHour = businessHours.find(bh => bh.weekday === weekday);
 
     if (businessHour) {
       return {
@@ -162,7 +150,18 @@ export const TimeSlotSelector = ({
       };
     }
 
-    return defaultHours[dayOfWeek as keyof typeof defaultHours];
+    // Fallback para horários padrão se não encontrar configuração
+    const defaultHours = {
+      0: { open: '09:00', close: '18:00', closed: true }, // Domingo
+      1: { open: '09:00', close: '18:00', closed: false }, // Segunda
+      2: { open: '09:00', close: '18:00', closed: false }, // Terça
+      3: { open: '09:00', close: '18:00', closed: false }, // Quarta
+      4: { open: '09:00', close: '18:00', closed: false }, // Quinta
+      5: { open: '09:00', close: '18:00', closed: false }, // Sexta
+      6: { open: '09:00', close: '17:00', closed: false }  // Sábado
+    };
+
+    return defaultHours[weekday as keyof typeof defaultHours];
   };
 
   const generateTimeSlots = () => {

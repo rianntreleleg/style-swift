@@ -23,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_time_blocks_time_range ON public.time_blocks(star
 ALTER TABLE public.time_blocks ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS
+DROP POLICY IF EXISTS "Owners can manage time blocks" ON public.time_blocks;
 CREATE POLICY "Owners can manage time blocks" ON public.time_blocks
 FOR ALL
 USING (EXISTS (
@@ -37,6 +38,7 @@ WITH CHECK (EXISTS (
 ));
 
 -- Trigger para atualizar updated_at
+DROP TRIGGER IF EXISTS trg_time_blocks_updated ON public.time_blocks;
 CREATE TRIGGER trg_time_blocks_updated 
 BEFORE UPDATE ON public.time_blocks 
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

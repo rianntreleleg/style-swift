@@ -16,8 +16,8 @@ BEGIN
     updated_at = NOW()
   WHERE 
     status NOT IN ('cancelado', 'confirmado')
-    AND scheduled_at < NOW() - INTERVAL '24 hours'
-    AND scheduled_at > NOW() - INTERVAL '48 hours'; -- Evitar processar agendamentos muito antigos
+    AND start_time < NOW() - INTERVAL '24 hours'
+    AND start_time > NOW() - INTERVAL '48 hours'; -- Evitar processar agendamentos muito antigos
     
   -- Log das alterações (opcional)
   IF FOUND THEN
@@ -50,7 +50,7 @@ BEGIN
     a.id as appointment_id,
     c.name as customer_name,
     s.name as service_name,
-    a.scheduled_at,
+    a.start_time as scheduled_at,
     a.status,
     'Será confirmado automaticamente' as action_taken
   FROM public.appointments a
@@ -58,8 +58,8 @@ BEGIN
   JOIN public.services s ON a.service_id = s.id
   WHERE 
     a.status NOT IN ('cancelado', 'confirmado')
-    AND a.scheduled_at < NOW() - INTERVAL '24 hours'
-    AND a.scheduled_at > NOW() - INTERVAL '48 hours';
+    AND a.start_time < NOW() - INTERVAL '24 hours'
+    AND a.start_time > NOW() - INTERVAL '48 hours';
     
   -- Executar a confirmação
   PERFORM auto_confirm_appointments();
@@ -75,8 +75,8 @@ COMMENT ON FUNCTION auto_confirm_appointments() IS 'Confirma automaticamente age
 COMMENT ON FUNCTION check_and_confirm_appointments() IS 'Verifica e confirma agendamentos pendentes, retornando informações sobre as ações tomadas';
 
 -- Índice para melhorar performance da consulta de agendamentos por status e data
-CREATE INDEX IF NOT EXISTS idx_appointments_status_scheduled_at 
-ON public.appointments(status, scheduled_at) 
+CREATE INDEX IF NOT EXISTS idx_appointments_status_start_time 
+ON public.appointments(status, start_time) 
 WHERE status NOT IN ('cancelado', 'confirmado');
 
 -- Função para obter estatísticas de confirmação automática

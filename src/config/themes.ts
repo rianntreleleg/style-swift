@@ -93,6 +93,11 @@ export const getThemeConfig = (variant: ThemeVariant) => {
 };
 
 export const applyTheme = (variant: ThemeVariant) => {
+  // Se for 'default', não aplicar nenhum tema personalizado
+  if (variant === 'default') {
+    return;
+  }
+  
   const theme = getThemeConfig(variant);
   const root = document.documentElement;
   
