@@ -101,6 +101,7 @@ export default function Admin() {
     theme_variant?: string;
     plan_tier?: string;
     plan_status?: string;
+    plan?: any;
   }>>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
@@ -336,77 +337,77 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container flex items-center justify-between py-4 gap-4">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-4 w-full"
-          >
-            {/* Mobile Sidebar Toggle */}
-            <MobileSidebar
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              isInstallable={isInstallable}
-              isInstalled={isInstalled}
-              isOnline={isOnline}
-              isAdmin={isAdmin}
-              onInstall={installPWA}
-              onShowPrompt={showInstallPromptFn}
-              onSignOut={handleSignOut}
-              selectedTenant={selectedTenant}
-              tenants={tenants}
-              onTenantChange={setSelectedTenantId}
-            />
+             {/* Desktop Sidebar */}
+       <DesktopSidebar
+         activeTab={activeTab}
+         onTabChange={setActiveTab}
+         isInstallable={isInstallable}
+         isInstalled={isInstalled}
+         isOnline={isOnline}
+         isAdmin={isAdmin}
+         onInstall={installPWA}
+         onShowPrompt={showInstallPromptFn}
+         onSignOut={handleSignOut}
+         selectedTenant={selectedTenant}
+         tenants={tenants}
+         onTenantChange={setSelectedTenantId}
+       />
 
-            {/* Desktop Logo and Title */}
-            <div className="hidden lg:flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <Scissors className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">StyleSwift Admin</h1>
-                <p className="text-muted-foreground text-sm">Bem-vindo, {user.email}</p>
-              </div>
-            </div>
+               {/* Header */}
+        <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50 lg:ml-64">
+         <div className="container flex items-center justify-between py-4 gap-4">
+           <motion.div
+             initial={{ opacity: 0, x: -20 }}
+             animate={{ opacity: 1, x: 0 }}
+             className="flex items-center gap-4 w-full"
+           >
+             {/* Mobile Sidebar Toggle */}
+             <MobileSidebar
+               activeTab={activeTab}
+               onTabChange={setActiveTab}
+               isInstallable={isInstallable}
+               isInstalled={isInstalled}
+               isOnline={isOnline}
+               isAdmin={isAdmin}
+               onInstall={installPWA}
+               onShowPrompt={showInstallPromptFn}
+               onSignOut={handleSignOut}
+               selectedTenant={selectedTenant}
+               tenants={tenants}
+               onTenantChange={setSelectedTenantId}
+             />
 
-            {/* Mobile Title */}
-            <div className="lg:hidden">
-              <h1 className="text-lg font-bold">StyleSwift</h1>
-              <p className="text-muted-foreground text-xs">Admin</p>
-            </div>
+             {/* Desktop Logo and Title */}
+             <div className="hidden lg:flex items-center gap-3">
+               <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                 <Scissors className="h-5 w-5 text-primary-foreground" />
+               </div>
+               <div>
+                 <h1 className="text-xl font-bold">StyleSwift Admin</h1>
+                 <p className="text-muted-foreground text-sm">Bem-vindo, {user.email}</p>
+               </div>
+             </div>
 
-            {/* Right Side Actions */}
-            <div className="flex items-center gap-2 ml-auto">
-              <ThemeToggle />
-              <Button variant="outline" size="sm" onClick={handleSignOut} className="hidden lg:flex">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </header>
+             {/* Mobile Title */}
+             <div className="lg:hidden">
+               <h1 className="text-lg font-bold">StyleSwift</h1>
+               <p className="text-muted-foreground text-xs">Admin</p>
+             </div>
 
-      {/* Desktop Sidebar */}
-      <DesktopSidebar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        isInstallable={isInstallable}
-        isInstalled={isInstalled}
-        isOnline={isOnline}
-        isAdmin={isAdmin}
-        onInstall={installPWA}
-        onShowPrompt={showInstallPromptFn}
-        onSignOut={handleSignOut}
-        selectedTenant={selectedTenant}
-        tenants={tenants}
-        onTenantChange={setSelectedTenantId}
-      />
+             {/* Right Side Actions */}
+             <div className="flex items-center gap-2 ml-auto">
+               <ThemeToggle />
+               <Button variant="outline" size="sm" onClick={handleSignOut} className="hidden lg:flex">
+                 <LogOut className="h-4 w-4 mr-2" />
+                 Sair
+               </Button>
+             </div>
+           </motion.div>
+         </div>
+       </header>
 
-      <main className="lg:ml-64">
-        <div className="container py-4 lg:py-8 space-y-6 lg:space-y-8 px-4 lg:px-6">
+               <main className="lg:ml-64">
+          <div className="container py-4 lg:py-8 space-y-6 lg:space-y-8 px-4 lg:px-6 lg:pt-20">
 
           {/* Content based on active tab */}
           {activeTab === 'dashboard' && (
@@ -729,7 +730,6 @@ export default function Admin() {
               transition={{ duration: 0.5 }}
               className="space-y-6"
             >
-            
 
               {selectedTenant ? (
                 <Card className="border-0 shadow-lg">

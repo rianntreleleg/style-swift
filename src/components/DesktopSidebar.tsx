@@ -102,7 +102,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onTenantChange
 }) => {
   return (
-    <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-50 lg:bg-background lg:border-r">
+         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-30 lg:bg-background lg:border-r">
       {/* Header */}
       <div className="flex items-center gap-3 p-6 border-b">
         <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">

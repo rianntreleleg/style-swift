@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
@@ -22,3 +23,113 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Documentation and development files
+*.md
+*.txt
+*.sql
+*.ps1
+*.bat
+*.sh
+
+# Database and migration files (not needed in production)
+supabase/migrations/*.sql
+supabase/setup-env-vars.sql
+schema_dump.sql
+apply_constraint.sql
+apply-fixes.ps1
+corrigir-constraints.sql
+DEBUG_PAYMENT_FLOW.md
+et --hard 13cb58c
+fix_appointments_constraint.sql
+FIX_CONSTRAINTS.sql
+fix_payment_flow.sql
+MANUAL_PAYMENT_FIX.sql
+MUDANCAS_IMPLEMENTADAS.md
+CORRECOES_CRITICAS.md
+CORRECOES_IMPLEMENTADAS.md
+CORRECOES_PAGAMENTO_IMPLEMENTADAS.md
+SOLUCAO-ERRO-CONSTRAINT.md
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# IDE specific files
+*.swp
+*.swo
+*~
+
+# Build artifacts
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
