@@ -61,7 +61,7 @@ export default function AutoConfirmationManager({ planTier }: AutoConfirmationMa
         return;
       }
 
-      setStats((functionExists && functionExists[0]) || {
+      setStats((functionExists && functionExists[0] ? functionExists[0] : null) || {
         total_appointments: 0,
         auto_confirmed: 0,
         manually_confirmed: 0,
@@ -90,7 +90,7 @@ export default function AutoConfirmationManager({ planTier }: AutoConfirmationMa
       const total = appointments?.length || 0;
       const confirmed = appointments?.filter(a => a.status === 'confirmado').length || 0;
       const cancelled = appointments?.filter(a => a.status === 'cancelado').length || 0;
-      const pending = appointments?.filter(a => !['confirmado', 'cancelado'].includes(a.status)).length || 0;
+      const pending = appointments?.filter(a => a.status && !['confirmado', 'cancelado'].includes(a.status)).length || 0;
 
       setStats({
         total_appointments: total,
@@ -131,7 +131,7 @@ export default function AutoConfirmationManager({ planTier }: AutoConfirmationMa
       // Recarregar estatísticas
       await loadStats();
 
-      const confirmedCount = (pendingData as any)?.length || 0;
+      const confirmedCount = Array.isArray(pendingData) ? pendingData.length : 0;
       
       if (confirmedCount > 0) {
         toast({
@@ -291,12 +291,12 @@ export default function AutoConfirmationManager({ planTier }: AutoConfirmationMa
                   {pendingAppointments.map((appointment, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <div className="font-medium">{appointment.customer_name}</div>
+                        <div className="font-medium">{appointment.customer_name || 'Cliente'}</div>
                         <div className="text-sm text-muted-foreground">
-                          {appointment.service_name} - {formatDate(appointment.scheduled_at)}
+                          {appointment.service_name || 'Serviço'} - {formatDate(appointment.scheduled_at)}
                         </div>
                       </div>
-                      <Badge variant="outline">{appointment.action_taken}</Badge>
+                      <Badge variant="outline">{appointment.action_taken || 'Confirmado'}</Badge>
                     </div>
                   ))}
                 </div>
