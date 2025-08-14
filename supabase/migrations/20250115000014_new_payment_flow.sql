@@ -23,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_stripe_events_processed ON public.stripe_events(p
 
 -- 3. RLS para tabela de eventos
 ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "stripe_events_service_access" ON public.stripe_events;
 CREATE POLICY "stripe_events_service_access" ON public.stripe_events FOR ALL USING (true);
 
 -- 4. Função para processar evento de pagamento (simplificada)

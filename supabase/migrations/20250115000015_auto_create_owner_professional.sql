@@ -99,7 +99,7 @@ BEGIN
   -- Contar profissionais ativos do tenant
   SELECT COUNT(*) INTO current_count
   FROM public.professionals 
-  WHERE tenant_id = NEW.tenant_id AND active = true;
+  WHERE public.professionals.tenant_id = NEW.tenant_id AND active = true;
   
   -- Verificar se excede o limite
   IF current_count >= max_allowed THEN

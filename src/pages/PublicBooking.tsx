@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toLocalISOString, createLocalDateTime, formatDateTimeBR, getLocalDayBounds } from "@/lib/dateUtils";
 import { cn, formatBRL } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -113,10 +114,13 @@ export default function PublicBooking() {
       .eq("id", values.service_id)
       .single();
 
-    const [h, m] = values.time.split(":").map(Number);
-    const start = new Date(values.date);
-    start.setHours(h, m, 0, 0);
+    // Processar horário usando utilitários de data
+    const start = createLocalDateTime(values.date, values.time);
     const end = new Date(start.getTime() + (service?.duration_minutes ?? 30) * 60000);
+    
+    console.log(`[AGENDAMENTO] Horário selecionado: ${values.time}`);
+    console.log(`[AGENDAMENTO] Data/hora de início: ${formatDateTimeBR(start)}`);
+    console.log(`[AGENDAMENTO] Data/hora de término: ${formatDateTimeBR(end)}`);
 
     // VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
     const weekday = start.getDay(); // 0 = domingo, 1 = segunda, etc.
@@ -159,19 +163,16 @@ export default function PublicBooking() {
       throw new Error(`Agendamento deve ser feito entre ${businessHour.open_time} e ${businessHour.close_time}`);
     }
 
-    // Validação de conflito no backend
-    const startOfDay = new Date(start);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(start);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Validação de conflito no backend usando utilitários de data
+    const dayBounds = getLocalDayBounds(start);
 
     const { data: dayAppts, error: conflictError } = await supabase
       .from("appointments")
       .select("start_time,end_time,status,professional_id")
       .eq("tenant_id", tenant.id)
       .eq("professional_id", values.professional_id)
-      .gte("start_time", startOfDay.toISOString())
-      .lte("start_time", endOfDay.toISOString());
+      .gte("start_time", dayBounds.start)
+      .lte("start_time", dayBounds.end);
 
     if (conflictError) throw conflictError;
 
@@ -210,6 +211,8 @@ export default function PublicBooking() {
       customerId = newCustomer?.id;
     }
 
+    // Usar função utilitária para conversão ISO local
+
     // Criar agendamento
     const { error: appointmentError } = await supabase.from("appointments").insert({
       tenant_id: tenant.id,
@@ -219,11 +222,14 @@ export default function PublicBooking() {
       customer_name: values.name,
       customer_contact: values.phone,
       customer_email: values.email,
-      start_time: start.toISOString(),
-      end_time: end.toISOString(),
+      start_time: toLocalISOString(start),
+      end_time: toLocalISOString(end),
       status: "agendado",
       notes: values.notes,
     } as any);
+    
+    console.log(`[AGENDAMENTO] Salvando no banco - start_time: ${toLocalISOString(start)}`);
+    console.log(`[AGENDAMENTO] Salvando no banco - end_time: ${toLocalISOString(end)}`);
 
     if (appointmentError) throw appointmentError;
 
@@ -238,8 +244,8 @@ export default function PublicBooking() {
           service_id: values.service_id,
           service_name: service?.name || 'Serviço não especificado',
           professional_id: values.professional_id,
-          start_time: start.toISOString(),
-          end_time: end.toISOString(),
+          start_time: toLocalISOString(start),
+          end_time: toLocalISOString(end),
           notes: values.notes || '',
           status: "agendado"
         },
@@ -689,21 +695,11 @@ export default function PublicBooking() {
                             serviceId={form.watch("service_id")}
                             professionalId={form.watch("professional_id")}
                             onTimeSelect={(time) => {
-                              // Extract time from the ISO string without timezone conversion
-                              const date = new Date(time);
-                              const hours = date.getHours().toString().padStart(2, '0');
-                              const minutes = date.getMinutes().toString().padStart(2, '0');
-                              const timeStr = `${hours}:${minutes}`;
-                              form.setValue("time", timeStr);
+                              console.log('[PublicBooking] Horário selecionado:', time);
+                              // time já vem no formato HH:mm, então podemos usar diretamente
+                              form.setValue("time", time);
                             }}
-                            selectedTime={form.watch("time") ?
-                              (() => {
-                                const [hours, minutes] = form.watch("time").split(':');
-                                const date = new Date(selectedDate);
-                                date.setHours(parseInt(hours), parseInt(minutes));
-                                return date.toISOString();
-                              })() : undefined
-                            }
+                            selectedTime={form.watch("time") || undefined}
                           />
                         ) : (
                           <div className="h-12 flex items-center justify-center border rounded-md bg-muted/50 text-muted-foreground min-h-[44px]">

@@ -27,16 +27,20 @@ import {
   CheckCircle2,
   ArrowRight,
   Sparkles,
-  Crown
+  Crown,
+  MapPin,
+  Phone
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 
 const SignupSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   name: z.string().min(2, "Nome obrigatório"),
   business_name: z.string().min(2, "Nome do estabelecimento obrigatório"),
+  address: z.string().min(5, "Endereço obrigatório"),
+  phone: z.string().min(10, "Telefone obrigatório").regex(/^[\d\s\(\)\-\+]+$/, "Formato de telefone inválido"),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   logo_url: z.string().url().optional().or(z.literal("")),
   theme_variant: z.enum(["barber", "salon"]).default("barber"),
   plan_tier: z.enum(["essential", "professional", "premium"]).default("professional"),
@@ -201,19 +205,21 @@ export default function Auth() {
 
         console.log('[AUTH] Existing payment found:', existingPayment);
 
-        // Cria o tenant com customer_id SEMPRE (payment_completed = false por padrão)
-        const tenantData = {
-          owner_id: authData.user.id,
-          name: values.business_name,
-          slug: finalSlug,
-          theme_variant: values.theme_variant,
-          logo_url: values.logo_url || null,
-          plan: planSelected || 'essential',
-          plan_tier: planSelected || 'essential',
-          plan_status: existingPayment ? 'active' : 'pending', // PENDING = esperando pagamento
-          payment_completed: !!existingPayment,
-          stripe_customer_id: customerData.customer_id, // SEMPRE tem customer_id
-        };
+                 // Cria o tenant com customer_id SEMPRE (payment_completed = false por padrão)
+         const tenantData = {
+           owner_id: authData.user.id,
+           name: values.business_name,
+           slug: finalSlug,
+           theme_variant: values.theme_variant,
+           logo_url: values.logo_url || null,
+           plan: planSelected || 'essential',
+           plan_tier: planSelected || 'essential',
+           plan_status: existingPayment ? 'active' : 'pending', // PENDING = esperando pagamento
+           payment_completed: !!existingPayment,
+           stripe_customer_id: customerData.customer_id, // SEMPRE tem customer_id
+           address: values.address, // Adicionar endereço
+           phone: values.phone, // Adicionar telefone
+         };
 
         console.log('[AUTH] Creating tenant with data:', tenantData);
 
@@ -409,37 +415,45 @@ export default function Auth() {
                 </h1>
               </div>
 
-              <h2 className="text-4xl font-bold leading-tight">
-                Automatize seus agendamentos com{" "}
-                <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  facilidade
-                </span>
-              </h2>
+                             <h2 className="text-4xl font-bold leading-tight">
+                 StyleSwift
+               </h2>
 
-              <p className="text-xl text-muted-foreground leading-relaxed">
-                Crie sua página de agendamento profissional em minutos.
-                Gerencie clientes, horários e pagamentos tudo em um só lugar.
-              </p>
+               <p className="text-xl text-muted-foreground leading-relaxed">
+                 Automatize seus agendamentos com facilidade
+               </p>
+
+               <p className="text-lg text-muted-foreground leading-relaxed">
+                 Crie sua página de agendamento profissional em minutos. Gerencie clientes, horários e pagamentos tudo em um só lugar.
+               </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-lg">Página pública personalizada</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-lg">Agenda inteligente</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-lg">Notificações automáticas</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-lg">Dashboard completo</span>
-              </div>
-            </div>
+                         <div className="space-y-4">
+               <div className="flex items-center gap-3">
+                 <CheckCircle2 className="h-5 w-5 text-green-500" />
+                 <span className="text-lg">Página pública personalizada</span>
+               </div>
+               <div className="flex items-center gap-3">
+                 <CheckCircle2 className="h-5 w-5 text-green-500" />
+                 <span className="text-lg">Agenda inteligente</span>
+               </div>
+               <div className="flex items-center gap-3">
+                 <CheckCircle2 className="h-5 w-5 text-green-500" />
+                 <span className="text-lg">Notificações automáticas</span>
+               </div>
+               <div className="flex items-center gap-3">
+                 <CheckCircle2 className="h-5 w-5 text-green-500" />
+                 <span className="text-lg">Dashboard completo</span>
+               </div>
+               <div className="flex items-center gap-3">
+                 <CheckCircle2 className="h-5 w-5 text-green-500" />
+                 <span className="text-lg">Setup em minutos</span>
+               </div>
+               <div className="flex items-center gap-3">
+                 <CheckCircle2 className="h-5 w-5 text-green-500" />
+                 <span className="text-lg">500+ estabelecimentos ativos</span>
+               </div>
+             </div>
 
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="px-4 py-2">
@@ -467,12 +481,20 @@ export default function Auth() {
                 <CardTitle className="text-2xl font-bold">
                   {isLogin ? "Bem-vindo de volta!" : "Criar Estabelecimento"}
                 </CardTitle>
-                <CardDescription className="text-base">
-                  {isLogin
-                    ? "Entre na sua conta para acessar o painel"
-                    : "Configure seu estabelecimento em 3 passos simples"
-                  }
-                </CardDescription>
+                                 <CardDescription className="text-base">
+                   {isLogin
+                     ? "Entre na sua conta para acessar o painel"
+                     : "Configure seu estabelecimento em 3 passos simples"
+                   }
+                 </CardDescription>
+                 {!isLogin && (
+                   <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                     <p className="text-xs text-blue-700 dark:text-blue-300">
+                       <strong>ℹ️ Informações importantes:</strong> Os dados fornecidos serão usados para validação do estabelecimento, 
+                       criação de conta e envio de emails de confirmação. Garantimos a segurança e privacidade das suas informações.
+                     </p>
+                   </div>
+                 )}
                 {!isLogin && (
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
@@ -543,62 +565,117 @@ export default function Auth() {
                   </form>
                 ) : canAccessSignup ? (
                   <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-6 lg:space-y-8">
-                    <div className="grid gap-4 lg:gap-6 md:grid-cols-2">
-                      <div className="space-y-3">
-                        <Label htmlFor="signup-email" className="text-sm font-medium flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          Email
-                        </Label>
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          {...signupForm.register("email")}
-                          placeholder="seu@email.com"
-                          className="h-12"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="signup-password" className="text-sm font-medium flex items-center gap-2">
-                          <Lock className="h-4 w-4" />
-                          Senha
-                        </Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          {...signupForm.register("password")}
-                          placeholder="••••••••"
-                          className="h-12"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          Seu nome
-                        </Label>
-                        <Input
-                          id="name"
-                          {...signupForm.register("name")}
-                          placeholder="Seu nome completo"
-                          className="h-12"
-                        />
-                      </div>
-                      <div className="space-y-3 md:col-span-2">
-                        <Label htmlFor="business_name" className="text-sm font-medium flex items-center gap-2">
-                          <Building2 className="h-4 w-4" />
-                          Nome do estabelecimento
-                        </Label>
-                        <Input
-                          id="business_name"
-                          {...signupForm.register("business_name")}
-                          placeholder="Barbearia do João ou Salão da Maria"
-                          className="h-12"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          O slug da URL será gerado automaticamente baseado no nome do estabelecimento
-                        </p>
-                      </div>
-                      {/* Funcionamento */}
-                      <div className="space-y-4 md:col-span-2 rounded-lg border p-3 lg:p-4">
+                    {/* Primeiro campo: Nome (100% largura) */}
+                    <div className="space-y-3">
+                      <Label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Nome
+                      </Label>
+                      <Input
+                        id="name"
+                        {...signupForm.register("name")}
+                        placeholder="Seu nome completo"
+                        className="h-12"
+                      />
+                      {signupForm.formState.errors.name && (
+                        <p className="text-xs text-red-500">{signupForm.formState.errors.name.message}</p>
+                      )}
+                    </div>
+
+                    {/* Segundo campo: Nome do estabelecimento (100% largura) */}
+                    <div className="space-y-3">
+                      <Label htmlFor="business_name" className="text-sm font-medium flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Nome do estabelecimento
+                      </Label>
+                      <Input
+                        id="business_name"
+                        {...signupForm.register("business_name")}
+                        placeholder="Barbearia do João ou Salão da Maria"
+                        className="h-12"
+                      />
+                      {signupForm.formState.errors.business_name && (
+                        <p className="text-xs text-red-500">{signupForm.formState.errors.business_name.message}</p>
+                      )}
+                    </div>
+
+                                         {/* Terceiro campo: Endereço (100% largura) */}
+                     <div className="space-y-3">
+                       <Label htmlFor="address" className="text-sm font-medium flex items-center gap-2">
+                         <MapPin className="h-4 w-4" />
+                         Endereço
+                       </Label>
+                       <Input
+                         id="address"
+                         {...signupForm.register("address")}
+                         placeholder="Rua das Flores, 123 - Centro"
+                         className="h-12"
+                       />
+                       {signupForm.formState.errors.address && (
+                         <p className="text-xs text-red-500">{signupForm.formState.errors.address.message}</p>
+                       )}
+                     </div>
+
+                     {/* Quarto campo: Telefone (100% largura) */}
+                     <div className="space-y-3">
+                       <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
+                         <Phone className="h-4 w-4" />
+                         Telefone
+                       </Label>
+                       <Input
+                         id="phone"
+                         {...signupForm.register("phone")}
+                         placeholder="(11) 99999-9999"
+                         className="h-12"
+                       />
+                       {signupForm.formState.errors.phone && (
+                         <p className="text-xs text-red-500">{signupForm.formState.errors.phone.message}</p>
+                       )}
+                       <p className="text-xs text-muted-foreground">
+                         Será usado para validação do estabelecimento e emails de confirmação
+                       </p>
+                     </div>
+
+                     {/* Quinto e sexto campos: Email e Senha (layout responsivo) */}
+                     <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                       <div className="space-y-3">
+                         <Label htmlFor="signup-email" className="text-sm font-medium flex items-center gap-2">
+                           <Mail className="h-4 w-4" />
+                           Email
+                         </Label>
+                         <Input
+                           id="signup-email"
+                           type="email"
+                           {...signupForm.register("email")}
+                           placeholder="seu@email.com"
+                           className="h-12"
+                         />
+                         {signupForm.formState.errors.email && (
+                           <p className="text-xs text-red-500">{signupForm.formState.errors.email.message}</p>
+                         )}
+                         <p className="text-xs text-muted-foreground">
+                           Será usado para login e emails de confirmação
+                         </p>
+                       </div>
+                       <div className="space-y-3">
+                         <Label htmlFor="signup-password" className="text-sm font-medium flex items-center gap-2">
+                           <Lock className="h-4 w-4" />
+                           Senha
+                         </Label>
+                         <Input
+                           id="signup-password"
+                           type="password"
+                           {...signupForm.register("password")}
+                           placeholder="••••••••"
+                           className="h-12"
+                         />
+                         {signupForm.formState.errors.password && (
+                           <p className="text-xs text-red-500">{signupForm.formState.errors.password.message}</p>
+                         )}
+                       </div>
+                                           </div>
+                    {/* Funcionamento */}
+                    <div className="space-y-4 rounded-lg border p-3 lg:p-4">
                         <Label className="text-sm font-medium">Funcionamento</Label>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -629,11 +706,11 @@ export default function Auth() {
                           <p className="text-sm text-destructive">{signupForm.formState.errors.working_days.message as string}</p>
                         )}
                       </div>
-                                             <div className="space-y-3 md:col-span-2">
-                         <Label htmlFor="theme_variant" className="text-sm font-medium flex items-center gap-2">
-                           <Palette className="h-4 w-4" />
-                           Tema do Estabelecimento
-                         </Label>
+                    <div className="space-y-3">
+                      <Label htmlFor="theme_variant" className="text-sm font-medium flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Tema do Estabelecimento
+                      </Label>
                          <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "barber" | "salon")}>
                            <SelectTrigger className="h-12">
                              <SelectValue placeholder="Escolha o tema do seu estabelecimento" />
@@ -647,11 +724,11 @@ export default function Auth() {
                            Escolha o tema visual que melhor representa seu estabelecimento
                          </p>
                        </div>
-                       <div className="space-y-3 md:col-span-2">
-                         <Label htmlFor="plan_tier" className="text-sm font-medium flex items-center gap-2">
-                           <Crown className="h-4 w-4" />
-                           Plano de Assinatura
-                         </Label>
+                                                                <div className="space-y-3">
+                      <Label htmlFor="plan_tier" className="text-sm font-medium flex items-center gap-2">
+                        <Crown className="h-4 w-4" />
+                        Plano de Assinatura
+                      </Label>
                          <Select onValueChange={(v) => signupForm.setValue("plan_tier", v as "essential" | "professional" | "premium")}>
                            <SelectTrigger className="h-12">
                              <SelectValue placeholder="Escolha seu plano" />
@@ -681,10 +758,10 @@ export default function Auth() {
                            Você finalizará o pagamento após criar a conta
                          </p>
                        </div>
-                       <div className="space-y-3 md:col-span-2">
-                         <Label htmlFor="logo_url" className="text-sm font-medium">
-                           Logo (URL - opcional)
-                         </Label>
+                                                                <div className="space-y-3">
+                      <Label htmlFor="logo_url" className="text-sm font-medium">
+                        Logo (URL - opcional)
+                      </Label>
                          <Input
                            id="logo_url"
                            {...signupForm.register("logo_url")}
@@ -695,8 +772,7 @@ export default function Auth() {
                            Link para a imagem do seu logo (recomendado: 200x200px)
                          </p>
                        </div>
-                    </div>
-                    <Button
+                                                             <Button
                       type="submit"
                       className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                       disabled={loading}

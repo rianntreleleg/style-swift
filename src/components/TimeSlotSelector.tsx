@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Clock, Calendar, User, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { format, parseISO, isSameDay, setHours, setMinutes, isWithinInterval, addDays, startOfDay, endOfDay, isBefore, isAfter, addMinutes, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toLocalISOString, getLocalDayBounds } from '@/lib/dateUtils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Tag } from "lucide-react";
 
@@ -74,6 +75,8 @@ export const TimeSlotSelector = ({
       const startOfSelectedDay = startOfDay(selectedDate);
       const endOfSelectedDay = endOfDay(selectedDate);
 
+      // Usar função utilitária para conversão ISO local
+
       const [
         { data: appointmentsData, error: appointmentsError },
         { data: professionalsData, error: professionalsError },
@@ -88,8 +91,8 @@ export const TimeSlotSelector = ({
             professionals(name)
           `)
           .eq('tenant_id', tenantId)
-          .gte('start_time', startOfSelectedDay.toISOString())
-          .lte('start_time', endOfSelectedDay.toISOString())
+          .gte('start_time', getLocalDayBounds(selectedDate).start)
+          .lte('start_time', getLocalDayBounds(selectedDate).end)
           .order('start_time', { ascending: true }),
         supabase
           .from('professionals')
@@ -136,9 +139,13 @@ export const TimeSlotSelector = ({
 
   const getBusinessHoursForDay = (date: Date) => {
     const weekday = date.getDay(); // 0 = domingo, 1 = segunda, etc.
+    console.log('[TimeSlotSelector] Buscando horários para dia da semana:', weekday);
+    console.log('[TimeSlotSelector] Horários disponíveis:', businessHours);
+    
     const businessHour = businessHours.find(bh => bh.weekday === weekday);
 
     if (businessHour) {
+      console.log('[TimeSlotSelector] Horário encontrado:', businessHour);
       return {
         open: businessHour.open_time,
         close: businessHour.close_time,
@@ -146,6 +153,7 @@ export const TimeSlotSelector = ({
       };
     }
 
+    console.log('[TimeSlotSelector] Usando horários padrão para dia:', weekday);
     // Fallback para horários padrão se não encontrar configuração
     const defaultHours = {
       0: { open: '09:00', close: '18:00', closed: true }, // Domingo
@@ -161,9 +169,12 @@ export const TimeSlotSelector = ({
   };
 
   const generateTimeSlots = () => {
+    console.log('[TimeSlotSelector] Gerando slots para data:', selectedDate);
     const hours = getBusinessHoursForDay(selectedDate);
+    console.log('[TimeSlotSelector] Horários de funcionamento:', hours);
 
     if (hours.closed) {
+      console.log('[TimeSlotSelector] Estabelecimento fechado neste dia');
       return [];
     }
 
@@ -172,6 +183,8 @@ export const TimeSlotSelector = ({
     // Parsear horários de abertura e fechamento
     const [openHour, openMinute] = hours.open.split(':').map(Number);
     const [closeHour, closeMinute] = hours.close.split(':').map(Number);
+    console.log('[TimeSlotSelector] Horário de abertura:', `${openHour}:${openMinute}`);
+    console.log('[TimeSlotSelector] Horário de fechamento:', `${closeHour}:${closeMinute}`);
 
     // Criar data base para o dia selecionado (sem timezone)
     const baseDate = new Date(selectedDate);
@@ -191,6 +204,7 @@ export const TimeSlotSelector = ({
       currentTime = new Date(currentTime.getTime() + 30 * 60 * 1000); // 30 minutos
     }
 
+    console.log('[TimeSlotSelector] Slots gerados:', slots.length);
     return slots;
   };
 
@@ -291,16 +305,17 @@ export const TimeSlotSelector = ({
   };
 
   const handleTimeSlotClick = (timeSlot: Date) => {
+    console.log('[TimeSlotSelector] Clicou no horário:', timeSlot);
+    
     if (isTimeSlotBooked(timeSlot) || isTimeSlotBlocked(timeSlot) || isTimeSlotPast(timeSlot) || isTimeSlotOccupiedByMultiSlot(timeSlot) || isTimeSlotPartiallyOccupied(timeSlot)) {
+      console.log('[TimeSlotSelector] Horário bloqueado ou ocupado');
       return;
     }
 
-    // Converter para ISO string mantendo o horário local
-    const localISOString = new Date(
-      timeSlot.getTime() - (timeSlot.getTimezoneOffset() * 60000)
-    ).toISOString();
-    
-    onTimeSelect(localISOString);
+    // Enviar apenas o horário no formato HH:mm sem conversão de timezone
+    const timeString = format(timeSlot, 'HH:mm');
+    console.log('[TimeSlotSelector] Enviando horário:', timeString);
+    onTimeSelect(timeString);
   };
 
   // Obter informações do serviço selecionado
@@ -387,7 +402,7 @@ export const TimeSlotSelector = ({
               const isPartiallyOccupied = isTimeSlotPartiallyOccupied(timeSlot);
               const appointment = getAppointmentForTimeSlot(timeSlot);
               const occupyingAppointment = getOccupyingAppointment(timeSlot);
-              const isSelected = selectedTime === timeSlot.toISOString();
+              const isSelected = selectedTime === format(timeSlot, 'HH:mm');
 
               let buttonClass = '';
               if (isBooked) {
@@ -475,10 +490,10 @@ export const TimeSlotSelector = ({
               <CheckCircle className="h-5 w-5 text-green-600" />
               <div>
                 <div className="font-medium">
-                  Horário selecionado: {format(parseISO(selectedTime), 'HH:mm', { locale: ptBR })}
+                  Horário selecionado: {selectedTime}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {format(parseISO(selectedTime), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </div>
                 {selectedService && (
                   <div className="text-sm text-blue-600">

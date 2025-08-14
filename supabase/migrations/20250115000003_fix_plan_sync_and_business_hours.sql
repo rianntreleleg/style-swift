@@ -46,7 +46,7 @@ begin
 
   -- Contar profissionais ativos
   select count(*) into v_count from public.professionals
-  where tenant_id = NEW.tenant_id and active = true;
+  where public.professionals.tenant_id = NEW.tenant_id and active = true;
 
   -- Definir limite baseado no plano
   v_limit := case v_plan

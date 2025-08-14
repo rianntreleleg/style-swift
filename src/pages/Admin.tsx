@@ -312,11 +312,24 @@ export default function Admin() {
 
     // Verificar limite de profissionais baseado no plano
     try {
-      const { count } = await supabase
+      // Usar uma query mais específica para evitar ambiguidade
+      const { data: existingProfessionals, error: countError } = await supabase
         .from("professionals")
-        .select("id", { count: "exact", head: true })
-        .eq("professionals.tenant_id", values.tenant_id)
-        .eq("professionals.active", true);
+        .select("id")
+        .eq("tenant_id", values.tenant_id)
+        .eq("active", true);
+
+      if (countError) {
+        console.error('Erro ao contar profissionais:', countError);
+        toast({
+          title: "Erro ao verificar limites",
+          description: "Não foi possível verificar o limite de profissionais",
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const currentCount = existingProfessionals?.length || 0;
 
       const limits = {
         essential: 1,
@@ -326,7 +339,7 @@ export default function Admin() {
 
       const maxAllowed = limits[selectedTenant.plan as keyof typeof limits] || 1;
 
-      if ((count || 0) >= maxAllowed) {
+      if (currentCount >= maxAllowed) {
         toast({
           title: "Limite atingido",
           description: `Seu plano ${selectedTenant.plan_tier} permite no máximo ${maxAllowed} profissional(is). Faça upgrade para adicionar mais.`,
