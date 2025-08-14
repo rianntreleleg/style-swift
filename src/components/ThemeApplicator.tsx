@@ -5,20 +5,26 @@ interface ThemeApplicatorProps {
   themeVariant?: string;
 }
 
-export function ThemeApplicator({ themeVariant = 'barber' }: ThemeApplicatorProps) {
+export function ThemeApplicator({ themeVariant = 'default' }: ThemeApplicatorProps) {
   useEffect(() => {
     // Validar se o tema é válido
-    const validThemes = ['salon', 'barber'];
-    const theme = validThemes.includes(themeVariant) ? themeVariant : 'barber';
+    const validThemes = ['default', 'salon', 'barber'];
+    const theme = validThemes.includes(themeVariant) ? themeVariant : 'default';
     
-    // Aplicar o tema
-    applyTheme(theme as 'salon' | 'barber');
-    
-    // Adicionar classe ao body para facilitar estilos específicos
-    document.body.className = document.body.className.replace(/theme-\w+/g, '');
-    document.body.classList.add(`theme-${theme}`);
-    
-    console.log(`🎨 Tema aplicado: ${theme}`);
+    if (theme === 'default') {
+      // Remover classes de tema específicas
+      document.body.className = document.body.className.replace(/theme-\w+/g, '');
+      console.log(`🎨 Tema padrão aplicado`);
+    } else {
+      // Aplicar o tema específico
+      applyTheme(theme as 'salon' | 'barber');
+      
+      // Adicionar classe ao body para facilitar estilos específicos
+      document.body.className = document.body.className.replace(/theme-\w+/g, '');
+      document.body.classList.add(`theme-${theme}`);
+      
+      console.log(`🎨 Tema aplicado: ${theme}`);
+    }
   }, [themeVariant]);
 
   return null;

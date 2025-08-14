@@ -37,6 +37,7 @@ const SignupSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
   business_name: z.string().min(2, "Nome do estabelecimento obrigatório"),
   logo_url: z.string().url().optional().or(z.literal("")),
+  theme_variant: z.enum(["default", "barber", "salon"]).default("default"),
   open_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   close_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   working_days: z.array(z.number().int().min(0).max(6)).min(1, "Selecione pelo menos um dia"),
@@ -55,6 +56,7 @@ export default function Auth() {
   const signupForm = useForm<SignupForm>({
     resolver: zodResolver(SignupSchema),
     defaultValues: {
+      theme_variant: "default",
       open_time: "09:00",
       close_time: "18:00",
       working_days: [1,2,3,4,5,6],
@@ -184,19 +186,19 @@ export default function Auth() {
 
         console.log('[AUTH] Existing payment found:', existingPayment);
 
-        // Cria o tenant com informações do plano
-        const tenantData = {
-          owner_id: authData.user.id,
-          name: values.business_name,
-          slug: finalSlug,
-          theme_variant: "barber", // Tema padrão
-          logo_url: values.logo_url || null,
-          plan: existingPayment?.subscription_tier || planSelected || 'essential',
-          plan_tier: existingPayment?.subscription_tier || planSelected || 'essential',
-          plan_status: existingPayment ? 'active' : 'unpaid',
-          payment_completed: !!existingPayment,
-          stripe_customer_id: existingPayment?.stripe_customer_id || null,
-        };
+                 // Cria o tenant com informações do plano
+         const tenantData = {
+           owner_id: authData.user.id,
+           name: values.business_name,
+           slug: finalSlug,
+           theme_variant: values.theme_variant,
+           logo_url: values.logo_url || null,
+           plan: existingPayment?.subscription_tier || planSelected || 'essential',
+           plan_tier: existingPayment?.subscription_tier || planSelected || 'essential',
+           plan_status: existingPayment ? 'active' : 'unpaid',
+           payment_completed: !!existingPayment,
+           stripe_customer_id: existingPayment?.stripe_customer_id || null,
+         };
 
         console.log('[AUTH] Creating tenant with data:', tenantData);
 
@@ -226,16 +228,20 @@ export default function Auth() {
           }
         }
 
-        // Cria horários de funcionamento baseados na seleção do cadastro
-        const rows = Array.from({ length: 7 }, (_, weekday) => ({
-          tenant_id: tenantRow!.id,
-          weekday,
-          open_time: values.working_days.includes(weekday) ? values.open_time : null,
-          close_time: values.working_days.includes(weekday) ? values.close_time : null,
-          closed: !values.working_days.includes(weekday),
-        }));
-        const { error: bhError } = await supabase.from("business_hours").insert(rows as any);
-        if (bhError) throw bhError;
+                 // Cria horários de funcionamento baseados na seleção do cadastro
+         const rows = Array.from({ length: 7 }, (_, weekday) => ({
+           tenant_id: tenantRow!.id,
+           weekday,
+           open_time: values.working_days.includes(weekday) ? values.open_time : null,
+           close_time: values.working_days.includes(weekday) ? values.close_time : null,
+           closed: !values.working_days.includes(weekday),
+         }));
+         const { error: bhError } = await supabase.from("business_hours").insert(rows as any);
+         if (bhError) {
+           console.error('[AUTH] Error creating business hours:', bhError);
+           throw bhError;
+         }
+         console.log('[AUTH] Business hours created successfully');
 
         // Limpar localStorage
         localStorage.removeItem('planSelected');
@@ -277,8 +283,20 @@ export default function Auth() {
         <ThemeToggle />
       </div>
 
-      <div className="container flex items-center justify-center min-h-screen p-4">
-        <div className="grid gap-8 lg:grid-cols-2 max-w-6xl w-full">
+      {/* Mobile Header */}
+      <div className="lg:hidden flex items-center justify-center py-8 px-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+            <Scissors className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            StyleSwift
+          </h1>
+        </div>
+      </div>
+
+      <div className="container flex items-center justify-center min-h-screen p-4 lg:min-h-screen">
+        <div className="grid gap-6 lg:gap-8 lg:grid-cols-2 max-w-6xl w-full">
           {/* Lado esquerdo - Informações */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -344,7 +362,7 @@ export default function Auth() {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="flex items-center justify-center"
+            className="flex items-center justify-center lg:col-start-2"
           >
             <Card className="w-full max-w-md border-0 shadow-2xl bg-background/80 backdrop-blur-sm">
               <CardHeader className="text-center space-y-2">
@@ -419,8 +437,8 @@ export default function Auth() {
                     </Button>
                   </form>
                 ) : canAccessSignup ? (
-                  <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-8">
-                    <div className="grid gap-6 md:grid-cols-2">
+                  <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-6 lg:space-y-8">
+                    <div className="grid gap-4 lg:gap-6 md:grid-cols-2">
                       <div className="space-y-3">
                         <Label htmlFor="signup-email" className="text-sm font-medium flex items-center gap-2">
                           <Mail className="h-4 w-4" />
@@ -475,7 +493,7 @@ export default function Auth() {
                         </p>
                       </div>
                       {/* Funcionamento */}
-                      <div className="space-y-4 md:col-span-2 rounded-lg border p-4">
+                      <div className="space-y-4 md:col-span-2 rounded-lg border p-3 lg:p-4">
                         <Label className="text-sm font-medium">Funcionamento</Label>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -487,7 +505,7 @@ export default function Auth() {
                             <Input type="time" className="h-12" {...signupForm.register("close_time")} />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
                           {[{label:"Dom",value:0},{label:"Seg",value:1},{label:"Ter",value:2},{label:"Qua",value:3},{label:"Qui",value:4},{label:"Sex",value:5},{label:"Sáb",value:6}].map(d => (
                             <label key={d.value} className="flex items-center gap-2 text-sm">
                               <Checkbox
@@ -506,20 +524,39 @@ export default function Auth() {
                           <p className="text-sm text-destructive">{signupForm.formState.errors.working_days.message as string}</p>
                         )}
                       </div>
-                      <div className="space-y-3 md:col-span-2">
-                        <Label htmlFor="logo_url" className="text-sm font-medium">
-                          Logo (URL - opcional)
-                        </Label>
-                        <Input
-                          id="logo_url"
-                          {...signupForm.register("logo_url")}
-                          placeholder="https://exemplo.com/logo.png"
-                          className="h-12"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Link para a imagem do seu logo (recomendado: 200x200px)
-                        </p>
-                      </div>
+                                             <div className="space-y-3 md:col-span-2">
+                         <Label htmlFor="theme_variant" className="text-sm font-medium flex items-center gap-2">
+                           <Palette className="h-4 w-4" />
+                           Tema do Estabelecimento
+                         </Label>
+                         <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "default" | "barber" | "salon")}>
+                           <SelectTrigger className="h-12">
+                             <SelectValue placeholder="Escolha o tema do seu estabelecimento" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="default">Padrão (Site e Dashboard)</SelectItem>
+                             <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
+                             <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
+                           </SelectContent>
+                         </Select>
+                         <p className="text-xs text-muted-foreground">
+                           Escolha o tema visual que melhor representa seu estabelecimento
+                         </p>
+                       </div>
+                       <div className="space-y-3 md:col-span-2">
+                         <Label htmlFor="logo_url" className="text-sm font-medium">
+                           Logo (URL - opcional)
+                         </Label>
+                         <Input
+                           id="logo_url"
+                           {...signupForm.register("logo_url")}
+                           placeholder="https://exemplo.com/logo.png"
+                           className="h-12"
+                         />
+                         <p className="text-xs text-muted-foreground">
+                           Link para a imagem do seu logo (recomendado: 200x200px)
+                         </p>
+                       </div>
                     </div>
                     <Button
                       type="submit"

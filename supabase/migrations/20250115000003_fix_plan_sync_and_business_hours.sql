@@ -74,7 +74,12 @@ SET plan = CASE plan_tier
   WHEN 'premium' THEN 'plus'
   ELSE 'free'
 END
-WHERE plan_tier IS NOT NULL;
+WHERE plan_tier IS NOT NULL AND plan IS DISTINCT FROM CASE plan_tier
+  WHEN 'essential' THEN 'free'
+  WHEN 'professional' THEN 'pro'
+  WHEN 'premium' THEN 'plus'
+  ELSE 'free'
+END;
 
 -- 4. GARANTIR QUE BUSINESS_HOURS TENHA DADOS CORRETOS
 -- Verificar se todos os tenants têm horários de funcionamento

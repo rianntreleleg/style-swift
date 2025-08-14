@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useState } from "react";
 
 const Header = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-      <div className="container py-4 flex items-center justify-between">
+      <div className="container py-4 flex items-center justify-between px-4 lg:px-0">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -41,7 +44,7 @@ const Header = () => {
           </motion.a>
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 lg:gap-4">
           <ThemeToggle />
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -49,7 +52,7 @@ const Header = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <a href="/auth">
-              <Button variant="outline" className="border-primary/20 hover:bg-primary/10">
+              <Button variant="outline" className="border-primary/20 hover:bg-primary/10 hidden sm:inline-flex">
                 Login
               </Button>
             </a>
@@ -58,6 +61,7 @@ const Header = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
+            className="hidden sm:block"
           >
             <a href="#planos">
               <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300">
@@ -66,8 +70,67 @@ const Header = () => {
               </Button>
             </a>
           </motion.div>
+          
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {isMobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="md:hidden border-t bg-background/95 backdrop-blur"
+        >
+          <div className="container py-4 px-4 space-y-4">
+            <nav className="flex flex-col space-y-3">
+              <a
+                href="#recursos"
+                className="text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Recursos
+              </a>
+              <a
+                href="#planos"
+                className="text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Planos
+              </a>
+              <a
+                href="#contato"
+                className="text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Contato
+              </a>
+            </nav>
+            <div className="flex flex-col space-y-3 pt-4 border-t">
+              <a href="/auth">
+                <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/10">
+                  Login
+                </Button>
+              </a>
+              <a href="#planos">
+                <Button className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground">
+                  Começar Grátis
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </a>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </header>
   );
 };

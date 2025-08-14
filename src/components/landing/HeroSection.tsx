@@ -25,7 +25,7 @@ const HeroSection = () => {
         setSpot({ x: `${e.clientX - rect.left}px`, y: `${e.clientY - rect.top}px` });
       }}
     >
-      <div className="container py-20 md:py-32 text-center relative z-10">
+      <div className="container py-12 lg:py-20 xl:py-32 text-center relative z-10 px-4 lg:px-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -35,7 +35,7 @@ const HeroSection = () => {
           <Badge className="mb-4 px-4 py-2 bg-primary/10 text-primary border-primary/20">
             ✨ Plataforma #1 para Barbearias e Salões
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+          <h1 className="text-3xl lg:text-4xl xl:text-6xl font-bold mb-4 lg:mb-6 leading-tight">
             Automatize seus{" "}
             <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               agendamentos
@@ -43,10 +43,10 @@ const HeroSection = () => {
             <br />
             em minutos
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg lg:text-xl text-muted-foreground mb-6 lg:mb-8 max-w-3xl mx-auto leading-relaxed">
             Crie sua página de agendamento profissional. Gerencie clientes, horários e pagamentos tudo em um só lugar.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 lg:mb-12">
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -61,7 +61,7 @@ const HeroSection = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-4xl mx-auto">
             {stats.map((stat, index) => (
               <motion.div
                 key={index}

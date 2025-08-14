@@ -9,7 +9,7 @@ create table if not exists public.tenants (
   name text not null,
   slug text not null unique,
   logo_url text,
-  theme_variant text not null default 'barber' check (theme_variant in ('barber','salon')),
+  theme_variant text not null default 'default' check (theme_variant in ('default','barber','salon')),
   plan text not null default 'free' check (plan in ('free','pro','plus')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

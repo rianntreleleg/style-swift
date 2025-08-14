@@ -34,6 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_appointments_start_time ON public.appointments(st
 ALTER TABLE public.business_hours ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para business_hours
+DROP POLICY IF EXISTS "Tenant owners can manage business hours" ON public.business_hours;
 CREATE POLICY "Tenant owners can manage business hours" ON public.business_hours
     FOR ALL USING (
         tenant_id IN (
@@ -42,6 +43,7 @@ CREATE POLICY "Tenant owners can manage business hours" ON public.business_hours
     );
 
 -- Política para leitura pública dos horários
+DROP POLICY IF EXISTS "Public can read business hours" ON public.business_hours;
 CREATE POLICY "Public can read business hours" ON public.business_hours
     FOR SELECT USING (true);
 
@@ -73,6 +75,7 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers para updated_at
+DROP TRIGGER IF EXISTS update_business_hours_updated_at ON public.business_hours;
 CREATE TRIGGER update_business_hours_updated_at 
     BEFORE UPDATE ON public.business_hours 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

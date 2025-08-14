@@ -69,7 +69,7 @@ interface PricingSectionProps {
 
 const PricingSection = ({ loadingPlan, startCheckout }: PricingSectionProps) => {
   return (
-    <section id="planos" className="container py-20">
+    <section id="planos" className="container py-12 lg:py-20 px-4 lg:px-0">
       <motion.div
         className="text-center mb-16"
         initial={{ opacity: 0, y: 30 }}
@@ -77,12 +77,12 @@ const PricingSection = ({ loadingPlan, startCheckout }: PricingSectionProps) => 
         transition={{ duration: 0.8 }}
         viewport={{ once: true }}
       >
-        <h2 className="text-4xl md:text-5xl font-bold mb-6">Escolha seu plano</h2>
+        <h2 className="text-3xl lg:text-4xl xl:text-5xl font-bold mb-4 lg:mb-6">Escolha seu plano</h2>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">Assine para continuar e liberar seu painel</p>
       </motion.div>
 
       <motion.div
-        className="grid gap-8 md:grid-cols-3"
+        className="grid gap-6 lg:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.2 }}

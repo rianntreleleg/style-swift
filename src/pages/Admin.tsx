@@ -42,6 +42,8 @@ import { DailyAppointments } from "@/components/DailyAppointments";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import AutoConfirmationManager from "@/components/AutoConfirmationManager";
+import { MobileNavigation } from "@/components/MobileNavigation";
+import ProfessionalsTable from "@/components/ProfessionalsTable";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -87,6 +89,8 @@ export default function Admin() {
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
   const [copied, setCopied] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     if (!user) {
@@ -120,6 +124,7 @@ export default function Admin() {
       serviceForm.setValue("tenant_id", selectedTenantId);
       proForm.setValue("tenant_id", selectedTenantId);
       fetchAppointments();
+      fetchProfessionals();
     }
   }, [selectedTenantId]);
 
@@ -143,6 +148,28 @@ export default function Admin() {
       console.error('Erro ao carregar agendamentos:', error);
       toast({
         title: 'Erro ao carregar agendamentos',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const fetchProfessionals = async () => {
+    if (!selectedTenantId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('professionals')
+        .select('*')
+        .eq('tenant_id', selectedTenantId)
+        .order('name');
+
+      if (error) throw error;
+      setProfessionals(data || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar profissionais:', error);
+      toast({
+        title: 'Erro ao carregar profissionais',
         description: error.message,
         variant: 'destructive'
       });
@@ -240,6 +267,7 @@ export default function Admin() {
     proForm.reset();
     if (selectedTenantId) {
       proForm.setValue("tenant_id", selectedTenantId);
+      fetchProfessionals();
     }
   };
 
@@ -291,9 +319,13 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <MobileNavigation 
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm">
-        <div className="container flex items-center justify-between py-4">
+        <div className="container flex flex-col lg:flex-row items-start lg:items-center justify-between py-4 gap-4">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -307,15 +339,15 @@ export default function Admin() {
               <p className="text-muted-foreground">Bem-vindo, {user.email}</p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto">
               {tenants.length > 0 && (
                 <motion.div
-                  className="flex items-center gap-3"
+                  className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full lg:w-auto"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                 >
                   <Select value={selectedTenantId ?? undefined} onValueChange={(v) => setSelectedTenantId(v)}>
-                    <SelectTrigger className="w-48">
+                    <SelectTrigger className="w-full lg:w-48">
                       <SelectValue placeholder="Selecione o estabelecimento" />
                     </SelectTrigger>
                     <SelectContent>
@@ -325,7 +357,7 @@ export default function Admin() {
                     </SelectContent>
                   </Select>
                   {selectedTenant && (
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild className="w-full lg:w-auto">
                       <a
                         href={`${window.location.origin}/agendamento?tenant=${selectedTenant.slug}`}
                         target="_blank"
@@ -339,7 +371,7 @@ export default function Admin() {
                 </motion.div>
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full lg:w-auto justify-between lg:justify-start">
                 <ThemeToggle />
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4 mr-2" />
@@ -351,9 +383,10 @@ export default function Admin() {
         </div>
       </header>
 
-      <main className="container py-8 space-y-8">
+      <main className="container py-4 lg:py-8 space-y-6 lg:space-y-8 px-4 lg:px-0">
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-8 bg-muted/50 p-1 rounded-lg">
+          <div className="overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-8 bg-muted/50 p-1 rounded-lg min-w-[800px] lg:min-w-0">
             <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <BarChart3 className="h-4 w-4" /> Dashboard
             </TabsTrigger>
@@ -379,16 +412,17 @@ export default function Admin() {
               <Settings className="h-4 w-4" /> Configurações
             </TabsTrigger>
           </TabsList>
+          </div>
 
-          <TabsContent value="dashboard" className="mt-6">
+          <TabsContent value="dashboard" className="mt-4 lg:mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="space-y-6"
+              className="space-y-4 lg:space-y-6"
             >
               {/* Métricas */}
-              <div className="grid gap-6 md:grid-cols-3">
+              <div className="grid gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Serviços Ativos</CardTitle>
@@ -441,29 +475,29 @@ export default function Admin() {
                       Informações sobre seu plano de assinatura
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Plano: {selectedTenant.plan_tier || 'essential'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Status: {selectedTenant.plan_status || 'unpaid'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={selectedTenant.plan_status === 'active' ? 'default' : 'secondary'}>
-                          {selectedTenant.plan_status === 'active' ? 'Ativo' : 'Pendente'}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={fetchTenants}
-                          className="h-8 w-8"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
+                                     <CardContent>
+                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                       <div>
+                         <p className="text-sm font-medium">Plano: {selectedTenant.plan_tier || 'essential'}</p>
+                         <p className="text-xs text-muted-foreground">
+                           Status: {selectedTenant.plan_status || 'unpaid'}
+                         </p>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <Badge variant={selectedTenant.plan_status === 'active' ? 'default' : 'secondary'}>
+                           {selectedTenant.plan_status === 'active' ? 'Ativo' : 'Pendente'}
+                         </Badge>
+                         <Button
+                           variant="outline"
+                           size="icon"
+                           onClick={fetchTenants}
+                           className="h-8 w-8"
+                         >
+                           <RefreshCw className="h-4 w-4" />
+                         </Button>
+                       </div>
+                     </div>
+                   </CardContent>
                 </Card>
               )}
 
@@ -478,54 +512,56 @@ export default function Admin() {
                     Compartilhe este link com seus clientes para que possam agendar online
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="booking-url">URL de Agendamento</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="booking-url"
-                        value={getPublicBookingUrl()}
-                        readOnly
-                        className="font-mono text-sm"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleCopyLink}
-                        className="shrink-0"
-                      >
-                        {copied ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleOpenLink}
-                        className="shrink-0"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="default"
-                        onClick={handleGoToBookingPage}
-                        className="shrink-0"
-                      >
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Ir para Agendamento
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
+                                 <CardContent className="space-y-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="booking-url">URL de Agendamento</Label>
+                     <div className="flex flex-col sm:flex-row gap-2">
+                       <Input
+                         id="booking-url"
+                         value={getPublicBookingUrl()}
+                         readOnly
+                         className="font-mono text-sm"
+                       />
+                       <div className="flex gap-2">
+                         <Button
+                           variant="outline"
+                           size="icon"
+                           onClick={handleCopyLink}
+                           className="shrink-0"
+                         >
+                           {copied ? (
+                             <Check className="h-4 w-4 text-green-600" />
+                           ) : (
+                             <Copy className="h-4 w-4" />
+                           )}
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="icon"
+                           onClick={handleOpenLink}
+                           className="shrink-0"
+                         >
+                           <ExternalLink className="h-4 w-4" />
+                         </Button>
+                         <Button
+                           variant="default"
+                           onClick={handleGoToBookingPage}
+                           className="shrink-0"
+                         >
+                           <Calendar className="h-4 w-4 mr-2" />
+                           Ir para Agendamento
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
+                 </CardContent>
               </Card>
 
               
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="today" className="mt-6">
+          <TabsContent value="today" className="mt-4 lg:mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -544,7 +580,7 @@ export default function Admin() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="appointments" className="mt-6">
+          <TabsContent value="appointments" className="mt-4 lg:mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -567,7 +603,7 @@ export default function Admin() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="financial" className="mt-6">
+          <TabsContent value="financial" className="mt-4 lg:mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -589,7 +625,7 @@ export default function Admin() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="services" className="mt-6">
+          <TabsContent value="services" className="mt-4 lg:mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -606,8 +642,8 @@ export default function Admin() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-8">
-                    <div className="grid gap-6 md:grid-cols-2">
+                                     <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-6 lg:space-y-8">
+                     <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2">
                       <div className="space-y-3">
                         <Label className="text-sm font-medium">Estabelecimento</Label>
                         <Select onValueChange={(v) => serviceForm.setValue("tenant_id", v)}>
@@ -627,7 +663,7 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    <div className="grid gap-6 md:grid-cols-3">
+                                         <div className="grid gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                       <div className="space-y-3">
                         <Label className="text-sm font-medium">Preço (R$)</Label>
                         <div className="relative">
@@ -670,91 +706,111 @@ export default function Admin() {
                       />
                     </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
-                        <Plus className="mr-2 h-5 w-5" />
-                        Cadastrar Serviço
-                      </Button>
-                    </div>
+                                         <div className="flex justify-end pt-4">
+                       <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 lg:px-8 w-full sm:w-auto">
+                         <Plus className="mr-2 h-5 w-5" />
+                         <span className="hidden sm:inline">Cadastrar Serviço</span>
+                         <span className="sm:hidden">Cadastrar</span>
+                       </Button>
+                     </div>
                   </form>
                 </CardContent>
               </Card>
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="pros" className="mt-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users2 className="h-5 w-5" />
-                    Cadastrar Profissionais
-                  </CardTitle>
-                  <CardDescription>
-                    Inclua os profissionais do seu time e suas especialidades.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-8">
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium">Estabelecimento</Label>
-                        <Select onValueChange={(v) => proForm.setValue("tenant_id", v)}>
-                          <SelectTrigger className="h-12">
-                            <SelectValue placeholder="Selecione o estabelecimento" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {tenants.map(t => (
-                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium">Nome do Profissional</Label>
-                        <Input {...proForm.register("name")} placeholder="Ex: João Silva, Maria Santos" className="h-12" />
-                      </div>
-                    </div>
+                     <TabsContent value="pros" className="mt-4 lg:mt-6">
+             <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ duration: 0.5 }}
+               className="space-y-6"
+             >
+               {/* Formulário de Cadastro */}
+               <Card className="border-0 shadow-lg">
+                 <CardHeader>
+                   <CardTitle className="flex items-center gap-2">
+                     <Users2 className="h-5 w-5" />
+                     Cadastrar Profissionais
+                   </CardTitle>
+                   <CardDescription>
+                     Inclua os profissionais do seu time e suas especialidades.
+                   </CardDescription>
+                 </CardHeader>
+                 <CardContent>
+                   <form onSubmit={proForm.handleSubmit(onCreatePro)} className="space-y-6 lg:space-y-8">
+                     <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2">
+                       <div className="space-y-3">
+                         <Label className="text-sm font-medium">Estabelecimento</Label>
+                         <Select onValueChange={(v) => proForm.setValue("tenant_id", v)}>
+                           <SelectTrigger className="h-12">
+                             <SelectValue placeholder="Selecione o estabelecimento" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {tenants.map(t => (
+                               <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       <div className="space-y-3">
+                         <Label className="text-sm font-medium">Nome do Profissional</Label>
+                         <Input {...proForm.register("name")} placeholder="Ex: João Silva, Maria Santos" className="h-12" />
+                       </div>
+                     </div>
 
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium">Especialidade/Bio</Label>
-                        <Input
-                          {...proForm.register("bio")}
-                          placeholder="Ex: Especialista em fade e barba, Colorista, etc."
-                          className="h-12"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium">Avatar (URL)</Label>
-                        <Input
-                          {...proForm.register("avatar_url")}
-                          placeholder="https://exemplo.com/foto.jpg"
-                          className="h-12"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Link para foto do profissional (opcional)
-                        </p>
-                      </div>
-                    </div>
+                     <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2">
+                       <div className="space-y-3">
+                         <Label className="text-sm font-medium">Especialidade/Bio</Label>
+                         <Input
+                           {...proForm.register("bio")}
+                           placeholder="Ex: Especialista em fade e barba, Colorista, etc."
+                           className="h-12"
+                         />
+                       </div>
+                       <div className="space-y-3">
+                         <Label className="text-sm font-medium">Avatar (URL)</Label>
+                         <Input
+                           {...proForm.register("avatar_url")}
+                           placeholder="https://exemplo.com/foto.jpg"
+                           className="h-12"
+                         />
+                         <p className="text-xs text-muted-foreground">
+                           Link para foto do profissional (opcional)
+                         </p>
+                       </div>
+                     </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-8">
-                        <Plus className="mr-2 h-5 w-5" />
-                        Cadastrar Profissional
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
+                     <div className="flex justify-end pt-4">
+                       <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 px-4 lg:px-8 w-full sm:w-auto">
+                         <Plus className="mr-2 h-5 w-5" />
+                         <span className="hidden sm:inline">Cadastrar Profissional</span>
+                         <span className="sm:hidden">Cadastrar</span>
+                       </Button>
+                     </div>
+                   </form>
+                 </CardContent>
+               </Card>
 
-          <TabsContent value="hours" className="mt-6">
+               {/* Tabela de Profissionais */}
+               {selectedTenantId ? (
+                 <ProfessionalsTable 
+                   professionals={professionals} 
+                   tenantId={selectedTenantId}
+                   onProfessionalUpdate={fetchProfessionals}
+                 />
+               ) : (
+                 <Card className="border-0 shadow-lg">
+                   <CardContent className="text-center py-8">
+                     <Users2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                     <p className="text-muted-foreground">Selecione um estabelecimento para gerenciar profissionais.</p>
+                   </CardContent>
+                 </Card>
+               )}
+             </motion.div>
+           </TabsContent>
+
+          <TabsContent value="hours" className="mt-4 lg:mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -776,7 +832,7 @@ export default function Admin() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-6">
+          <TabsContent value="settings" className="mt-4 lg:mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -815,51 +871,84 @@ export default function Admin() {
                       }}
                       className="space-y-6"
                     >
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
-                          <Input
-                            value={selectedTenant.name}
-                            disabled
-                            className="h-10 bg-muted"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Nome não pode ser alterado
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Slug da URL</Label>
-                          <Input
-                            value={selectedTenant.slug}
-                            disabled
-                            className="h-10 bg-muted"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
-                          </p>
-                        </div>
-                      </div>
+                                                                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Nome do Estabelecimento</Label>
+                           <Input
+                             value={selectedTenant.name}
+                             disabled
+                             className="h-10 bg-muted"
+                           />
+                           <p className="text-xs text-muted-foreground">
+                             Nome não pode ser alterado
+                           </p>
+                         </div>
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Slug da URL</Label>
+                           <Input
+                             value={selectedTenant.slug}
+                             disabled
+                             className="h-10 bg-muted"
+                           />
+                           <p className="text-xs text-muted-foreground">
+                             URL: {window.location.origin}/agendamento?tenant={selectedTenant.slug}
+                           </p>
+                         </div>
+                       </div>
 
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Logo do Estabelecimento</Label>
-                        <Input
-                          id="logo_url"
-                          name="logo_url"
-                          defaultValue={selectedTenant.logo_url ?? ""}
-                          placeholder="https://exemplo.com/logo.png"
-                          className="h-10"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          URL da imagem do logo (recomendado: 200x200px, formato PNG ou JPG)
-                        </p>
-                      </div>
+                       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Tema do Estabelecimento</Label>
+                           <Select 
+                             defaultValue={selectedTenant.theme_variant || 'default'}
+                             onValueChange={async (value) => {
+                               const { error } = await supabase
+                                 .from("tenants")
+                                 .update({ theme_variant: value })
+                                 .eq("id", selectedTenant.id);
+                               if (error) {
+                                 toast({ title: "Erro ao atualizar tema", description: error.message });
+                               } else {
+                                 toast({ title: "Tema atualizado com sucesso!" });
+                                 fetchTenants();
+                               }
+                             }}
+                           >
+                             <SelectTrigger className="h-10">
+                               <SelectValue placeholder="Escolha o tema" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="default">Padrão (Site e Dashboard)</SelectItem>
+                               <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
+                               <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
+                             </SelectContent>
+                           </Select>
+                           <p className="text-xs text-muted-foreground">
+                             Escolha o tema visual do seu estabelecimento
+                           </p>
+                         </div>
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Logo do Estabelecimento</Label>
+                           <Input
+                             id="logo_url"
+                             name="logo_url"
+                             defaultValue={selectedTenant.logo_url ?? ""}
+                             placeholder="https://exemplo.com/logo.png"
+                             className="h-10"
+                           />
+                           <p className="text-xs text-muted-foreground">
+                             URL da imagem do logo (recomendado: 200x200px, formato PNG ou JPG)
+                           </p>
+                         </div>
+                       </div>
 
-                      <div className="flex justify-end">
-                        <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
-                          <Settings className="mr-2 h-4 w-4" />
-                          Salvar Configurações
-                        </Button>
-                      </div>
+                       <div className="flex justify-end">
+                         <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 w-full sm:w-auto">
+                           <Settings className="mr-2 h-4 w-4" />
+                           <span className="hidden sm:inline">Salvar Configurações</span>
+                           <span className="sm:hidden">Salvar</span>
+                         </Button>
+                       </div>
                     </form>
                   ) : (
                     <div className="text-center py-8">
