@@ -82,17 +82,55 @@ export const parseLocalDateTime = (isoString: string): Date => {
 /**
  * SIMPLESMENTE parse a string do banco para Date - SEM CONVERSÕES!
  * O que está no banco deve ser exibido IGUAL.
+ * Garante que não há conversões de timezone.
  */
 export const parseSimpleDateTime = (dateString: string): Date => {
-  return new Date(dateString);
+  // Log para debug
+  console.log(`[parseSimpleDateTime] Input: ${dateString}`);
+  
+  // Se a string já tem timezone info (como +00:00), remover o timezone para evitar conversões
+  if (dateString.includes('T') && (dateString.includes('Z') || dateString.includes('+') || dateString.includes('-'))) {
+    // Se tem +00:00, remover para evitar conversões
+    if (dateString.includes('+00:00')) {
+      const dateWithoutTimezone = dateString.replace('+00:00', '');
+      const date = new Date(dateWithoutTimezone);
+      console.log(`[parseSimpleDateTime] Removed +00:00 - Result: ${date.toISOString()}`);
+      return date;
+    }
+    
+    // Para outros timezones, usar diretamente
+    const date = new Date(dateString);
+    console.log(`[parseSimpleDateTime] With timezone - Result: ${date.toISOString()}`);
+    return date;
+  }
+  
+  // Se não tem timezone info, criar Date diretamente
+  const date = new Date(dateString);
+  console.log(`[parseSimpleDateTime] Without timezone - Result: ${date.toISOString()}`);
+  
+  return date;
 };
 
 /**
  * SIMPLESMENTE formata o horário sem conversões desnecessárias.
  * Se banco tem 13:00+00, exibe 13:00.
+ * Garante que não há conversões de timezone.
  */
 export const formatSimpleTime = (dateString: string): string => {
   const date = new Date(dateString);
+  
+  // Extrair apenas hora e minuto diretamente da string se possível
+  if (dateString.includes('T')) {
+    const timePart = dateString.split('T')[1];
+    if (timePart) {
+      const timeOnly = timePart.split(':').slice(0, 2).join(':');
+      if (timeOnly.match(/^\d{2}:\d{2}$/)) {
+        return timeOnly;
+      }
+    }
+  }
+  
+  // Fallback: usar toLocaleTimeString com UTC para não converter
   return date.toLocaleTimeString('pt-BR', { 
     hour: '2-digit', 
     minute: '2-digit',
@@ -102,9 +140,24 @@ export const formatSimpleTime = (dateString: string): string => {
 
 /**
  * SIMPLESMENTE formata data e hora sem conversões.
+ * Garante que não há conversões de timezone.
  */
 export const formatSimpleDateTime = (dateString: string): string => {
   const date = new Date(dateString);
+  
+  // Extrair data e hora diretamente da string se possível
+  if (dateString.includes('T')) {
+    const [datePart, timePart] = dateString.split('T');
+    if (datePart && timePart) {
+      const [year, month, day] = datePart.split('-');
+      const timeOnly = timePart.split(':').slice(0, 2).join(':');
+      if (year && month && day && timeOnly.match(/^\d{2}:\d{2}$/)) {
+        return `${day}/${month}/${year} ${timeOnly}`;
+      }
+    }
+  }
+  
+  // Fallback: usar toLocaleString com UTC para não converter
   return date.toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit', 
@@ -129,13 +182,26 @@ export const isSameLocalDay = (date1: Date, date2: Date): boolean => {
 
 /**
  * Cria inicio e fim do dia para consultas no banco
+ * Garante que as datas sejam geradas no timezone local sem conversões
  */
 export const getLocalDayBounds = (date: Date) => {
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
+  // Criar datas no timezone local sem conversões
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
   
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
+  // Início do dia: 00:00:00
+  const startOfDay = new Date(year, month, day, 0, 0, 0, 0);
+  
+  // Fim do dia: 23:59:59.999
+  const endOfDay = new Date(year, month, day, 23, 59, 59, 999);
+  
+  // Log para debug
+  console.log(`[getLocalDayBounds] Input date: ${date.toISOString()}`);
+  console.log(`[getLocalDayBounds] Start of day: ${startOfDay.toISOString()}`);
+  console.log(`[getLocalDayBounds] End of day: ${endOfDay.toISOString()}`);
+  console.log(`[getLocalDayBounds] Start string: ${toDatabaseString(startOfDay)}`);
+  console.log(`[getLocalDayBounds] End string: ${toDatabaseString(endOfDay)}`);
   
   return {
     start: toDatabaseString(startOfDay),

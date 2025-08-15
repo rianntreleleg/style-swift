@@ -72,10 +72,9 @@ export const TimeSlotSelector = ({
   const fetchData = async () => {
     setLoading(true);
     try {
-      const startOfSelectedDay = startOfDay(selectedDate);
-      const endOfSelectedDay = endOfDay(selectedDate);
-
-      // Usar função utilitária para conversão ISO local
+      const dayBounds = getLocalDayBounds(selectedDate);
+      console.log('[fetchData] Day bounds:', dayBounds);
+      console.log('[fetchData] Selected date:', selectedDate.toISOString());
 
       const [
         { data: appointmentsData, error: appointmentsError },
@@ -91,8 +90,8 @@ export const TimeSlotSelector = ({
             professionals(name)
           `)
           .eq('tenant_id', tenantId)
-          .gte('start_time', getLocalDayBounds(selectedDate).start)
-          .lte('start_time', getLocalDayBounds(selectedDate).end)
+          .gte('start_time', dayBounds.start)
+          .lte('start_time', dayBounds.end)
           .order('start_time', { ascending: true }),
         supabase
           .from('professionals')
@@ -115,6 +114,13 @@ export const TimeSlotSelector = ({
       if (appointmentsError) throw appointmentsError;
       if (professionalsError) throw professionalsError;
       if (servicesError) throw servicesError;
+
+      console.log('[fetchData] Appointments found:', appointmentsData?.length || 0);
+      if (appointmentsData) {
+        appointmentsData.forEach((appointment, index) => {
+          console.log(`[fetchData] Appointment ${index}: ${appointment.start_time} -> ${parseSimpleDateTime(appointment.start_time).toISOString()}`);
+        });
+      }
 
       setAppointments(appointmentsData || []);
       setTimeBlocks([]); // Por enquanto, não usamos time_blocks
@@ -187,28 +193,41 @@ export const TimeSlotSelector = ({
     console.log('[TimeSlotSelector] Horário de fechamento:', `${closeHour}:${closeMinute}`);
 
     // Criar data base para o dia selecionado (sem timezone)
-    const baseDate = new Date(selectedDate);
-    baseDate.setHours(0, 0, 0, 0);
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const day = selectedDate.getDate();
+    
+    // Definir horário de início - SEM timezone, apenas horário local
+    let currentTime = new Date(year, month, day, openHour, openMinute, 0, 0);
 
-    // Definir horário de início
-    let currentTime = new Date(baseDate);
-    currentTime.setHours(openHour, openMinute, 0, 0);
+    // Definir horário de fechamento - SEM timezone, apenas horário local
+    const closeTime = new Date(year, month, day, closeHour, closeMinute, 0, 0);
 
-    // Definir horário de fechamento
-    const closeTime = new Date(baseDate);
-    closeTime.setHours(closeHour, closeMinute, 0, 0);
+    console.log('[TimeSlotSelector] Current time start (local):', currentTime.toLocaleString());
+    console.log('[TimeSlotSelector] Close time (local):', closeTime.toLocaleString());
 
-    // Gerar slots de 30 em 30 minutos
+    // Gerar slots de 30 em 30 minutos - SEM conversão de timezone
     while (currentTime < closeTime) {
-      slots.push(new Date(currentTime));
-      currentTime = new Date(currentTime.getTime() + 30 * 60 * 1000); // 30 minutos
+      // Criar uma nova instância para evitar referência compartilhada
+      const slotTime = new Date(currentTime);
+      slots.push(slotTime);
+      
+      // Avançar 30 minutos
+      currentTime = new Date(currentTime.getTime() + 30 * 60 * 1000);
     }
 
     console.log('[TimeSlotSelector] Slots gerados:', slots.length);
+    slots.forEach((slot, index) => {
+      console.log(`[TimeSlotSelector] Slot ${index}: ${slot.toLocaleString()} (local) -> ${slot.toISOString()} (UTC)`);
+    });
+    
     return slots;
   };
 
   const isTimeSlotBooked = (timeSlot: Date) => {
+    console.log(`[isTimeSlotBooked] Checking timeSlot: ${timeSlot.toISOString()}`);
+    console.log(`[isTimeSlotBooked] Available appointments:`, appointments);
+    
     return appointments.some(appointment => {
       // Se há um profissional selecionado, só bloquear para esse profissional
       if (professionalId && appointment.professional_id !== professionalId) {
@@ -217,17 +236,23 @@ export const TimeSlotSelector = ({
       
       // Parse direto SEM conversão - o que está no banco é o que comparamos
       const appointmentTime = parseSimpleDateTime(appointment.start_time);
-      return isSameDay(appointmentTime, timeSlot) &&
-        appointmentTime.getHours() === timeSlot.getHours() &&
-        appointmentTime.getMinutes() === timeSlot.getMinutes() &&
-        appointment.status !== 'cancelado';
+      
+      const isSameDayResult = isSameDay(appointmentTime, timeSlot);
+      const isSameHour = appointmentTime.getHours() === timeSlot.getHours();
+      const isSameMinute = appointmentTime.getMinutes() === timeSlot.getMinutes();
+      const isNotCancelled = appointment.status !== 'cancelado';
+      
+      console.log(`[isTimeSlotBooked] Appointment: ${appointment.start_time} -> ${appointmentTime.toISOString()}`);
+      console.log(`[isTimeSlotBooked] Comparison: sameDay=${isSameDayResult}, sameHour=${isSameHour}, sameMinute=${isSameMinute}, notCancelled=${isNotCancelled}`);
+      
+      return isSameDayResult && isSameHour && isSameMinute && isNotCancelled;
     });
   };
 
   const isTimeSlotBlocked = (timeSlot: Date) => {
     return timeBlocks.some(block => {
-      const startTime = parseISO(block.start_time);
-      const endTime = parseISO(block.end_time);
+      const startTime = parseSimpleDateTime(block.start_time);
+      const endTime = parseSimpleDateTime(block.end_time);
       return isWithinInterval(timeSlot, { start: startTime, end: endTime });
     });
   };
@@ -253,9 +278,13 @@ export const TimeSlotSelector = ({
     // Se o serviço ocupa apenas 1 slot, não há problema
     if (serviceSlots <= 1) return false;
 
+    console.log(`[isTimeSlotOccupiedByMultiSlot] Checking timeSlot: ${timeSlot.toISOString()}`);
+    console.log(`[isTimeSlotOccupiedByMultiSlot] Service duration: ${serviceDuration} minutes, slots: ${serviceSlots}`);
+
     // Verificar se há conflito com agendamentos existentes
     for (let i = 0; i < serviceSlots; i++) {
       const checkTime = addMinutes(timeSlot, i * 30);
+      console.log(`[isTimeSlotOccupiedByMultiSlot] Checking slot ${i}: ${checkTime.toISOString()}`);
 
       // Verificar se este slot específico está ocupado
       const isOccupied = appointments.some(appointment => {
@@ -264,22 +293,34 @@ export const TimeSlotSelector = ({
           return false;
         }
         
-        // Converter UTC do banco para horário local para comparação
-        const appointmentTime = parseUTCToLocal(appointment.start_time);
-        return isSameDay(appointmentTime, checkTime) &&
-          appointmentTime.getHours() === checkTime.getHours() &&
-          appointmentTime.getMinutes() === checkTime.getMinutes() &&
-          appointment.status !== 'cancelado';
+        // Parse direto SEM conversão - o que está no banco é o que comparamos
+        const appointmentTime = parseSimpleDateTime(appointment.start_time);
+        
+        const isSameDayResult = isSameDay(appointmentTime, checkTime);
+        const isSameHour = appointmentTime.getHours() === checkTime.getHours();
+        const isSameMinute = appointmentTime.getMinutes() === checkTime.getMinutes();
+        const isNotCancelled = appointment.status !== 'cancelado';
+        
+        console.log(`[isTimeSlotOccupiedByMultiSlot] Appointment: ${appointment.start_time} -> ${appointmentTime.toISOString()}`);
+        console.log(`[isTimeSlotOccupiedByMultiSlot] Comparison: sameDay=${isSameDayResult}, sameHour=${isSameHour}, sameMinute=${isSameMinute}, notCancelled=${isNotCancelled}`);
+        
+        return isSameDayResult && isSameHour && isSameMinute && isNotCancelled;
       });
 
-      if (isOccupied) return true;
+      if (isOccupied) {
+        console.log(`[isTimeSlotOccupiedByMultiSlot] Slot ${i} is occupied`);
+        return true;
+      }
     }
 
+    console.log(`[isTimeSlotOccupiedByMultiSlot] No conflicts found`);
     return false;
   };
 
   // Nova função: verificar se um slot está parcialmente ocupado por um agendamento longo
   const isTimeSlotPartiallyOccupied = (timeSlot: Date) => {
+    console.log(`[isTimeSlotPartiallyOccupied] Checking timeSlot: ${timeSlot.toISOString()}`);
+    
     return appointments.some(appointment => {
       if (appointment.status === 'cancelado') return false;
       
@@ -292,10 +333,16 @@ export const TimeSlotSelector = ({
       const appointmentStart = parseSimpleDateTime(appointment.start_time);
       const appointmentEnd = parseSimpleDateTime(appointment.end_time);
       
+      const isSameDayResult = isSameDay(appointmentStart, timeSlot);
+      const isAfterStart = timeSlot.getTime() >= appointmentStart.getTime();
+      const isBeforeEnd = timeSlot.getTime() < appointmentEnd.getTime();
+      
+      console.log(`[isTimeSlotPartiallyOccupied] Appointment: ${appointment.start_time} - ${appointment.end_time}`);
+      console.log(`[isTimeSlotPartiallyOccupied] Parsed: ${appointmentStart.toISOString()} - ${appointmentEnd.toISOString()}`);
+      console.log(`[isTimeSlotPartiallyOccupied] Comparison: sameDay=${isSameDayResult}, afterStart=${isAfterStart}, beforeEnd=${isBeforeEnd}`);
+      
       // Verificar se o slot está dentro do período de um agendamento existente
-      return isSameDay(appointmentStart, timeSlot) &&
-        timeSlot.getTime() >= appointmentStart.getTime() &&
-        timeSlot.getTime() < appointmentEnd.getTime();
+      return isSameDayResult && isAfterStart && isBeforeEnd;
     });
   };
 
@@ -313,9 +360,11 @@ export const TimeSlotSelector = ({
       const appointmentStart = parseSimpleDateTime(appointment.start_time);
       const appointmentEnd = parseSimpleDateTime(appointment.end_time);
       
-      return isSameDay(appointmentStart, timeSlot) &&
-        timeSlot.getTime() >= appointmentStart.getTime() &&
-        timeSlot.getTime() < appointmentEnd.getTime();
+      const isSameDayResult = isSameDay(appointmentStart, timeSlot);
+      const isAfterStart = timeSlot.getTime() >= appointmentStart.getTime();
+      const isBeforeEnd = timeSlot.getTime() < appointmentEnd.getTime();
+      
+      return isSameDayResult && isAfterStart && isBeforeEnd;
     });
   };
 
@@ -328,9 +377,12 @@ export const TimeSlotSelector = ({
       
       // Parse direto SEM conversão - o que está no banco é o que comparamos
       const appointmentTime = parseSimpleDateTime(appointment.start_time);
-      return isSameDay(appointmentTime, timeSlot) &&
-        appointmentTime.getHours() === timeSlot.getHours() &&
-        appointmentTime.getMinutes() === timeSlot.getMinutes();
+      
+      const isSameDayResult = isSameDay(appointmentTime, timeSlot);
+      const isSameHour = appointmentTime.getHours() === timeSlot.getHours();
+      const isSameMinute = appointmentTime.getMinutes() === timeSlot.getMinutes();
+      
+      return isSameDayResult && isSameHour && isSameMinute;
     });
   };
 

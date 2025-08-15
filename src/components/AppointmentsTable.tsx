@@ -30,7 +30,8 @@ import {
   XCircle,
   AlertCircle,
   Filter,
-  Search
+  Search,
+  Check
 } from 'lucide-react';
 import {
   Tooltip,
@@ -43,6 +44,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatBRL, cn } from '@/lib/utils';
 import { formatSimpleTime, formatSimpleDateTime, parseSimpleDateTime } from '@/lib/dateUtils';
 import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
+import { useAutoComplete } from '@/hooks/useAutoComplete';
 
 interface Appointment {
   id: string;
@@ -83,6 +85,7 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
   const [professionalFilter, setProfessionalFilter] = useState<string>('all');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const { checkAndCompleteAppointment } = useAutoComplete();
 
   const handleStatusChange = async (appointmentId: string, newStatus: string) => {
     setUpdatingId(appointmentId);
@@ -134,6 +137,24 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
         title: 'Erro ao excluir agendamento',
         description: error.message || 'Erro desconhecido ao excluir agendamento',
         variant: 'destructive'
+      });
+    }
+  };
+
+  const handleAutoComplete = async (appointmentId: string) => {
+    try {
+      await checkAndCompleteAppointment.mutateAsync(appointmentId);
+      toast({
+        title: 'Agendamento Concluído',
+        description: 'Agendamento marcado como concluído automaticamente (24h após horário).',
+      });
+      onAppointmentUpdate();
+    } catch (error: any) {
+      console.error('[AUTO-COMPLETE] Erro ao verificar agendamento:', error);
+      toast({
+        title: 'Erro na Verificação',
+        description: error.message,
+        variant: 'destructive',
       });
     }
   };
@@ -218,7 +239,7 @@ Entre em contato conosco!
   const formatDateTime = (dateTimeString: string) => {
     const date = parseSimpleDateTime(dateTimeString);
     return {
-      date: date.toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+      date: date.toLocaleDateString('pt-BR'),
       time: formatSimpleTime(dateTimeString)
     };
   };
@@ -337,7 +358,12 @@ Entre em contato conosco!
           {getStatusIcon(value)}
           <Select
             value={value}
-            onValueChange={(newStatus) => handleStatusChange(tableData.find(row => row.status === value)?.raw.id, newStatus)}
+            onValueChange={(newStatus) => {
+              const appointment = tableData.find(row => row.status === value);
+              if (appointment?.raw.id) {
+                void handleStatusChange(appointment.raw.id, newStatus);
+              }
+            }}
             disabled={updatingId === tableData.find(row => row.status === value)?.raw.id}
           >
             <SelectTrigger className="w-32">
@@ -360,8 +386,16 @@ Entre em contato conosco!
       mobilePriority: true,
       render: (value: any, row: any) => (
         <div className="flex flex-wrap items-center gap-2">
+          {row.raw.status === 'confirmado' && (
+            <ActionButton
+              onClick={() => void handleAutoComplete(row.raw.id)}
+              icon={<Check className="h-4 w-4" />}
+              label="Concluir"
+              className="bg-purple-50 text-purple-600 hover:bg-purple-100 border-purple-200 hover:border-purple-300"
+            />
+          )}
           <ActionButton
-            onClick={() => handleWhatsAppMessage(
+            onClick={() => void handleWhatsAppMessage(
               row.raw.customer_phone,
               row.raw.customer_name,
               row.raw.start_time,
@@ -374,7 +408,7 @@ Entre em contato conosco!
             className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 hover:border-green-300"
           />
           <ActionButton
-            onClick={() => handleDelete(row.raw.id)}
+            onClick={() => void handleDelete(row.raw.id)}
             icon={<Trash2 className="h-4 w-4" />}
             label="Excluir"
             variant="destructive"
