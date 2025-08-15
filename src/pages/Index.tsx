@@ -9,6 +9,7 @@ import ThemesSection from "@/components/landing/ThemesSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import PricingSection from "@/components/landing/PricingSection";
 import Footer from "@/components/landing/Footer";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 const Index = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -38,12 +39,20 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
+      {/* PWA Install Banner */}
+      <PWAInstallPrompt variant="banner" showBenefits={false} />
       <main>
         <HeroSection />
         <FeaturesSection />
         <ThemesSection />
         <TestimonialsSection />
         <PricingSection loadingPlan={loadingPlan} startCheckout={startCheckout} />
+        {/* PWA Install Card */}
+        <section className="py-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            <PWAInstallPrompt variant="card" showBenefits={true} />
+          </div>
+        </section>
       </main>
       <Footer />
     </div>

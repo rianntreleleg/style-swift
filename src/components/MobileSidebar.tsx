@@ -41,8 +41,8 @@ interface MobileSidebarProps {
   isInstalled: boolean;
   isOnline: boolean;
   isAdmin: boolean;
-  onInstall: () => Promise<boolean>;
-  onShowPrompt: () => void;
+  onInstall: () => Promise<void>;
+  onShowPrompt: () => Promise<void>;
   onSignOut: () => void;
   selectedTenant: Tenant | null;
   tenants: Tenant[];

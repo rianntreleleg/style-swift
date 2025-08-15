@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from './useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -11,186 +9,123 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-interface PWAState {
-  deferredPrompt: BeforeInstallPromptEvent | null;
+export interface PWAInstallState {
   isInstallable: boolean;
   isInstalled: boolean;
+  isStandalone: boolean;
+  isIOS: boolean;
+  isAndroid: boolean;
   isOnline: boolean;
-  showInstallPrompt: boolean;
   isAdmin: boolean;
+  showInstallPrompt: () => Promise<void>;
+  dismissInstallPrompt: () => void;
+  hideInstallPrompt: () => void;
+  installPWA: () => Promise<void>;
+  showInstallPromptFn: () => Promise<void>;
+  canInstall: boolean;
 }
 
-export const usePWA = () => {
-  const { user } = useAuth();
-  const [pwaState, setPwaState] = useState<PWAState>({
-    deferredPrompt: null,
-    isInstallable: false,
-    isInstalled: false,
-    isOnline: navigator.onLine,
-    showInstallPrompt: false,
-    isAdmin: false
-  });
+export const usePWA = (): PWAInstallState => {
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
-  // Verificar se o usuário é admin
-  const checkAdminStatus = useCallback(async () => {
-    if (!user) {
-      setPwaState(prev => ({ ...prev, isAdmin: false }));
+  // Detectar se é iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  
+  // Detectar se é Android
+  const isAndroid = /Android/.test(navigator.userAgent);
+  
+  // Detectar se está em modo standalone (instalado)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
+
+  useEffect(() => {
+    // Verificar se já está instalado
+    setIsInstalled(isStandalone);
+
+    // Listener para o evento beforeinstallprompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setInstallPrompt(promptEvent);
+      setIsInstallable(true);
+      console.log('PWA: Install prompt available');
+    };
+
+    // Listener para quando o app é instalado
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setIsInstallable(false);
+      setInstallPrompt(null);
+      console.log('PWA: App was installed');
+    };
+
+    // Adicionar listeners
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, [isStandalone]);
+
+  const showInstallPrompt = async (): Promise<void> => {
+    if (!installPrompt) {
+      console.log('PWA: No install prompt available');
       return;
     }
 
     try {
-      // Verificar se o usuário tem tenants (indicador de admin)
-      const { data: tenants, error } = await supabase
-        .from('tenants')
-        .select('id')
-        .eq('owner_id', user.id)
-        .limit(1);
-
-      if (error) {
-        console.error('Erro ao verificar status de admin:', error);
-        setPwaState(prev => ({ ...prev, isAdmin: false }));
-        return;
-      }
-
-      const isAdmin = tenants && tenants.length > 0;
-      setPwaState(prev => ({ ...prev, isAdmin }));
-    } catch (error) {
-      console.error('Erro ao verificar status de admin:', error);
-      setPwaState(prev => ({ ...prev, isAdmin: false }));
-    }
-  }, [user]);
-
-  // Registrar service worker
-  const registerServiceWorker = useCallback(async () => {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker registrado com sucesso:', registration);
-      } catch (error) {
-        console.error('Erro ao registrar Service Worker:', error);
-      }
-    }
-  }, []);
-
-  // Detectar evento de instalação
-  const handleBeforeInstallPrompt = useCallback((e: BeforeInstallPromptEvent) => {
-    e.preventDefault();
-    console.log('PWA install prompt detected');
-    setPwaState(prev => ({
-      ...prev,
-      deferredPrompt: e,
-      isInstallable: true
-    }));
-  }, []);
-
-  // Detectar se o app foi instalado
-  const handleAppInstalled = useCallback(() => {
-    console.log('PWA installed successfully');
-    setPwaState(prev => ({
-      ...prev,
-      isInstalled: true,
-      isInstallable: false,
-      deferredPrompt: null
-    }));
-  }, []);
-
-  // Detectar mudanças de conectividade
-  const handleOnlineStatusChange = useCallback(() => {
-    setPwaState(prev => ({
-      ...prev,
-      isOnline: navigator.onLine
-    }));
-  }, []);
-
-  // Função para instalar o PWA
-  const installPWA = useCallback(async () => {
-    if (!pwaState.deferredPrompt) {
-      console.log('Não é possível instalar: prompt não disponível');
-      return false;
-    }
-
-    try {
-      console.log('Iniciando instalação do PWA...');
-      
-      // Mostrar prompt de instalação
-      await pwaState.deferredPrompt.prompt();
-      
-      // Aguardar escolha do usuário
-      const { outcome } = await pwaState.deferredPrompt.userChoice;
-      
-      console.log('Resultado da instalação:', outcome);
+      await installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
       
       if (outcome === 'accepted') {
-        console.log('Usuário aceitou a instalação');
-        setPwaState(prev => ({
-          ...prev,
-          isInstalled: true,
-          isInstallable: false,
-          deferredPrompt: null
-        }));
-        return true;
+        console.log('PWA: User accepted the install prompt');
+        setIsInstallable(false);
+        setInstallPrompt(null);
       } else {
-        console.log('Usuário recusou a instalação');
-        return false;
+        console.log('PWA: User dismissed the install prompt');
       }
     } catch (error) {
-      console.error('Erro durante a instalação:', error);
-      return false;
+      console.error('PWA: Error showing install prompt:', error);
     }
-  }, [pwaState.deferredPrompt]);
+  };
 
-  // Mostrar prompt de instalação manual
-  const showInstallPrompt = useCallback(() => {
-    if (pwaState.isInstallable) {
-      setPwaState(prev => ({ ...prev, showInstallPrompt: true }));
-    }
-  }, [pwaState.isInstallable]);
+  const dismissInstallPrompt = (): void => {
+    setIsInstallable(false);
+    setInstallPrompt(null);
+  };
 
-  // Esconder prompt de instalação
-  const hideInstallPrompt = useCallback(() => {
-    setPwaState(prev => ({ ...prev, showInstallPrompt: false }));
-  }, []);
+  // Determinar se pode instalar (considerando diferentes plataformas)
+  const canInstall = isInstallable || (isIOS && !isStandalone);
 
-  // Verificar se está em modo standalone (instalado)
-  const checkStandaloneMode = useCallback(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                        (window.navigator as any).standalone === true;
-    
-    console.log('Standalone mode check:', isStandalone);
-    setPwaState(prev => ({ ...prev, isInstalled: isStandalone }));
-  }, []);
+  // Detectar se está online
+  const isOnline = navigator.onLine;
 
-  // Efeitos
-  useEffect(() => {
-    registerServiceWorker();
-    checkAdminStatus();
-    checkStandaloneMode();
-  }, [registerServiceWorker, checkAdminStatus, checkStandaloneMode]);
+  // Para compatibilidade - assumir que não é admin por padrão
+  const isAdmin = false;
 
-  useEffect(() => {
-    // Event listeners
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
-    window.addEventListener('appinstalled', handleAppInstalled);
-    window.addEventListener('online', handleOnlineStatusChange);
-    window.addEventListener('offline', handleOnlineStatusChange);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-      window.removeEventListener('online', handleOnlineStatusChange);
-      window.removeEventListener('offline', handleOnlineStatusChange);
-    };
-  }, [handleBeforeInstallPrompt, handleAppInstalled, handleOnlineStatusChange]);
-
-  // Verificar admin status quando user mudar
-  useEffect(() => {
-    checkAdminStatus();
-  }, [checkAdminStatus]);
+  // Aliases para compatibilidade
+  const hideInstallPrompt = dismissInstallPrompt;
+  const installPWA = showInstallPrompt;
+  const showInstallPromptFn = showInstallPrompt;
 
   return {
-    ...pwaState,
+    isInstallable,
+    isInstalled,
+    isStandalone,
+    isIOS,
+    isAndroid,
+    isOnline,
+    isAdmin,
+    showInstallPrompt,
+    dismissInstallPrompt,
+    hideInstallPrompt,
     installPWA,
-    showInstallPromptFn: showInstallPrompt,
-    hideInstallPrompt
+    showInstallPromptFn,
+    canInstall
   };
 };

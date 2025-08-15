@@ -38,7 +38,7 @@ const features = [
   {
     icon: Shield,
     title: "Segurança e Confiabilidade",
-    description: "Dados protegidos, backup automático e sistema 99.9% disponível. Sua informação está segura conosco."
+    description: "Dados protegidos, backup automático e sistema 100% disponível. Sua informação está segura conosco."
   }
 ];
 
