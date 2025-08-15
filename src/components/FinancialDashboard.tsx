@@ -551,7 +551,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
   return (
     <TooltipProvider>
       <motion.div 
-        className="space-y-6"
+        className="space-y-6 w-full min-h-0 overflow-y-auto"
         variants={containerVariants}
         initial="hidden"
         animate="visible"

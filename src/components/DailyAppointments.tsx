@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { format, isToday, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { toDatabaseString, formatSimpleTime, parseSimpleDateTime } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
 
 
@@ -67,8 +68,8 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
           professionals(name)
         `)
         .eq('tenant_id', tenantId)
-        .gte('start_time', startOfToday.toISOString())
-        .lte('start_time', endOfToday.toISOString())
+        .gte('start_time', toDatabaseString(startOfToday))
+        .lte('start_time', toDatabaseString(endOfToday))
         .order('start_time', { ascending: true });
 
       if (error) {
@@ -393,7 +394,7 @@ Entre em contato conosco!
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {format(parseISO(appointment.start_time), 'HH:mm', { locale: ptBR })}
+                        {formatSimpleTime(appointment.start_time)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -446,7 +447,7 @@ Entre em contato conosco!
                   appointment.customer_name,
                   appointment.services?.name,
                   appointment.professionals?.name,
-                  format(parseISO(appointment.start_time), 'HH:mm', { locale: ptBR })
+                  formatSimpleTime(appointment.start_time)
                 )}
                               disabled={!appointment.customer_phone}
                               className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 hover:border-green-300"

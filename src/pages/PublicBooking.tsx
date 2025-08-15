@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toLocalISOString, createLocalDateTime, formatDateTimeBR, getLocalDayBounds } from "@/lib/dateUtils";
+import { toDatabaseString, createLocalDateTime, formatDateTimeBR, getLocalDayBounds } from "@/lib/dateUtils";
 import { cn, formatBRL } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -126,8 +126,9 @@ export default function PublicBooking() {
       .eq("id", values.service_id)
       .single();
 
-    // Processar horário usando utilitários de data
-    const start = createLocalDateTime(values.date.toISOString().split('T')[0], values.time);
+    // Processar horário usando utilitários de data SEM conversão de timezone
+    const dateStr = `${values.date.getFullYear()}-${(values.date.getMonth() + 1).toString().padStart(2, '0')}-${values.date.getDate().toString().padStart(2, '0')}`;
+    const start = createLocalDateTime(dateStr, values.time);
     const end = new Date(start.getTime() + (service?.duration_minutes ?? 30) * 60000);
     
     console.log(`[AGENDAMENTO] Horário selecionado: ${values.time}`);
@@ -235,14 +236,14 @@ export default function PublicBooking() {
       customer_contact: values.phone,
       customer_phone: values.phone,
       customer_email: values.email,
-      start_time: toLocalISOString(start),
-      end_time: toLocalISOString(end),
+      start_time: toDatabaseString(start),
+      end_time: toDatabaseString(end),
       status: "agendado",
       notes: values.notes,
     } as any).select().single();
     
-    console.log(`[AGENDAMENTO] Salvando no banco - start_time: ${toLocalISOString(start)}`);
-    console.log(`[AGENDAMENTO] Salvando no banco - end_time: ${toLocalISOString(end)}`);
+    console.log(`[AGENDAMENTO] Salvando no banco - start_time: ${toDatabaseString(start)}`);
+    console.log(`[AGENDAMENTO] Salvando no banco - end_time: ${toDatabaseString(end)}`);
 
     if (appointmentError) throw appointmentError;
 
@@ -257,8 +258,8 @@ export default function PublicBooking() {
           service_id: values.service_id,
           service_name: service?.name || 'Serviço não especificado',
           professional_id: values.professional_id,
-          start_time: toLocalISOString(start),
-          end_time: toLocalISOString(end),
+          start_time: toDatabaseString(start),
+          end_time: toDatabaseString(end),
           notes: values.notes || '',
           status: "agendado"
         },

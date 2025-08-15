@@ -38,6 +38,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { formatBRL, cn } from '@/lib/utils';
+import { formatSimpleTime, formatSimpleDateTime, parseSimpleDateTime } from '@/lib/dateUtils';
 import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
 
 interface Appointment {
@@ -206,11 +207,11 @@ Entre em contato conosco!
     }
   };
 
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
+  const formatDateTime = (dateTimeString: string) => {
+    const date = parseSimpleDateTime(dateTimeString);
     return {
-      date: date.toLocaleDateString('pt-BR'),
-      time: date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      date: date.toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+      time: formatSimpleTime(dateTimeString)
     };
   };
 
@@ -356,7 +357,7 @@ Entre em contato conosco!
               row.raw.customer_phone,
               row.raw.customer_name,
               row.raw.start_time,
-              row.dateTime.time,
+              formatSimpleTime(row.raw.start_time),
               row.raw.services?.name,
               row.raw.professionals?.name
             )}

@@ -31,7 +31,7 @@ O StyleSwift foi transformado em um Progressive Web App (PWA) completo, oferecen
 ### Manifest (`public/manifest.json`)
 ```json
 {
-  "name": "StyleSwift - Gestão de Agendamentos",
+  "name": "StyleSwift",
   "short_name": "StyleSwift",
   "description": "Sistema completo de gestão de agendamentos",
   "start_url": "/",

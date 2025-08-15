@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Clock, Calendar, User, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { format, parseISO, isSameDay, setHours, setMinutes, isWithinInterval, addDays, startOfDay, endOfDay, isBefore, isAfter, addMinutes, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toLocalISOString, getLocalDayBounds } from '@/lib/dateUtils';
+import { toDatabaseString, getLocalDayBounds, parseSimpleDateTime } from '@/lib/dateUtils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Tag } from "lucide-react";
 
@@ -210,7 +210,13 @@ export const TimeSlotSelector = ({
 
   const isTimeSlotBooked = (timeSlot: Date) => {
     return appointments.some(appointment => {
-      const appointmentTime = parseISO(appointment.start_time);
+      // Se há um profissional selecionado, só bloquear para esse profissional
+      if (professionalId && appointment.professional_id !== professionalId) {
+        return false;
+      }
+      
+      // Parse direto SEM conversão - o que está no banco é o que comparamos
+      const appointmentTime = parseSimpleDateTime(appointment.start_time);
       return isSameDay(appointmentTime, timeSlot) &&
         appointmentTime.getHours() === timeSlot.getHours() &&
         appointmentTime.getMinutes() === timeSlot.getMinutes() &&
@@ -253,7 +259,13 @@ export const TimeSlotSelector = ({
 
       // Verificar se este slot específico está ocupado
       const isOccupied = appointments.some(appointment => {
-        const appointmentTime = parseISO(appointment.start_time);
+        // Se há um profissional selecionado, só verificar para esse profissional
+        if (professionalId && appointment.professional_id !== professionalId) {
+          return false;
+        }
+        
+        // Converter UTC do banco para horário local para comparação
+        const appointmentTime = parseUTCToLocal(appointment.start_time);
         return isSameDay(appointmentTime, checkTime) &&
           appointmentTime.getHours() === checkTime.getHours() &&
           appointmentTime.getMinutes() === checkTime.getMinutes() &&
@@ -271,8 +283,14 @@ export const TimeSlotSelector = ({
     return appointments.some(appointment => {
       if (appointment.status === 'cancelado') return false;
       
-      const appointmentStart = parseISO(appointment.start_time);
-      const appointmentEnd = parseISO(appointment.end_time);
+      // Se há um profissional selecionado, só verificar para esse profissional
+      if (professionalId && appointment.professional_id !== professionalId) {
+        return false;
+      }
+      
+      // Parse direto SEM conversão - o que está no banco é o que comparamos
+      const appointmentStart = parseSimpleDateTime(appointment.start_time);
+      const appointmentEnd = parseSimpleDateTime(appointment.end_time);
       
       // Verificar se o slot está dentro do período de um agendamento existente
       return isSameDay(appointmentStart, timeSlot) &&
@@ -281,13 +299,19 @@ export const TimeSlotSelector = ({
     });
   };
 
-  // Nova função: obter informações do agendamento que ocupa este slot
+  // Nova função: obter informações do agendamento que ocupa este slot (PROTEGIDO - sem mostrar nome)
   const getOccupyingAppointment = (timeSlot: Date) => {
     return appointments.find(appointment => {
       if (appointment.status === 'cancelado') return false;
       
-      const appointmentStart = parseISO(appointment.start_time);
-      const appointmentEnd = parseISO(appointment.end_time);
+      // Se há um profissional selecionado, só verificar para esse profissional
+      if (professionalId && appointment.professional_id !== professionalId) {
+        return false;
+      }
+      
+      // Parse direto SEM conversão - o que está no banco é o que comparamos
+      const appointmentStart = parseSimpleDateTime(appointment.start_time);
+      const appointmentEnd = parseSimpleDateTime(appointment.end_time);
       
       return isSameDay(appointmentStart, timeSlot) &&
         timeSlot.getTime() >= appointmentStart.getTime() &&
@@ -297,7 +321,13 @@ export const TimeSlotSelector = ({
 
   const getAppointmentForTimeSlot = (timeSlot: Date) => {
     return appointments.find(appointment => {
-      const appointmentTime = parseISO(appointment.start_time);
+      // Se há um profissional selecionado, só verificar para esse profissional
+      if (professionalId && appointment.professional_id !== professionalId) {
+        return false;
+      }
+      
+      // Parse direto SEM conversão - o que está no banco é o que comparamos
+      const appointmentTime = parseSimpleDateTime(appointment.start_time);
       return isSameDay(appointmentTime, timeSlot) &&
         appointmentTime.getHours() === timeSlot.getHours() &&
         appointmentTime.getMinutes() === timeSlot.getMinutes();
@@ -435,12 +465,12 @@ export const TimeSlotSelector = ({
                   </div>
                   {appointment && (
                     <div className="text-xs opacity-75 truncate max-w-full">
-                      {appointment.customer_name}
+                      Agendado
                     </div>
                   )}
                   {occupyingAppointment && (
                     <div className="text-xs opacity-75 truncate max-w-full text-blue-600">
-                      {occupyingAppointment.customer_name}
+                      Indisponível
                     </div>
                   )}
                 </Button>
