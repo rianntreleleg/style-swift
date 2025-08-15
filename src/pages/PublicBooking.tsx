@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,6 +94,7 @@ export default function PublicBooking() {
 
   const form = useForm<BookingForm>({
     resolver: zodResolver(BookingSchema),
+    mode: "onChange", // Validar em tempo real
     defaultValues: {
       name: "",
       email: "",
@@ -101,6 +102,42 @@ export default function PublicBooking() {
       notes: "",
     }
   });
+
+  // Verificar se todos os campos obrigatórios estão preenchidos
+  const isFormValid = useMemo(() => {
+    const values = form.getValues();
+    const errors = form.formState.errors;
+    
+    // Campos obrigatórios que devem estar preenchidos e válidos
+    const requiredFields = [
+      'service_id',
+      'professional_id', 
+      'date',
+      'time',
+      'name',
+      'email',
+      'phone'
+    ];
+    
+    // Verificar se todos os campos obrigatórios estão preenchidos e sem erros
+    return requiredFields.every(field => {
+      const value = values[field as keyof BookingForm];
+      const error = errors[field as keyof typeof errors];
+      
+      // Para campos de string, verificar se não estão vazios
+      if (typeof value === 'string') {
+        return value && value.trim() !== '' && !error;
+      }
+      
+      // Para campos de data, verificar se existe
+      if (value instanceof Date) {
+        return value && !error;
+      }
+      
+      // Para outros tipos, verificar se existe e não tem erro
+      return value && !error;
+    });
+  }, [form.watch(), form.formState.errors]);
 
   // Funções de gerenciamento da fila
   const addToQueue = (bookingData: any) => {
@@ -817,14 +854,14 @@ export default function PublicBooking() {
                       type="submit"
                       className={cn(
                         "w-full h-12 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300",
-                        form.formState.isValid && !submitting
+                        isFormValid && !submitting
                           ? "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                           : "bg-gray-400 cursor-not-allowed"
                       )}
-                      disabled={submitting || !form.formState.isValid}
+                      disabled={submitting || !isFormValid}
                       onClick={() => {
                         console.log('Form validation state:', {
-                          isValid: form.formState.isValid,
+                          isValid: isFormValid,
                           errors: form.formState.errors,
                           values: form.getValues()
                         });

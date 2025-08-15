@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -83,6 +83,7 @@ export function CreateAppointmentModal({
 
   const form = useForm<CreateAppointmentForm>({
     resolver: zodResolver(CreateAppointmentSchema),
+    mode: "onChange", // Validar em tempo real
     defaultValues: {
       customer_name: '',
       customer_phone: '',
@@ -93,6 +94,41 @@ export function CreateAppointmentModal({
       notes: '',
     },
   });
+
+  // Verificar se todos os campos obrigatórios estão preenchidos
+  const isFormValid = useMemo(() => {
+    const values = form.getValues();
+    const errors = form.formState.errors;
+    
+    // Campos obrigatórios que devem estar preenchidos e válidos
+    const requiredFields = [
+      'customer_name',
+      'customer_phone',
+      'professional_id',
+      'service_id',
+      'date',
+      'time'
+    ];
+    
+    // Verificar se todos os campos obrigatórios estão preenchidos e sem erros
+    return requiredFields.every(field => {
+      const value = values[field as keyof CreateAppointmentForm];
+      const error = errors[field as keyof typeof errors];
+      
+      // Para campos de string, verificar se não estão vazios
+      if (typeof value === 'string') {
+        return value && value.trim() !== '' && !error;
+      }
+      
+      // Para campos de data, verificar se existe
+      if (value instanceof Date) {
+        return value && !error;
+      }
+      
+      // Para outros tipos, verificar se existe e não tem erro
+      return value && !error;
+    });
+  }, [form.watch(), form.formState.errors]);
 
   // Buscar profissionais e serviços ao abrir o modal
   useEffect(() => {
@@ -482,7 +518,7 @@ export function CreateAppointmentModal({
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !!conflictError || validationLoading}
+              disabled={loading || !!conflictError || validationLoading || !isFormValid}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Criar Agendamento
