@@ -39,6 +39,7 @@ import { motion } from "framer-motion";
 import AppointmentsTable from "@/components/AppointmentsTable";
 import { DailyAppointments } from "@/components/DailyAppointments";
 import { CreateAppointmentModal } from "@/components/CreateAppointmentModal";
+import { useAutoComplete } from "@/hooks/useAutoComplete";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
@@ -84,6 +85,7 @@ type ProForm = z.infer<typeof ProSchema>;
 export default function Admin() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { processCompletions } = useAutoComplete();
   const {
     isInstallable,
     isInstalled,
@@ -724,10 +726,21 @@ export default function Admin() {
                   <h2 className="text-2xl font-bold">Agendamentos</h2>
                   <p className="text-muted-foreground">Gerencie todos os agendamentos</p>
                 </div>
-                <CreateAppointmentModal
-                  tenantId={selectedTenantId}
-                  onAppointmentCreated={fetchAppointments}
-                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => processCompletions.mutate()}
+                    disabled={processCompletions.isPending}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Conclusão Automática
+                  </Button>
+                  <CreateAppointmentModal
+                    tenantId={selectedTenantId}
+                    onAppointmentCreated={fetchAppointments}
+                  />
+                </div>
               </div>
               <AppointmentsTable
                 appointments={appointments}

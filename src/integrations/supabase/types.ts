@@ -1078,12 +1078,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      auto_complete_appointments: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       auto_confirm_appointments: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
       can_access_system: {
         Args: { p_tenant_id: string }
+        Returns: boolean
+      }
+      check_and_complete_appointment: {
+        Args: { p_appointment_id: string }
         Returns: boolean
       }
       check_and_confirm_appointments: {
@@ -1122,6 +1130,16 @@ export type Database = {
       check_professional_limit: {
         Args: { tenant_id: string }
         Returns: boolean
+      }
+      check_tenant_paid_access: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          has_advanced_analytics: boolean
+          has_auto_confirmation: boolean
+          has_financial_dashboard: boolean
+          is_paid: boolean
+          plan_tier: string
+        }[]
       }
       check_user_permissions: {
         Args: { p_feature: string; p_user_id: string }
@@ -1162,6 +1180,10 @@ export type Database = {
           pending: number
           total_appointments: number
         }[]
+      }
+      get_or_create_customer: {
+        Args: { p_contact: string; p_name: string; p_tenant_id: string }
+        Returns: string
       }
       get_plan_limits: {
         Args: { p_user_id: string }
@@ -1213,6 +1235,10 @@ export type Database = {
             }
         Returns: undefined
       }
+      process_pending_completions: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       process_stripe_payment_event: {
         Args: {
           p_event_id: string
@@ -1229,9 +1255,23 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      sync_all_payment_status: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       sync_all_tenant_plans: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      sync_stripe_subscription_status: {
+        Args: {
+          p_current_period_end: string
+          p_current_period_start: string
+          p_plan_tier: string
+          p_stripe_customer_id: string
+          p_subscription_status: string
+        }
+        Returns: boolean
       }
       update_appointment_safe: {
         Args: {

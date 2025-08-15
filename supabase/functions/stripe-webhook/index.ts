@@ -207,25 +207,26 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     const productId = subscription.items.data[0]?.price.product as string;
     const planTier = getPlanFromProduct(productId);
 
-    // Atualizar tenant
-    const { error: tenantError } = await supabase
-      .from("tenants")
-      .update({
-        plan_tier: planTier,
-        plan_status: subscription.status === "active" ? "active" : "unpaid",
-        payment_completed: subscription.status === "active",
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq("stripe_customer_id", customerId);
+    // Usar a nova função RPC para sincronização completa
+    const { data: result, error: rpcError } = await supabase.rpc('sync_stripe_subscription_status', {
+      p_stripe_customer_id: customerId,
+      p_plan_tier: planTier,
+      p_subscription_status: subscription.status,
+      p_current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+      p_current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
+    });
 
-    if (tenantError) {
-      console.error(`[WEBHOOK] ❌ Erro ao atualizar tenant:`, tenantError);
+    if (rpcError) {
+      console.error(`[WEBHOOK] ❌ Erro na função RPC sync_stripe_subscription_status:`, rpcError);
       return false;
     }
 
-    console.log(`[WEBHOOK] ✅ Subscription update processada`);
+    if (!result) {
+      console.error(`[WEBHOOK] ❌ Tenant não encontrado para customer: ${customerId}`);
+      return false;
+    }
+
+    console.log(`[WEBHOOK] ✅ Subscription update processada via RPC - plan_status e payment_status atualizados`);
     return true;
 
   } catch (error) {

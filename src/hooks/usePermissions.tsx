@@ -46,53 +46,29 @@ export const usePermissions = (tenantId?: string) => {
 
     const fetchPermissions = async () => {
       try {
-        // Buscar informações do tenant
-        const { data: tenantData, error: tenantError } = await supabase
-          .from('tenants')
-          .select('plan_tier, plan, payment_completed, plan_status')
-          .eq('id', tenantId)
-          .eq('owner_id', user.id)
-          .single();
+        // Usar a nova função RPC para verificar acesso pago
+        const { data: accessData, error: accessError } = await supabase.rpc('check_tenant_paid_access', {
+          p_tenant_id: tenantId
+        });
 
-        if (tenantError) {
-          console.error('Erro ao buscar permissões:', tenantError);
+        if (accessError) {
+          console.error('Erro ao verificar acesso:', accessError);
           setPermissions(prev => ({ ...prev, isLoading: false }));
           return;
         }
 
-        const planTier = tenantData.plan_tier || tenantData.plan || 'essential';
-        const isPaid = tenantData.payment_completed && tenantData.plan_status === 'active';
+        const access = accessData[0]; // RPC retorna array
+        const planTier = access.plan_tier || 'essential';
+        const isPaid = access.is_paid;
 
-        // Definir limites baseados no plano
-        let planLimits: PlanLimits;
-        switch (planTier) {
-          case 'professional':
-            planLimits = {
-              max_professionals: 3,
-              max_services: 15,
-              has_financial_dashboard: isPaid,
-              has_auto_confirmation: isPaid,
-              has_advanced_analytics: false
-            };
-            break;
-          case 'premium':
-            planLimits = {
-              max_professionals: 999,
-              max_services: 999,
-              has_financial_dashboard: isPaid,
-              has_auto_confirmation: isPaid,
-              has_advanced_analytics: isPaid
-            };
-            break;
-          default: // essential
-            planLimits = {
-              max_professionals: 1,
-              max_services: 5,
-              has_financial_dashboard: false,
-              has_auto_confirmation: false,
-              has_advanced_analytics: false
-            };
-        }
+        // Usar dados da função RPC para definir limites
+        const planLimits: PlanLimits = {
+          max_professionals: planTier === 'premium' ? 999 : planTier === 'professional' ? 3 : 1,
+          max_services: planTier === 'premium' ? 999 : planTier === 'professional' ? 15 : 5,
+          has_financial_dashboard: access.has_financial_dashboard,
+          has_auto_confirmation: access.has_auto_confirmation,
+          has_advanced_analytics: access.has_advanced_analytics
+        };
 
         // Verificar limites atuais
         const [professionalsCount, servicesCount] = await Promise.all([

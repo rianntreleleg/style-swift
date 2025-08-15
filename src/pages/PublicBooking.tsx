@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -60,7 +61,7 @@ const BookingSchema = z.object({
     .refine((phone) => validations.phone.validate(phone), {
       message: validations.phone.message
     }),
-  notes: z.string().optional(),
+  notes: z.string().optional().or(z.literal('')).default(''),
 });
 
 type BookingForm = z.infer<typeof BookingSchema>;
@@ -805,7 +806,11 @@ export default function PublicBooking() {
 
                     <div className="space-y-2">
                       <Label className="text-sm font-medium flex items-center gap-2"><FileText className="h-4 w-4" /> Observações (opcional)</Label>
-                      <Input className="h-12" placeholder="Alguma observação especial..." {...form.register("notes")} />
+                      <Textarea 
+                        className="min-h-[80px] resize-none" 
+                        placeholder="Alguma observação especial..." 
+                        {...form.register("notes")} 
+                      />
                     </div>
 
                     <Button
@@ -817,6 +822,13 @@ export default function PublicBooking() {
                           : "bg-gray-400 cursor-not-allowed"
                       )}
                       disabled={submitting || !form.formState.isValid}
+                      onClick={() => {
+                        console.log('Form validation state:', {
+                          isValid: form.formState.isValid,
+                          errors: form.formState.errors,
+                          values: form.getValues()
+                        });
+                      }}
                     >
                       {submitting ? (
                         <>
