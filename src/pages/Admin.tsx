@@ -712,6 +712,7 @@ export default function Admin() {
           {activeTab === 'today' && (
             <DailyAppointments
               tenantId={selectedTenantId}
+              onAppointmentUpdate={fetchAppointments}
             />
           )}
 

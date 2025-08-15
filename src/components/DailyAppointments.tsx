@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Search, Phone, Calendar, Clock, MapPin, MessageCircle, Users, TrendingUp, CheckCircle, AlertCircle, XCircle, Filter } from 'lucide-react';
+import { Search, Phone, Calendar, Clock, MapPin, MessageCircle, Users, TrendingUp, CheckCircle, AlertCircle, XCircle, Filter, Edit } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -40,9 +40,10 @@ interface Appointment {
 
 interface DailyAppointmentsProps {
   tenantId: string;
+  onAppointmentUpdate?: () => void;
 }
 
-export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
+export const DailyAppointments = ({ tenantId, onAppointmentUpdate }: DailyAppointmentsProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,6 +51,7 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [professionalFilter, setProfessionalFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
 
   const fetchTodayAppointments = async () => {
@@ -57,7 +59,7 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
       const startOfSelectedDate = startOfDay(selectedDate);
       const endOfSelectedDate = endOfDay(selectedDate);
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('appointments')
         .select(`
           id,
@@ -75,17 +77,6 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
         .gte('start_time', toDatabaseString(startOfSelectedDate))
         .lte('start_time', toDatabaseString(endOfSelectedDate))
         .order('start_time', { ascending: true });
-
-      // Aplicar filtros
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      if (professionalFilter !== 'all') {
-        query = query.eq('professionals.name', professionalFilter);
-      }
-
-      const { data, error } = await query;
 
       if (error) {
         console.error('Erro ao buscar agendamentos:', error);
@@ -118,13 +109,23 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
     const interval = setInterval(fetchTodayAppointments, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [tenantId, selectedDate, statusFilter, professionalFilter]);
+  }, [tenantId, selectedDate]);
 
-  const filteredAppointments = appointments.filter(appointment =>
-    appointment.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    appointment.services?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    appointment.professionals?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAppointments = appointments.filter(appointment => {
+    // Filtro de busca por texto
+    const matchesSearch = 
+      appointment.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.services?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.professionals?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtro de status
+    const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
+    
+    // Filtro de profissional
+    const matchesProfessional = professionalFilter === 'all' || appointment.professionals?.name === professionalFilter;
+    
+    return matchesSearch && matchesStatus && matchesProfessional;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -168,6 +169,43 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
         return <XCircle className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
+    }
+  };
+
+  const handleStatusChange = async (appointmentId: string, newStatus: string) => {
+    setUpdatingId(appointmentId);
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({ title: 'Status atualizado com sucesso!' });
+      
+      // Atualizar dados locais
+      setAppointments(prev => 
+        prev.map(app => 
+          app.id === appointmentId 
+            ? { ...app, status: newStatus }
+            : app
+        )
+      );
+      
+      // Chamar callback se fornecido
+      if (onAppointmentUpdate) {
+        onAppointmentUpdate();
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao atualizar status',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -547,31 +585,50 @@ Entre em contato conosco!
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => enviarWhatsApp(
-                  appointment.customer_phone, 
-                  appointment.customer_name,
-                  appointment.services?.name,
-                  appointment.professionals?.name,
-                  formatSimpleTime(appointment.start_time)
-                )}
-                              disabled={!appointment.customer_phone}
-                              className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 hover:border-green-300"
-                            >
-                              <MessageCircle className="h-4 w-4 mr-1" />
-                              WhatsApp
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Enviar mensagem no WhatsApp</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div className="flex items-center gap-2 justify-end">
+                        <Select
+                          value={appointment.status}
+                          onValueChange={(newStatus) => handleStatusChange(appointment.id, newStatus)}
+                          disabled={updatingId === appointment.id}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="agendado">Agendado</SelectItem>
+                            <SelectItem value="confirmado">Confirmado</SelectItem>
+                            <SelectItem value="concluido">Concluído</SelectItem>
+                            <SelectItem value="cancelado">Cancelado</SelectItem>
+                            <SelectItem value="nao_compareceu">Não Compareceu</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => enviarWhatsApp(
+                      appointment.customer_phone, 
+                      appointment.customer_name,
+                      appointment.services?.name,
+                      appointment.professionals?.name,
+                      formatSimpleTime(appointment.start_time)
+                    )}
+                                disabled={!appointment.customer_phone}
+                                className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 hover:border-green-300"
+                              >
+                                <MessageCircle className="h-4 w-4 mr-1" />
+                                WhatsApp
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Enviar mensagem no WhatsApp</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
