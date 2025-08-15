@@ -176,28 +176,18 @@ export default function PublicBooking() {
       throw new Error(`Agendamento deve ser feito entre ${businessHour.open_time} e ${businessHour.close_time}`);
     }
 
-    // Validação de conflito no backend usando utilitários de data
-    const dayBounds = getLocalDayBounds(start);
-
-    const { data: dayAppts, error: conflictError } = await supabase
-      .from("appointments")
-      .select("start_time,end_time,status,professional_id")
-      .eq("tenant_id", tenant.id)
-      .eq("professional_id", values.professional_id)
-      .gte("start_time", dayBounds.start)
-      .lte("start_time", dayBounds.end);
+    // Validação de conflito usando a função RPC segura
+    const { data: conflictCheck, error: conflictError } = await supabase.rpc('check_appointment_conflicts', {
+      p_tenant_id: tenant.id,
+      p_professional_id: values.professional_id,
+      p_start_time: toDatabaseString(start),
+      p_end_time: toDatabaseString(end),
+    });
 
     if (conflictError) throw conflictError;
 
-    const hasOverlap = (dayAppts || []).some((a: any) => {
-      if (a.status === 'cancelado') return false;
-      const aStart = parseISO(a.start_time).getTime();
-      const aEnd = parseISO(a.end_time).getTime();
-      return aStart < end.getTime() && aEnd > start.getTime();
-    });
-
-    if (hasOverlap) {
-      throw new Error("Horário já agendado");
+    if (conflictCheck === true) {
+      throw new Error("Horário já agendado. Por favor, escolha outro horário.");
     }
 
     // Verificar se cliente já existe
@@ -224,28 +214,38 @@ export default function PublicBooking() {
       customerId = newCustomer?.id;
     }
 
-    // Usar função utilitária para conversão ISO local
-
-    // Criar agendamento
-    const { data: appointmentData, error: appointmentError } = await supabase.from("appointments").insert({
-      tenant_id: tenant.id,
-      service_id: values.service_id,
-      professional_id: values.professional_id,
-      customer_id: customerId,
-      customer_name: values.name,
-      customer_contact: values.phone,
-      customer_phone: values.phone,
-      customer_email: values.email,
-      start_time: toDatabaseString(start),
-      end_time: toDatabaseString(end),
-      status: "agendado",
-      notes: values.notes,
-    } as any).select().single();
+    // Criar agendamento usando a função RPC segura
+    const { data: appointmentResult, error: appointmentError } = await supabase.rpc('create_appointment_safe', {
+      p_tenant_id: tenant.id,
+      p_professional_id: values.professional_id,
+      p_service_id: values.service_id,
+      p_customer_name: values.name,
+      p_customer_phone: values.phone,
+      p_customer_email: values.email,
+      p_start_time: toDatabaseString(start),
+      p_end_time: toDatabaseString(end),
+      p_notes: values.notes || null,
+    });
     
     console.log(`[AGENDAMENTO] Salvando no banco - start_time: ${toDatabaseString(start)}`);
     console.log(`[AGENDAMENTO] Salvando no banco - end_time: ${toDatabaseString(end)}`);
 
     if (appointmentError) throw appointmentError;
+
+    const result = appointmentResult as { success: boolean; error?: string; message: string; appointment_id?: string };
+
+    if (!result.success) {
+      if (result.error === 'CONFLICT') {
+        throw new Error("Horário já agendado. Por favor, escolha outro horário.");
+      }
+      throw new Error(result.message);
+    }
+
+    // Simular dados do agendamento para o webhook (já que não temos a consulta completa)
+    const appointmentData = {
+      id: result.appointment_id,
+      // ... outros campos necessários para o webhook
+    };
 
     // Enviar webhook após criar o agendamento com sucesso
     try {

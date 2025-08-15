@@ -120,15 +120,39 @@ export const useCreateAppointment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (appointmentData: any) => {
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert(appointmentData)
-        .select()
-        .single();
+    mutationFn: async (appointmentData: {
+      tenant_id: string;
+      professional_id: string;
+      service_id: string;
+      customer_name: string;
+      customer_phone: string;
+      customer_email?: string;
+      start_time: string;
+      end_time: string;
+      notes?: string;
+    }) => {
+      // Usar a função RPC segura para criar agendamentos
+      const { data, error } = await supabase.rpc('create_appointment_safe', {
+        p_tenant_id: appointmentData.tenant_id,
+        p_professional_id: appointmentData.professional_id,
+        p_service_id: appointmentData.service_id,
+        p_customer_name: appointmentData.customer_name,
+        p_customer_phone: appointmentData.customer_phone,
+        p_customer_email: appointmentData.customer_email || null,
+        p_start_time: appointmentData.start_time,
+        p_end_time: appointmentData.end_time,
+        p_notes: appointmentData.notes || null,
+      });
 
       if (error) throw error;
-      return data;
+
+      const result = data as { success: boolean; error?: string; message: string; appointment_id?: string };
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      return result;
     },
     onSuccess: (data) => {
       // Invalidar cache de agendamentos
@@ -140,9 +164,16 @@ export const useCreateAppointment = () => {
       });
     },
     onError: (error: any) => {
+      let errorMessage = error.message || 'Tente novamente.';
+      
+      // Tratar erros específicos
+      if (errorMessage.includes('Conflito de agendamento') || errorMessage.includes('Já existe um agendamento')) {
+        errorMessage = 'Já existe um agendamento para este profissional neste horário.';
+      }
+      
       toast({
         title: 'Erro ao criar agendamento',
-        description: error.message || 'Tente novamente.',
+        description: errorMessage,
         variant: 'destructive',
       });
     },

@@ -38,6 +38,7 @@ import { usePWA } from "@/hooks/usePWA";
 import { motion } from "framer-motion";
 import AppointmentsTable from "@/components/AppointmentsTable";
 import { DailyAppointments } from "@/components/DailyAppointments";
+import { CreateAppointmentModal } from "@/components/CreateAppointmentModal";
 import BusinessHoursManager from "@/components/BusinessHoursManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
@@ -717,11 +718,23 @@ export default function Admin() {
           )}
 
           {activeTab === 'appointments' && (
-            <AppointmentsTable
-              appointments={appointments}
-              tenantId={selectedTenantId}
-              onAppointmentUpdate={fetchAppointments}
-            />
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold">Agendamentos</h2>
+                  <p className="text-muted-foreground">Gerencie todos os agendamentos</p>
+                </div>
+                <CreateAppointmentModal
+                  tenantId={selectedTenantId}
+                  onAppointmentCreated={fetchAppointments}
+                />
+              </div>
+              <AppointmentsTable
+                appointments={appointments}
+                tenantId={selectedTenantId}
+                onAppointmentUpdate={fetchAppointments}
+              />
+            </div>
           )}
 
           {activeTab === 'financial' && (

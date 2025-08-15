@@ -913,6 +913,7 @@ export type Database = {
           payment_completed: boolean | null
           payment_status: string
           phone: string | null
+          plan: string | null
           plan_selected: string | null
           plan_status: string | null
           plan_tier: string | null
@@ -937,6 +938,7 @@ export type Database = {
           payment_completed?: boolean | null
           payment_status?: string
           phone?: string | null
+          plan?: string | null
           plan_selected?: string | null
           plan_status?: string | null
           plan_tier?: string | null
@@ -961,6 +963,7 @@ export type Database = {
           payment_completed?: boolean | null
           payment_status?: string
           phone?: string | null
+          plan?: string | null
           plan_selected?: string | null
           plan_status?: string | null
           plan_tier?: string | null
@@ -1094,6 +1097,16 @@ export type Database = {
           status: string
         }[]
       }
+      check_appointment_conflicts: {
+        Args: {
+          p_appointment_id?: string
+          p_end_time: string
+          p_professional_id: string
+          p_start_time: string
+          p_tenant_id: string
+        }
+        Returns: boolean
+      }
       check_auto_confirmation_access: {
         Args: { tenant_id: string }
         Returns: boolean
@@ -1113,6 +1126,20 @@ export type Database = {
       check_user_permissions: {
         Args: { p_feature: string; p_user_id: string }
         Returns: boolean
+      }
+      create_appointment_safe: {
+        Args: {
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_end_time: string
+          p_notes?: string
+          p_professional_id: string
+          p_service_id: string
+          p_start_time: string
+          p_tenant_id: string
+        }
+        Returns: Json
       }
       create_simple_tenant: {
         Args: {
@@ -1201,6 +1228,25 @@ export type Database = {
       sync_all_payment_data: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      sync_all_tenant_plans: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_appointment_safe: {
+        Args: {
+          p_appointment_id: string
+          p_customer_email?: string
+          p_customer_name?: string
+          p_customer_phone?: string
+          p_end_time?: string
+          p_notes?: string
+          p_professional_id?: string
+          p_service_id?: string
+          p_start_time?: string
+          p_status?: string
+        }
+        Returns: Json
       }
       update_tenant_plan: {
         Args: { new_plan: string; tenant_uuid: string }
