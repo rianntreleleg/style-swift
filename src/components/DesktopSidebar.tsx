@@ -17,7 +17,8 @@ import {
   LogOut,
   ExternalLink,
   Building2,
-  Activity
+  Activity,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LogoIcon from '@/components/LogoIcon';
@@ -79,6 +80,12 @@ const navigationItems = [
     label: 'Horários',
     icon: Clock,
     description: 'Configurar horários'
+  },
+  {
+    id: 'backups',
+    label: 'Backups',
+    icon: Database,
+    description: 'Gerenciar backups'
   },
   {
     id: 'settings',

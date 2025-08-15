@@ -33,7 +33,8 @@ import {
   Check,
   Eye,
   Crown,
-  RefreshCw
+  RefreshCw,
+  Database
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePWA } from "@/hooks/usePWA";
@@ -52,6 +53,7 @@ import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { checkFeatureAccess, canAddProfessional, type PlanTier } from "@/config/plans";
 import LogoUpload from "@/components/LogoUpload";
 import LogoIcon from "@/components/LogoIcon";
+import { BackupManager } from "@/components/BackupManager";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -850,6 +852,28 @@ export default function Admin() {
               <BusinessHoursManager tenantId={selectedTenantId} />
             </div>
           )}
+
+
+
+          {activeTab === 'backups' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-6"
+            >
+              {selectedTenant ? (
+                <BackupManager tenantId={selectedTenant.id} planTier={selectedTenant.plan_tier} />
+              ) : (
+                <div className="text-center py-8">
+                  <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Selecione um estabelecimento para acessar o gerenciamento de backups.</p>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+
 
           {activeTab === 'settings' && (
             <motion.div

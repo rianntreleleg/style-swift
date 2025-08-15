@@ -21,7 +21,8 @@ import {
   ExternalLink,
   Building2,
   Activity,
-  CreditCard
+  CreditCard,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LogoIcon from '@/components/LogoIcon';
@@ -57,6 +58,7 @@ const navigationItems = [
   { id: 'services', label: 'Serviços', icon: Scissors, description: 'Gerenciar serviços' },
   { id: 'pros', label: 'Profissionais', icon: Users2, description: 'Gerenciar profissionais' },
   { id: 'hours', label: 'Horários', icon: Clock, description: 'Configurar horários' },
+  { id: 'backups', label: 'Backups', icon: Database, description: 'Gerenciar backups' },
   { id: 'settings', label: 'Configurações', icon: Settings, description: 'Configurações gerais' }
 ];
 
