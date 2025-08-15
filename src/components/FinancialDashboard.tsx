@@ -27,6 +27,9 @@ import { formatBRL } from '@/lib/utils';
 import UpgradePrompt from '@/components/UpgradePrompt';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AnimatedContainer, AnimatedItem, AnimatedCard, AnimatedBadge, AnimatedProgress, AnimatedSpinner } from '@/components/MicroInteractions';
+import { TactileButton, TactileCard } from '@/components/TactileFeedback';
+import { Skeleton, DashboardSkeleton } from '@/components/Skeleton';
 
 interface FinancialDashboardProps {
   tenantId: string;
@@ -516,25 +519,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
 
   // Loading state
   if (permissionsLoading) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-center py-8">
-              <motion.div 
-                className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Se não tem acesso ao dashboard financeiro, mostrar prompt de upgrade
@@ -585,38 +570,30 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
           className="flex gap-2"
           variants={itemVariants}
         >
-          <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <motion.div
-                animate={{ rotate: refreshing ? 360 : 0 }}
-                transition={{ duration: 1, repeat: refreshing ? Infinity : 0, ease: "linear" }}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-              </motion.div>
-              Atualizar
-            </Button>
-          </motion.div>
+          <TactileButton
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            loading={refreshing}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </TactileButton>
           
           
 
           {canUseAdvancedAnalytics ? (
-            <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
-              <Button
-                variant="outline"
-                size="sm"
+            <TactileButton
+              variant="outline"
+              size="sm"
                 onClick={handleGenerateReport}
                 className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30 hover:border-yellow-500/50"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Gerar Relatório
                 <Crown className="h-3 w-3 ml-1 text-yellow-600" />
-              </Button>
-            </motion.div>
+              </TactileButton>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
