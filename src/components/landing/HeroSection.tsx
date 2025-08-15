@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle, Zap, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -8,9 +8,9 @@ const HeroSection = () => {
   const [spot, setSpot] = useState({ x: "50%", y: "50%" });
 
   const stats = [
-    { value: "500+", label: "Estabelecimentos ativos", delay: 0.4 },
-    { value: "10k+", label: "Agendamentos realizados", delay: 0.6 },
-    { value: "4.9★", label: "Avaliação dos clientes", delay: 0.8 }
+    { value: "500+", label: "Estabelecimentos ativos", delay: 0.4, icon: <Users className="h-5 w-5" /> },
+    { value: "10k+", label: "Agendamentos realizados", delay: 0.6, icon: <Zap className="h-5 w-5" /> },
+    { value: "4.9★", label: "Avaliação dos clientes", delay: 0.8, icon: <CheckCircle className="h-5 w-5" /> }
   ];
 
   return (
@@ -51,10 +51,20 @@ const HeroSection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <a href="#planos">
+              <a href="#pricing">
                 <Button size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg">
-                  Selecionar um Plano
+                  Assinar Plano Agora
                   <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </a>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <a href="#recursos">
+                <Button size="lg" variant="outline" className="border-primary/50 text-primary hover:bg-primary/5 px-8 py-6 text-lg">
+                  Ver Recursos
                 </Button>
               </a>
             </motion.div>
@@ -68,10 +78,15 @@ const HeroSection = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: stat.delay }}
-                className="text-center"
+                className="text-center bg-background/20 backdrop-blur-sm rounded-xl p-4 border border-border/30"
               >
-                <div className="text-3xl font-bold text-primary mb-2">{stat.value}</div>
-                <div className="text-muted-foreground">{stat.label}</div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <div className="text-primary">
+                    {stat.icon}
+                  </div>
+                  <div className="text-2xl font-bold text-primary">{stat.value}</div>
+                </div>
+                <div className="text-muted-foreground text-sm">{stat.label}</div>
               </motion.div>
             ))}
           </div>

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
-  BarChart3, 
+  BarChart, 
   Calendar, 
   Eye, 
   DollarSign, 
@@ -42,7 +42,7 @@ const navigationItems = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    icon: BarChart3,
+    icon: BarChart,
     description: 'Visão geral do negócio'
   },
   {

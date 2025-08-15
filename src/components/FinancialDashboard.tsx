@@ -13,7 +13,7 @@ import {
   DollarSign, 
   Users, 
   Calendar,
-  BarChart3,
+  BarChart,
   Lock,
   Crown,
   RefreshCw,
@@ -553,7 +553,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            <BarChart3 className="h-6 w-6" />
+            <BarChart className="h-6 w-6" />
             Dashboard Financeiro
           </motion.h2>
           <motion.p 

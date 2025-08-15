@@ -23,7 +23,7 @@ import {
   EyeOff,
   Settings,
   RefreshCw,
-  BarChart3,
+  BarChart,
   Zap,
   Clock
 } from 'lucide-react';

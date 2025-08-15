@@ -6,7 +6,10 @@ import {
   Smartphone,
   TrendingUp,
   Users,
-  Shield
+  Shield,
+  Calendar,
+  CreditCard,
+  BarChart
 } from "lucide-react";
 
 const features = [
@@ -39,6 +42,24 @@ const features = [
     icon: Shield,
     title: "Segurança e Confiabilidade",
     description: "Dados protegidos, backup automático e sistema 100% disponível. Sua informação está segura conosco."
+  }
+];
+
+const additionalFeatures = [
+  {
+    icon: Calendar,
+    title: "Calendário Integrado",
+    description: "Visualize todos os agendamentos em um calendário intuitivo com cores por profissional."
+  },
+  {
+    icon: CreditCard,
+    title: "Pagamentos Integrados",
+    description: "Receba pagamentos online diretamente na plataforma com segurança e praticidade."
+  },
+  {
+    icon: BarChart,
+    title: "Relatórios Avançados",
+    description: "Analise o desempenho do seu negócio com relatórios detalhados e gráficos interativos."
   }
 ];
 
@@ -84,10 +105,10 @@ const FeaturesSection = () => {
       >
         {features.map((feature, index) => (
           <motion.div key={index} variants={fadeInUp}>
-            <Card className="h-full hover:shadow-xl transition-all duration-300 border-0 shadow-lg bg-gradient-to-br from-background to-muted/20">
+            <Card className="h-full hover:shadow-xl transition-all duration-300 border-0 shadow-lg bg-gradient-to-br from-background to-muted/20 hover:from-primary/5 hover:to-primary/10 group">
               <CardHeader className="pb-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                  <feature.icon className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
                 </div>
                 <CardTitle className="text-xl">{feature.title}</CardTitle>
               </CardHeader>
@@ -99,6 +120,44 @@ const FeaturesSection = () => {
             </Card>
           </motion.div>
         ))}
+      </motion.div>
+
+      {/* Additional features */}
+      <motion.div
+        className="mt-16 pt-16 border-t border-border/50"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+        viewport={{ once: true }}
+      >
+        <div className="text-center mb-12">
+          <h3 className="text-3xl font-bold mb-4">E muito mais</h3>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Recursos avançados disponíveis em todos os planos
+          </p>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-3">
+          {additionalFeatures.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -5 }}
+              className="text-center p-6 rounded-xl bg-background/50 border border-border/50 hover:border-primary/30 transition-colors"
+            >
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <feature.icon className="h-6 w-6 text-primary" />
+              </div>
+              <h4 className="font-semibold text-lg mb-2">{feature.title}</h4>
+              <p className="text-muted-foreground text-sm">
+                {feature.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
       </motion.div>
     </section>
   );

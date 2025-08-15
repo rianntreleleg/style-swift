@@ -29,11 +29,18 @@ const Header = () => {
             Recursos
           </motion.a>
           <motion.a
-            href="#planos"
+            href="#pricing"
             className="text-muted-foreground hover:text-foreground transition-colors"
             whileHover={{ scale: 1.05 }}
           >
             Planos
+          </motion.a>
+          <motion.a
+            href="#temas"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            whileHover={{ scale: 1.05 }}
+          >
+            Temas
           </motion.a>
           <motion.a
             href="#contato"
@@ -63,9 +70,9 @@ const Header = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="hidden sm:block"
           >
-            <a href="#planos">
+            <a href="#pricing">
               <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300">
-                Começar Grátis
+                Assinar Plano
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </a>
@@ -101,11 +108,11 @@ const Header = () => {
                 Recursos
               </a>
               <a
-                href="#planos"
+                href="#temas"
                 className="text-muted-foreground hover:text-foreground transition-colors py-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Planos
+                Temas
               </a>
               <a
                 href="#contato"
@@ -121,9 +128,9 @@ const Header = () => {
                   Login
                 </Button>
               </a>
-              <a href="#planos">
+              <a href="#pricing">
                 <Button className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground">
-                  Começar Grátis
+                  Assinar Plano
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </a>

@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   Menu, 
   X, 
-  BarChart3, 
+  BarChart, 
   Calendar, 
   Eye, 
   DollarSign, 
@@ -51,7 +51,7 @@ interface MobileSidebarProps {
 }
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3, description: 'Visão geral do negócio' },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart, description: 'Visão geral do negócio' },
   { id: 'today', label: 'Hoje', icon: Calendar, description: 'Agendamentos do dia' },
   { id: 'appointments', label: 'Agendamentos', icon: Eye, description: 'Todos os agendamentos' },
   { id: 'financial', label: 'Financeiro', icon: DollarSign, description: 'Relatórios financeiros' },

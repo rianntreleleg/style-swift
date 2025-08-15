@@ -11,12 +11,13 @@ import {
   Mail, 
   Clock, 
   Users, 
-  BarChart3,
+  BarChart,
   Settings,
   Bot,
   Headphones,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  CheckCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -104,12 +105,32 @@ const planColors = {
   premium: 'text-yellow-400'
 };
 
+const faqs = [
+  {
+    question: "Posso mudar de plano a qualquer momento?",
+    answer: "Sim, você pode fazer upgrade ou downgrade do seu plano a qualquer momento. As mudanças são aplicadas imediatamente."
+  },
+  {
+    question: "Há algum custo adicional além da mensalidade?",
+    answer: "Não, nosso preço é transparente. O valor exibido já inclui todas as funcionalidades do plano escolhido."
+  },
+  {
+    question: "Como funciona o período de teste?",
+    answer: "Todos os planos incluem 14 dias de teste gratuito. Você pode cancelar a qualquer momento sem compromisso."
+  }
+];
+
 export default function PricingSection({ loadingPlan, startCheckout }: PricingSectionProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const handlePlanSelect = async (planId: string) => {
     setSelectedPlan(planId);
     await startCheckout(planId);
+  };
+
+  const toggleFaq = (index: number) => {
+    setExpandedFaq(expandedFaq === index ? null : index);
   };
 
   const containerVariants = {
@@ -163,6 +184,10 @@ export default function PricingSection({ loadingPlan, startCheckout }: PricingSe
           viewport={{ once: true }}
           className="text-center mb-16"
         >
+          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 px-4 py-2">
+            <Sparkles className="w-4 h-4 mr-2" />
+            Planos que crescem com o seu negócio
+          </Badge>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Escolha o Plano Ideal
           </h2>
@@ -329,6 +354,48 @@ export default function PricingSection({ loadingPlan, startCheckout }: PricingSe
           </motion.div>
         </TooltipProvider>
 
+        {/* FAQ Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          viewport={{ once: true }}
+          className="mt-20 max-w-3xl mx-auto"
+        >
+          <h3 className="text-2xl font-bold text-center mb-8">Perguntas Frequentes</h3>
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <div 
+                key={index} 
+                className="bg-gray-900/50 border border-gray-800 rounded-lg overflow-hidden"
+              >
+                <button
+                  className="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800/50 transition-colors"
+                  onClick={() => toggleFaq(index)}
+                >
+                  <span className="font-medium text-white">{faq.question}</span>
+                  <motion.div
+                    animate={{ rotate: expandedFaq === index ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ArrowRight className="h-5 w-5 text-gray-400" />
+                  </motion.div>
+                </button>
+                {expandedFaq === index && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="px-4 pb-4 text-gray-400"
+                  >
+                    {faq.answer}
+                  </motion.div>
+                )}
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );

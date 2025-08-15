@@ -25,7 +25,7 @@ import {
   DollarSign,
   Clock,
   Settings,
-  BarChart3,
+  BarChart,
   Activity,
   ArrowUpRight,
   ArrowDownRight,

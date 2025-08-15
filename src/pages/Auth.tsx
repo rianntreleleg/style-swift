@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -31,7 +30,14 @@ import {
   Crown,
   MapPin,
   Phone,
-  CreditCard
+  CreditCard,
+  Eye,
+  EyeOff,
+  Shield,
+  Zap,
+  Users,
+  Calendar,
+  BarChart
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
@@ -58,6 +64,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -409,6 +416,22 @@ export default function Auth() {
     }
   };
 
+  // Password strength indicator
+  const getPasswordStrength = (password: string) => {
+    if (password.length === 0) return 0;
+    if (password.length < 6) return 1;
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return Math.min(strength, 4);
+  };
+
+  const passwordStrength = getPasswordStrength(password);
+  const strengthLabels = ["", "Muito fraca", "Fraca", "Média", "Forte"];
+  const strengthColors = ["", "bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       {/* Header com toggle de tema */}
@@ -447,53 +470,64 @@ export default function Auth() {
                 </h1>
               </div>
 
-                             <h2 className="text-4xl font-bold leading-tight">
-                 StyleSwift
-               </h2>
+              <h2 className="text-4xl font-bold leading-tight">
+                Automatize seus agendamentos com facilidade
+              </h2>
 
-               <p className="text-xl text-muted-foreground leading-relaxed">
-                 Automatize seus agendamentos com facilidade
-               </p>
-
-               <p className="text-lg text-muted-foreground leading-relaxed">
-                 Crie sua página de agendamento profissional em minutos. Gerencie clientes, horários e pagamentos tudo em um só lugar.
-               </p>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                Crie sua página de agendamento profissional em minutos. Gerencie clientes, horários e pagamentos tudo em um só lugar.
+              </p>
             </div>
 
-                         <div className="space-y-4">
-               <div className="flex items-center gap-3">
-                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                 <span className="text-lg">Página pública personalizada</span>
-               </div>
-               <div className="flex items-center gap-3">
-                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                 <span className="text-lg">Agenda inteligente</span>
-               </div>
-               <div className="flex items-center gap-3">
-                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                 <span className="text-lg">Notificações automáticas</span>
-               </div>
-               <div className="flex items-center gap-3">
-                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                 <span className="text-lg">Dashboard completo</span>
-               </div>
-               <div className="flex items-center gap-3">
-                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                 <span className="text-lg">Setup em minutos</span>
-               </div>
-               <div className="flex items-center gap-3">
-                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                 <span className="text-lg">500+ estabelecimentos ativos</span>
-               </div>
-             </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-lg">Página pública personalizada</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Zap className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-lg">Agenda inteligente</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-lg">Notificações automáticas</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BarChart className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-lg">Dashboard completo</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-lg">Setup em minutos</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-lg">500+ estabelecimentos ativos</span>
+              </div>
+            </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Badge variant="secondary" className="px-4 py-2">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Setup em minutos
               </Badge>
               <Badge variant="outline" className="px-4 py-2">
-                500+ estabelecimentos ativos
+                14 dias grátis
+              </Badge>
+              <Badge variant="outline" className="px-4 py-2">
+                Suporte 24h
               </Badge>
             </div>
           </motion.div>
@@ -513,20 +547,20 @@ export default function Auth() {
                 <CardTitle className="text-2xl font-bold">
                   {isLogin ? "Bem-vindo de volta!" : "Criar Estabelecimento"}
                 </CardTitle>
-                                 <CardDescription className="text-base">
-                   {isLogin
-                     ? "Entre na sua conta para acessar o painel"
-                     : "Configure seu estabelecimento em 3 passos simples"
-                   }
-                 </CardDescription>
-                 {!isLogin && (
-                   <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                     <p className="text-xs text-blue-700 dark:text-blue-300">
-                       <strong>ℹ️ Informações importantes:</strong> Os dados fornecidos serão usados para validação do estabelecimento, 
-                       criação de conta e envio de emails de confirmação. Garantimos a segurança e privacidade das suas informações.
-                     </p>
-                   </div>
-                 )}
+                <CardDescription className="text-base">
+                  {isLogin
+                    ? "Entre na sua conta para acessar o painel"
+                    : "Configure seu estabelecimento em 3 passos simples"
+                  }
+                </CardDescription>
+                {!isLogin && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <strong>ℹ️ Informações importantes:</strong> Os dados fornecidos serão usados para validação do estabelecimento, 
+                      criação de conta e envio de emails de confirmação. Garantimos a segurança e privacidade das suas informações.
+                    </p>
+                  </div>
+                )}
                 {!isLogin && (
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
@@ -569,16 +603,49 @@ export default function Auth() {
                         <Lock className="h-4 w-4" />
                         Senha
                       </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="h-12"
-                        required
-                        minLength={6}
-                      />
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="h-12 pr-12"
+                          required
+                          minLength={6}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-12 px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                      {password && (
+                        <div className="space-y-1">
+                          <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                            {[1, 2, 3, 4].map((i) => (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "h-full flex-1 transition-all",
+                                  i <= passwordStrength ? strengthColors[passwordStrength] : "bg-muted"
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Força: {strengthLabels[passwordStrength]}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <Button
                       type="submit"
@@ -631,180 +698,191 @@ export default function Auth() {
                       )}
                     </div>
 
-                                         {/* Terceiro campo: Endereço (100% largura) */}
-                     <div className="space-y-3">
-                       <Label htmlFor="address" className="text-sm font-medium flex items-center gap-2">
-                         <MapPin className="h-4 w-4" />
-                         Endereço
-                       </Label>
-                       <Input
-                         id="address"
-                         {...signupForm.register("address")}
-                         placeholder="Rua das Flores, 123 - Centro"
-                         className="h-12"
-                       />
-                       {signupForm.formState.errors.address && (
-                         <p className="text-xs text-red-500">{signupForm.formState.errors.address.message}</p>
-                       )}
-                     </div>
+                    {/* Terceiro campo: Endereço (100% largura) */}
+                    <div className="space-y-3">
+                      <Label htmlFor="address" className="text-sm font-medium flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Endereço
+                      </Label>
+                      <Input
+                        id="address"
+                        {...signupForm.register("address")}
+                        placeholder="Rua das Flores, 123 - Centro"
+                        className="h-12"
+                      />
+                      {signupForm.formState.errors.address && (
+                        <p className="text-xs text-red-500">{signupForm.formState.errors.address.message}</p>
+                      )}
+                    </div>
 
-                     {/* Quarto campo: Telefone (100% largura) */}
-                     <div className="space-y-3">
-                       <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
-                         <Phone className="h-4 w-4" />
-                         Telefone
-                       </Label>
-                       <Input
-                         id="phone"
-                         {...signupForm.register("phone")}
-                         placeholder="(11) 99999-9999"
-                         className="h-12"
-                       />
-                       {signupForm.formState.errors.phone && (
-                         <p className="text-xs text-red-500">{signupForm.formState.errors.phone.message}</p>
-                       )}
-                       <p className="text-xs text-muted-foreground">
-                         Será usado para validação do estabelecimento e emails de confirmação
-                       </p>
-                     </div>
+                    {/* Quarto campo: Telefone (100% largura) */}
+                    <div className="space-y-3">
+                      <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        Telefone
+                      </Label>
+                      <Input
+                        id="phone"
+                        {...signupForm.register("phone")}
+                        placeholder="(11) 99999-9999"
+                        className="h-12"
+                      />
+                      {signupForm.formState.errors.phone && (
+                        <p className="text-xs text-red-500">{signupForm.formState.errors.phone.message}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Será usado para validação do estabelecimento e emails de confirmação
+                      </p>
+                    </div>
 
-                     {/* Quinto e sexto campos: Email e Senha (layout responsivo) */}
-                     <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                       <div className="space-y-3">
-                         <Label htmlFor="signup-email" className="text-sm font-medium flex items-center gap-2">
-                           <Mail className="h-4 w-4" />
-                           Email
-                         </Label>
-                         <Input
-                           id="signup-email"
-                           type="email"
-                           {...signupForm.register("email")}
-                           placeholder="seu@email.com"
-                           className="h-12"
-                         />
-                         {signupForm.formState.errors.email && (
-                           <p className="text-xs text-red-500">{signupForm.formState.errors.email.message}</p>
-                         )}
-                         <p className="text-xs text-muted-foreground">
-                           Será usado para login e emails de confirmação
-                         </p>
-                       </div>
-                       <div className="space-y-3">
-                         <Label htmlFor="signup-password" className="text-sm font-medium flex items-center gap-2">
-                           <Lock className="h-4 w-4" />
-                           Senha
-                         </Label>
-                         <Input
-                           id="signup-password"
-                           type="password"
-                           {...signupForm.register("password")}
-                           placeholder="••••••••"
-                           className="h-12"
-                         />
-                         {signupForm.formState.errors.password && (
-                           <p className="text-xs text-red-500">{signupForm.formState.errors.password.message}</p>
-                         )}
-                       </div>
-                                           </div>
-                    {/* Funcionamento */}
-                    <div className="space-y-4 rounded-lg border p-3 lg:p-4">
-                        <Label className="text-sm font-medium">Funcionamento</Label>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-sm">Horário de abertura</Label>
-                            <Input type="time" className="h-12" {...signupForm.register("open_time")} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm">Horário de fechamento</Label>
-                            <Input type="time" className="h-12" {...signupForm.register("close_time")} />
-                          </div>
+                    {/* Quinto e sexto campos: Email e Senha (layout responsivo) */}
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                      <div className="space-y-3">
+                        <Label htmlFor="signup-email" className="text-sm font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </Label>
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          {...signupForm.register("email")}
+                          placeholder="seu@email.com"
+                          className="h-12"
+                        />
+                        {signupForm.formState.errors.email && (
+                          <p className="text-xs text-red-500">{signupForm.formState.errors.email.message}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Será usado para login e emails de confirmação
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <Label htmlFor="signup-password" className="text-sm font-medium flex items-center gap-2">
+                          <Lock className="h-4 w-4" />
+                          Senha
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="signup-password"
+                            type="password"
+                            {...signupForm.register("password")}
+                            placeholder="••••••••"
+                            className="h-12"
+                          />
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
-                          {[{label:"Dom",value:0},{label:"Seg",value:1},{label:"Ter",value:2},{label:"Qua",value:3},{label:"Qui",value:4},{label:"Sex",value:5},{label:"Sáb",value:6}].map(d => (
-                            <label key={d.value} className="flex items-center gap-2 text-sm">
-                              <Checkbox
-                                checked={signupForm.watch("working_days").includes(d.value)}
-                                onCheckedChange={(ck) => {
-                                  const curr = new Set(signupForm.getValues("working_days"));
-                                  if (ck) curr.add(d.value); else curr.delete(d.value);
-                                  signupForm.setValue("working_days", Array.from(curr).sort() as any);
-                                }}
-                              />
-                              {d.label}
-                            </label>
-                          ))}
-                        </div>
-                        {signupForm.formState.errors.working_days && (
-                          <p className="text-sm text-destructive">{signupForm.formState.errors.working_days.message as string}</p>
+                        {signupForm.formState.errors.password && (
+                          <p className="text-xs text-red-500">{signupForm.formState.errors.password.message}</p>
                         )}
                       </div>
+                    </div>
+                    
+                    {/* Funcionamento */}
+                    <div className="space-y-4 rounded-lg border p-3 lg:p-4">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Funcionamento
+                      </Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm">Horário de abertura</Label>
+                          <Input type="time" className="h-12" {...signupForm.register("open_time")} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm">Horário de fechamento</Label>
+                          <Input type="time" className="h-12" {...signupForm.register("close_time")} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
+                        {[{label:"Dom",value:0},{label:"Seg",value:1},{label:"Ter",value:2},{label:"Qua",value:3},{label:"Qui",value:4},{label:"Sex",value:5},{label:"Sáb",value:6}].map(d => (
+                          <label key={d.value} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={signupForm.watch("working_days").includes(d.value)}
+                              onCheckedChange={(ck) => {
+                                const curr = new Set(signupForm.getValues("working_days"));
+                                if (ck) curr.add(d.value); else curr.delete(d.value);
+                                signupForm.setValue("working_days", Array.from(curr).sort() as any);
+                              }}
+                            />
+                            {d.label}
+                          </label>
+                        ))}
+                      </div>
+                      {signupForm.formState.errors.working_days && (
+                        <p className="text-sm text-destructive">{signupForm.formState.errors.working_days.message as string}</p>
+                      )}
+                    </div>
+                    
                     <div className="space-y-3">
                       <Label htmlFor="theme_variant" className="text-sm font-medium flex items-center gap-2">
                         <Palette className="h-4 w-4" />
                         Tema do Estabelecimento
                       </Label>
-                         <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "barber" | "salon")}>
-                           <SelectTrigger className="h-12">
-                             <SelectValue placeholder="Escolha o tema do seu estabelecimento" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
-                             <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
-                           </SelectContent>
-                         </Select>
-                         <p className="text-xs text-muted-foreground">
-                           Escolha o tema visual que melhor representa seu estabelecimento
-                         </p>
-                       </div>
-                                                                <div className="space-y-3">
+                      <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "barber" | "salon")}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="Escolha o tema do seu estabelecimento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
+                          <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Escolha o tema visual que melhor representa seu estabelecimento
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-3">
                       <Label htmlFor="plan_tier" className="text-sm font-medium flex items-center gap-2">
                         <Crown className="h-4 w-4" />
                         Plano de Assinatura
                       </Label>
-                         <Select onValueChange={(v) => signupForm.setValue("plan_tier", v as "essential" | "professional" | "premium")}>
-                           <SelectTrigger className="h-12">
-                             <SelectValue placeholder="Escolha seu plano" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="essential">
-                               <div className="flex flex-col">
-                                 <span className="font-medium">Essencial - R$ 29,90/mês</span>
-                                 <span className="text-xs text-muted-foreground">Ideal para começar</span>
-                               </div>
-                             </SelectItem>
-                             <SelectItem value="professional">
-                               <div className="flex flex-col">
-                                 <span className="font-medium">Profissional - R$ 43,90/mês</span>
-                                 <span className="text-xs text-muted-foreground">Mais popular - Dashboard financeiro</span>
-                               </div>
-                             </SelectItem>
-                             <SelectItem value="premium">
-                               <div className="flex flex-col">
-                                 <span className="font-medium">Premium - R$ 79,90/mês</span>
-                                 <span className="text-xs text-muted-foreground">Recursos avançados completos</span>
-                               </div>
-                             </SelectItem>
-                           </SelectContent>
-                         </Select>
-                         <p className="text-xs text-muted-foreground">
-                           Você finalizará o pagamento após criar a conta
-                         </p>
-                       </div>
-                                                                <div className="space-y-3">
-                      <Label htmlFor="logo_url" className="text-sm font-medium">
+                      <Select onValueChange={(v) => signupForm.setValue("plan_tier", v as "essential" | "professional" | "premium")}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="Escolha seu plano" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="essential">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Essencial - R$ 29,90/mês</span>
+                              <span className="text-xs text-muted-foreground">Ideal para começar</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="professional">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Profissional - R$ 43,90/mês</span>
+                              <span className="text-xs text-muted-foreground">Mais popular - Dashboard financeiro</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="premium">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Premium - R$ 79,90/mês</span>
+                              <span className="text-xs text-muted-foreground">Recursos avançados completos</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Você finalizará o pagamento após criar a conta
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Label htmlFor="logo_url" className="text-sm font-medium flex items-center gap-2">
+                        <Link className="h-4 w-4" />
                         Logo (URL - opcional)
                       </Label>
-                         <Input
-                           id="logo_url"
-                           {...signupForm.register("logo_url")}
-                           placeholder="https://exemplo.com/logo.png"
-                           className="h-12"
-                         />
-                         <p className="text-xs text-muted-foreground">
-                           Link para a imagem do seu logo (recomendado: 200x200px)
-                         </p>
-                       </div>
-                                                             <Button
+                      <Input
+                        id="logo_url"
+                        {...signupForm.register("logo_url")}
+                        placeholder="https://exemplo.com/logo.png"
+                        className="h-12"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Link para a imagem do seu logo (recomendado: 200x200px)
+                      </p>
+                    </div>
+                    
+                    <Button
                       type="submit"
                       className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                       disabled={loading}

@@ -10,9 +10,10 @@ import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import PricingSection from "@/components/landing/PricingSection";
 import Footer from "@/components/landing/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import PWAInstallBanner from "@/components/PWAInstallBanner";
-import PWAFixedPrompt from "@/components/PWAFixedPrompt";
 import { usePWA } from "@/hooks/usePWA";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 const Index = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -52,20 +53,16 @@ const Index = () => {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       
-      {/* PWA Install Banner - REMOVIDO da landing page */}
-      
-      {/* PWA Install Banner original como fallback */}
-      <PWAInstallPrompt variant="banner" showBenefits={false} />
-      
       <main>
         <HeroSection />
         <FeaturesSection />
         <ThemesSection />
         <TestimonialsSection />
         <PricingSection loadingPlan={loadingPlan} startCheckout={startCheckout} />
+      
         
         {/* PWA Install Card */}
-        <section className="py-12 px-4">
+        <section className="py-12 px-4 bg-muted/20">
           <div className="max-w-4xl mx-auto">
             <PWAInstallPrompt variant="card" showBenefits={true} />
           </div>
@@ -73,10 +70,6 @@ const Index = () => {
       </main>
       
       <Footer />
-      
-      {/* PWA Install Floating Banner - REMOVIDO da landing page */}
-      
-      {/* PWA Install Fixed Prompt - REMOVIDO da landing page */}
     </div>
   );
 };
