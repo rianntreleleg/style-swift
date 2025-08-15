@@ -30,7 +30,8 @@ import {
   Sparkles,
   Crown,
   MapPin,
-  Phone
+  Phone,
+  CreditCard
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
@@ -93,14 +94,22 @@ export default function Auth() {
   // Verificar se veio do checkout de pagamento
   const checkoutSuccess = searchParams.get('checkout') === 'success';
   const sessionId = searchParams.get('session_id');
+  const needsPayment = localStorage.getItem('needsPayment') === 'true';
 
   useEffect(() => {
     if (checkoutSuccess && sessionId) {
       // Usuário veio do pagamento bem-sucedido
       toast({
         title: "Pagamento realizado com sucesso!",
-        description: "Agora você pode criar sua conta.",
+        description: "Agora você pode fazer login.",
       });
+      
+      // Limpar localStorage
+      localStorage.removeItem('needsPayment');
+      localStorage.removeItem('tenantId');
+      localStorage.removeItem('planSelected');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('customerId');
       
       // Limpar URL para não mostrar os parâmetros
       navigate('/auth', { replace: true });
@@ -200,7 +209,32 @@ export default function Auth() {
 
         console.log('[AUTH] Customer criado no Stripe:', customerData.customer_id);
 
-        // Verificar se já existe pagamento para este email
+        // Verificar se já existe tenant ativo para este usuário
+        const { data: existingTenant } = await supabase
+          .from("tenants")
+          .select("*")
+          .eq("owner_id", authData.user.id)
+          .eq("plan_status", "active")
+          .eq("payment_completed", true)
+          .single();
+
+        console.log('[AUTH] Existing active tenant found:', existingTenant);
+
+        // Se já tem tenant ativo, não precisa pagar novamente
+        if (existingTenant) {
+          toast({
+            title: "Conta já existe!",
+            description: "Você já possui uma conta ativa. Redirecionando para o painel...",
+          });
+          
+          // Redirecionar para o admin
+          setTimeout(() => {
+            navigate('/admin');
+          }, 2000);
+          return;
+        }
+
+        // Verificar se já existe pagamento para este email (compatibilidade com sistema antigo)
         const { data: existingPayment } = await supabase
           .from("subscribers")
           .select("*")
@@ -217,7 +251,6 @@ export default function Auth() {
            slug: finalSlug,
            theme_variant: values.theme_variant,
            logo_url: values.logo_url || null,
-           plan: planSelected || 'essential',
            plan_tier: planSelected || 'essential',
            plan_status: existingPayment ? 'active' : 'pending', // PENDING = esperando pagamento
            payment_completed: !!existingPayment,
@@ -284,10 +317,7 @@ export default function Auth() {
           setEmail(values.email);
         } else {
           // NOVO FLUXO: Redirecionar automaticamente para o checkout
-          toast({
-            title: "Conta criada com sucesso! 🎉",
-            description: "Redirecionando para finalizar o pagamento em 2 segundos..."
-          });
+          console.log('[AUTH] Iniciando processo de checkout imediato...');
           
           // Salvar dados para o checkout
           localStorage.setItem('tenantId', tenantRow!.id);
@@ -296,15 +326,19 @@ export default function Auth() {
           localStorage.setItem('customerId', customerData.customer_id);
           localStorage.setItem('needsPayment', 'true');
           
-          // Mostrar loading e redirecionar automaticamente
-          setLoading(true);
+          toast({
+            title: "Conta criada com sucesso! 🎉",
+            description: "Redirecionando para o pagamento..."
+          });
           
-          // Redirecionar automaticamente para o checkout após 2 segundos
-          console.log('[AUTH] Agendando redirecionamento automático para checkout...');
-          setTimeout(() => {
-            console.log('[AUTH] Executando redirecionamento automático...');
-            handleProceedToPayment();
-          }, 2000);
+          // Tentar redirecionar imediatamente para o checkout
+          console.log('[AUTH] Executando redirecionamento imediato para checkout...');
+          try {
+            await handleProceedToPayment();
+          } catch (error) {
+            console.error('[AUTH] Falha no redirecionamento automático:', error);
+            // Não fazer nada aqui - o usuário verá o botão manual
+          }
         }
         
         signupForm.reset();
@@ -327,10 +361,21 @@ export default function Auth() {
     const userEmail = localStorage.getItem('userEmail');
     const customerId = localStorage.getItem('customerId');
 
+    console.log('[AUTH] Dados do localStorage:', {
+      tenantId, planSelected, userEmail, customerId
+    });
+
     if (!tenantId || !planSelected || !userEmail || !customerId) {
+      const missingFields = [];
+      if (!tenantId) missingFields.push('tenantId');
+      if (!planSelected) missingFields.push('planSelected');
+      if (!userEmail) missingFields.push('userEmail');
+      if (!customerId) missingFields.push('customerId');
+      
+      console.error('[AUTH] Dados faltando:', missingFields);
       toast({
         title: "Erro",
-        description: "Dados de pagamento não encontrados. Tente se cadastrar novamente.",
+        description: `Dados de pagamento não encontrados: ${missingFields.join(', ')}. Tente se cadastrar novamente.`,
         variant: "destructive"
       });
       return;
@@ -342,12 +387,11 @@ export default function Auth() {
 
     setLoading(true);
     try {
-      console.log('[AUTH] Iniciando checkout com dados salvos:', {
-        tenantId, planSelected, userEmail, customerId
-      });
-
+      console.log('[AUTH] Obtendo productId para plano:', planSelected);
       const productId = getProductId(planSelected);
+      console.log('[AUTH] ProductId obtido:', productId);
 
+      console.log('[AUTH] Chamando create-checkout-session...');
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout-session', {
         body: { 
           productId,
@@ -356,6 +400,8 @@ export default function Auth() {
           userEmail
         }
       });
+      
+      console.log('[AUTH] Resposta da função:', { checkoutData, checkoutError });
       
       if (checkoutError) {
         console.error('[AUTH] Erro no checkout:', checkoutError);
@@ -366,6 +412,7 @@ export default function Auth() {
         console.log('[AUTH] Redirecionando para checkout:', checkoutData.url);
         window.location.href = checkoutData.url;
       } else {
+        console.error('[AUTH] URL de checkout não recebida:', checkoutData);
         throw new Error('URL de checkout não recebida');
       }
     } catch (e: any) {
@@ -796,28 +843,31 @@ export default function Auth() {
                     </div>
                   </form>
                 ) : (
-                  <div className="text-center space-y-4">
-                    <div className="p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                        Novo Fluxo Simplificado! 🚀
-                      </h3>
-                      <p className="text-sm text-blue-600 dark:text-blue-300 mb-4">
-                        Agora você pode se cadastrar diretamente e escolher seu plano durante o processo!
-                        Basta preencher os dados e finalizar o pagamento.
+                  <div className="text-center">
+                    <p className="text-muted-foreground mb-4">
+                      Formulário de cadastro não disponível no momento. Entre em contato com o suporte.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Botão de fallback para checkout caso o redirecionamento automático falhe */}
+                {needsPayment && (
+                  <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <div className="text-center space-y-3">
+                      <p className="text-sm text-orange-800 dark:text-orange-200">
+                        🚨 Redirecionamento automático falhou?
                       </p>
-                      <Button 
-                        onClick={() => {
-                          // Definir um plano padrão para permitir cadastro direto
-                          localStorage.setItem('planSelected', 'professional');
-                          window.location.reload();
-                        }}
-                        className="w-full"
+                      <p className="text-xs text-orange-600 dark:text-orange-300">
+                        Clique no botão abaixo para finalizar seu pagamento
+                      </p>
+                      <Button
+                        onClick={handleProceedToPayment}
+                        disabled={loading}
+                        className="w-full bg-orange-600 hover:bg-orange-700"
                       >
-                        Começar Cadastro
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        {loading ? 'Redirecionando...' : 'Finalizar Pagamento'}
                       </Button>
-                      <p className="text-xs text-blue-600 dark:text-blue-300 mt-2">
-                        Você poderá escolher entre Essencial, Profissional ou Premium
-                      </p>
                     </div>
                   </div>
                 )}
