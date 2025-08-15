@@ -133,7 +133,8 @@ async function networkFirstWithOffline(request) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse && networkResponse.status === 200) {
+    // Apenas cache requisições GET
+    if (networkResponse && networkResponse.status === 200 && request.method === 'GET') {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
@@ -157,7 +158,8 @@ async function networkFirst(request, cacheName = DYNAMIC_CACHE) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse && networkResponse.status === 200) {
+    // Apenas cache requisições GET
+    if (networkResponse && networkResponse.status === 200 && request.method === 'GET') {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
@@ -212,6 +214,11 @@ async function cacheFirst(request, cacheName = STATIC_CACHE) {
 
 // Estratégia Stale While Revalidate (para APIs)
 async function staleWhileRevalidate(request) {
+  // Apenas processa requisições GET
+  if (request.method !== 'GET') {
+    return fetch(request);
+  }
+  
   const cache = await caches.open(API_CACHE);
   const cachedResponse = await cache.match(request);
   

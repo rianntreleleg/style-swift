@@ -139,7 +139,6 @@ export default function Auth() {
   };
 
   const handleSignup = async (values: SignupForm) => {
-
     setLoading(true);
     try {
       const planSelected = values.plan_tier; // Usar o plano selecionado no formulário
@@ -188,6 +187,30 @@ export default function Auth() {
           counter++;
         }
 
+        // Verificar se já existe tenant com pagamento concluído para este usuário
+        // Esta verificação é feita antes de criar qualquer recurso adicional
+        const { data: existingPaidTenant } = await supabase
+          .from("tenants")
+          .select("*")
+          .eq("owner_id", authData.user.id)
+          .eq("payment_status", "paid")
+          .single();
+
+        console.log('[AUTH] Existing paid tenant found:', existingPaidTenant);
+
+        // Se já tem tenant pago, redirecionar para o admin
+        if (existingPaidTenant) {
+          toast({
+            title: "Conta já existe!",
+            description: "Você já possui uma conta ativa. Redirecionando para o painel...",
+          });
+          
+          setTimeout(() => {
+            navigate('/admin');
+          }, 2000);
+          return;
+        }
+
         // NOVO FLUXO: CRIAR CUSTOMER NO STRIPE IMEDIATAMENTE
         console.log('[AUTH] Criando customer no Stripe para:', values.email);
         const { data: customerData, error: customerError } = await supabase.functions.invoke('create-customer', {
@@ -209,136 +232,95 @@ export default function Auth() {
 
         console.log('[AUTH] Customer criado no Stripe:', customerData.customer_id);
 
-        // Verificar se já existe tenant ativo para este usuário
-        const { data: existingTenant } = await supabase
-          .from("tenants")
-          .select("*")
-          .eq("owner_id", authData.user.id)
-          .eq("plan_status", "active")
-          .eq("payment_completed", true)
-          .single();
+        // Criar tenant via RPC com SECURITY DEFINER (evita bloqueio de RLS)
+        console.log('[AUTH] Criando tenant via RPC create_simple_tenant...');
+        console.log('[AUTH] Parâmetros:', {
+          p_owner_id: authData.user.id,
+          p_name: values.business_name,
+          p_slug: finalSlug,
+          p_plan_tier: planSelected || 'essential',
+          p_theme_variant: values.theme_variant,
+          p_address: values.address,
+          p_phone: values.phone,
+        });
+        
+        const { data: tenantId, error: tenantError } = await supabase.rpc('create_simple_tenant', {
+          p_owner_id: authData.user.id,
+          p_name: values.business_name,
+          p_slug: finalSlug,
+          p_plan_tier: planSelected || 'essential',
+          p_theme_variant: values.theme_variant,
+          p_address: values.address,
+          p_phone: values.phone,
+        });
 
-        console.log('[AUTH] Existing active tenant found:', existingTenant);
+        console.log('[AUTH] Resposta RPC:', { data: tenantId, error: tenantError });
 
-        // Se já tem tenant ativo, não precisa pagar novamente
-        if (existingTenant) {
-          toast({
-            title: "Conta já existe!",
-            description: "Você já possui uma conta ativa. Redirecionando para o painel...",
-          });
-          
-          // Redirecionar para o admin
-          setTimeout(() => {
-            navigate('/admin');
-          }, 2000);
-          return;
+        if (tenantError || !tenantId) {
+          console.error('[AUTH] Erro ao criar tenant (RPC):', tenantError);
+          throw tenantError || new Error('Falha ao criar tenant');
         }
 
-        // Verificar se já existe pagamento para este email (compatibilidade com sistema antigo)
-        const { data: existingPayment } = await supabase
-          .from("subscribers")
-          .select("*")
-          .eq("email", values.email)
-          .eq("subscribed", true)
-          .single();
-
-        console.log('[AUTH] Existing payment found:', existingPayment);
-
-                 // Cria o tenant com customer_id SEMPRE (payment_completed = false por padrão)
-         const tenantData = {
-           owner_id: authData.user.id,
-           name: values.business_name,
-           slug: finalSlug,
-           theme_variant: values.theme_variant,
-           logo_url: values.logo_url || null,
-           plan_tier: planSelected || 'essential',
-           plan_status: existingPayment ? 'active' : 'pending', // PENDING = esperando pagamento
-           payment_completed: !!existingPayment,
-           stripe_customer_id: customerData.customer_id, // SEMPRE tem customer_id
-           address: values.address, // Adicionar endereço
-           phone: values.phone, // Adicionar telefone
-         };
-
-        console.log('[AUTH] Creating tenant with data:', tenantData);
-
-        const { data: tenantRow, error: tenantError } = await supabase
-          .from("tenants")
-          .insert(tenantData)
-          .select("id")
-          .single();
-
-        if (tenantError) throw tenantError;
-
-        console.log('[AUTH] Tenant created:', tenantRow?.id);
-
-        // Se existe pagamento, associar ao tenant
-        if (existingPayment) {
-          console.log('[AUTH] Associating payment to tenant...');
-          const { error: associateError } = await supabase.rpc('update_tenant_subscription', {
-            p_user_id: authData.user.id,
-            p_subscription_tier: existingPayment.subscription_tier,
-            p_subscribed: true
-          });
+        console.log('[AUTH] Tenant criado com ID:', tenantId);
+        
+        // Atualizar com dados adicionais após criação
+        const { error: updateError } = await supabase
+          .from('tenants')
+          .update({
+            stripe_customer_id: customerData.customer_id,
+            payment_status: 'pending'
+          })
+          .eq('id', tenantId);
           
-          if (associateError) {
-            console.error('[AUTH] Error associating payment:', associateError);
-          } else {
-            console.log('[AUTH] Payment associated successfully');
-          }
+        if (updateError) {
+          console.error('[AUTH] Erro ao atualizar tenant:', updateError);
+          // Não interromper o fluxo por causa do update
+        } else {
+          console.log('[AUTH] Tenant atualizado com sucesso');
         }
 
-                 // Cria horários de funcionamento baseados na seleção do cadastro
-         const rows = Array.from({ length: 7 }, (_, weekday) => ({
-           tenant_id: tenantRow!.id,
-           weekday,
-           open_time: values.working_days.includes(weekday) ? values.open_time : null,
-           close_time: values.working_days.includes(weekday) ? values.close_time : null,
-           closed: !values.working_days.includes(weekday),
-         }));
-         const { error: bhError } = await supabase.from("business_hours").insert(rows as any);
-         if (bhError) {
-           console.error('[AUTH] Error creating business hours:', bhError);
-           throw bhError;
-         }
-         console.log('[AUTH] Business hours created successfully');
+        // Cria horários de funcionamento baseados na seleção do cadastro
+        const rows = Array.from({ length: 7 }, (_, weekday) => ({
+          tenant_id: tenantId,
+          weekday,
+          open_time: values.working_days.includes(weekday) ? values.open_time : null,
+          close_time: values.working_days.includes(weekday) ? values.close_time : null,
+          closed: !values.working_days.includes(weekday),
+        }));
+        
+        const { error: bhError } = await supabase.from("business_hours").insert(rows as any);
+        if (bhError) {
+          console.error('[AUTH] Error creating business hours:', bhError);
+          throw bhError;
+        }
+        console.log('[AUTH] Business hours created successfully');
 
-        // Limpar localStorage
+        // Limpar localStorage antigo
         localStorage.removeItem('planSelected');
         localStorage.removeItem('productSelected');
 
-        if (existingPayment) {
-          toast({
-            title: "Conta criada com sucesso!",
-            description: "Sua conta foi criada e o pagamento foi associado. Você pode fazer login agora."
-          });
-          
-          // Se já tem pagamento, redirecionar para login
-          setIsLogin(true);
-          setEmail(values.email);
-        } else {
-          // NOVO FLUXO: Redirecionar automaticamente para o checkout
-          console.log('[AUTH] Iniciando processo de checkout imediato...');
-          
-          // Salvar dados para o checkout
-          localStorage.setItem('tenantId', tenantRow!.id);
-          localStorage.setItem('planSelected', planSelected || 'essential');
-          localStorage.setItem('userEmail', values.email);
-          localStorage.setItem('customerId', customerData.customer_id);
-          localStorage.setItem('needsPayment', 'true');
-          
-          toast({
-            title: "Conta criada com sucesso! 🎉",
-            description: "Redirecionando para o pagamento..."
-          });
-          
-          // Tentar redirecionar imediatamente para o checkout
-          console.log('[AUTH] Executando redirecionamento imediato para checkout...');
-          try {
-            await handleProceedToPayment();
-          } catch (error) {
-            console.error('[AUTH] Falha no redirecionamento automático:', error);
-            // Não fazer nada aqui - o usuário verá o botão manual
-          }
+        // FLUXO LIMPO: Sempre redirecionar para checkout (sem exceções)
+        console.log('[AUTH] Iniciando processo de checkout...');
+        
+        // Salvar dados para o checkout
+        localStorage.setItem('tenantId', tenantId);
+        localStorage.setItem('planSelected', planSelected || 'essential');
+        localStorage.setItem('userEmail', values.email);
+        localStorage.setItem('customerId', customerData.customer_id);
+        localStorage.setItem('needsPayment', 'true');
+        
+        toast({
+          title: "Conta criada com sucesso! 🎉",
+          description: "Redirecionando para o pagamento..."
+        });
+        
+        // Redirecionamento imediato para checkout
+        console.log('[AUTH] Executando redirecionamento para checkout...');
+        try {
+          await handleProceedToPayment();
+        } catch (error) {
+          console.error('[AUTH] Falha no redirecionamento automático:', error);
+          // O botão de fallback aparecerá se falhar
         }
         
         signupForm.reset();

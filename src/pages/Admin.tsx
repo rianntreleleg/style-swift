@@ -130,34 +130,42 @@ export default function Admin() {
       return;
     }
 
-    // Validate plan status when loading
-    const validatePlan = async () => {
+    // Validate payment status (DIRETO DA TABELA)
+    const validatePayment = async () => {
       if (!selectedTenantId) return;
 
       try {
-        const { data, error } = await supabase.functions.invoke('validate-plan', {
-          body: { tenantId: selectedTenantId }
-        });
+        const { data, error } = await supabase
+          .from('tenants')
+          .select('payment_status, plan_status, payment_completed')
+          .eq('id', selectedTenantId)
+          .single();
 
         if (error) throw error;
 
-        setPlanActive(data.isActive);
+        // Verificar múltiplos campos para determinar status de pagamento
+        const isActive = data.payment_status === 'paid' || 
+                         data.plan_status === 'active' || 
+                         data.payment_completed === true;
+                         
+        setPlanActive(isActive);
         setPlanValidated(true);
+        console.log('[ADMIN] Payment status validated:', isActive, data);
       } catch (error) {
-        console.error('Error validating plan:', error);
-        setPlanValidated(true); // Set validated even on error to show UI
+        console.error('Error validating payment:', error);
+        setPlanValidated(true);
         setPlanActive(false);
       }
     };
 
-    validatePlan();
+    validatePayment();
   }, [user, navigate, selectedTenantId]);
 
   const fetchTenants = async () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("tenants")
-      .select("id,name,slug,logo_url,theme_variant,plan_tier,plan_status")
+      .select("id,name,slug,logo_url,theme_variant,plan_tier,plan,payment_status,plan_status,payment_completed")
       .eq("owner_id", user.id);
     if (error) {
       toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
@@ -165,7 +173,11 @@ export default function Admin() {
     }
     setTenants((data ?? []).map(tenant => ({
       ...tenant,
-      plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential'
+      // Garantir que o campo 'plan' esteja presente e correto
+      plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 
+            (tenant.plan as 'essential' | 'professional' | 'premium') || 
+            'essential',
+      plan_status: tenant.plan_status || (tenant.payment_status === 'paid' ? 'active' : 'inactive')
     })));
     if (!selectedTenantId && data && data.length) {
       setSelectedTenantId(data[0].id);
@@ -468,8 +480,8 @@ export default function Admin() {
     return null;
   }
 
-  // Show payment required screen if plan is not active but only if status is truly inactive
-  if (planValidated && !planActive && selectedTenant && selectedTenant.plan_status !== 'pending') {
+  // Show payment required screen if payment is not completed
+  if (planValidated && !planActive && selectedTenant) {
     return <PaymentRequired planTier={selectedTenant.plan_tier || 'essential'} />;
   }
 

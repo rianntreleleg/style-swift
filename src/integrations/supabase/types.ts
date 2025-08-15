@@ -911,8 +911,8 @@ export type Database = {
           name: string
           owner_id: string
           payment_completed: boolean | null
+          payment_status: string
           phone: string | null
-          plan: string
           plan_selected: string | null
           plan_status: string | null
           plan_tier: string | null
@@ -935,8 +935,8 @@ export type Database = {
           name: string
           owner_id: string
           payment_completed?: boolean | null
+          payment_status?: string
           phone?: string | null
-          plan?: string
           plan_selected?: string | null
           plan_status?: string | null
           plan_tier?: string | null
@@ -959,8 +959,8 @@ export type Database = {
           name?: string
           owner_id?: string
           payment_completed?: boolean | null
+          payment_status?: string
           phone?: string | null
-          plan?: string
           plan_selected?: string | null
           plan_status?: string | null
           plan_tier?: string | null
@@ -1079,6 +1079,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      can_access_system: {
+        Args: { p_tenant_id: string }
+        Returns: boolean
+      }
       check_and_confirm_appointments: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1110,17 +1114,17 @@ export type Database = {
         Args: { p_feature: string; p_user_id: string }
         Returns: boolean
       }
-      create_tenant_for_checkout: {
+      create_simple_tenant: {
         Args: {
-          p_email: string
-          p_plan_tier: string
+          p_address?: string
+          p_name: string
+          p_owner_id: string
+          p_phone?: string
+          p_plan_tier?: string
+          p_slug: string
           p_theme_variant?: string
-          p_user_id: string
         }
-        Returns: {
-          stripe_customer_id: string
-          tenant_id: string
-        }[]
+        Returns: string
       }
       get_auto_confirmation_stats: {
         Args: { end_date?: string; start_date?: string }
@@ -1161,6 +1165,27 @@ export type Database = {
         Args: { p_new_status: string; p_subscription_id: string }
         Returns: undefined
       }
+      is_plan_active: {
+        Args: { tenant_id: string }
+        Returns: boolean
+      }
+      mark_payment_completed: {
+        Args:
+          | {
+              p_current_period_end: string
+              p_current_period_start: string
+              p_plan_tier: string
+              p_stripe_customer_id: string
+              p_stripe_subscription_id: string
+              p_tenant_id: string
+            }
+          | {
+              p_stripe_customer_id: string
+              p_stripe_subscription_id?: string
+              p_tenant_id: string
+            }
+        Returns: undefined
+      }
       process_stripe_payment_event: {
         Args: {
           p_event_id: string
@@ -1188,6 +1213,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      validate_plan_access: {
+        Args: { required_plan: string; tenant_id: string }
+        Returns: boolean
       }
     }
     Enums: {
