@@ -1,5 +1,10 @@
-const CACHE_NAME = 'styleswift-v1.3.0';
-const urlsToCache = [
+const CACHE_NAME = 'styleswift-v1.4.0';
+const STATIC_CACHE = 'styleswift-static-v1.4.0';
+const DYNAMIC_CACHE = 'styleswift-dynamic-v1.4.0';
+const API_CACHE = 'styleswift-api-v1.4.0';
+
+// Recursos estáticos essenciais
+const STATIC_RESOURCES = [
   '/',
   '/auth',
   '/admin',
@@ -8,6 +13,14 @@ const urlsToCache = [
   '/offline.html',
   '/manifest.json',
   '/favicon.svg',
+  '/placeholder-image.svg',
+  '/fallback-image.svg',
+  '/default-logo.svg',
+  '/default-avatar.svg'
+];
+
+// Ícones do PWA
+const ICONS = [
   '/icons/icon-16x16.png',
   '/icons/icon-32x32.png',
   '/icons/icon-72x72.png',
@@ -21,38 +34,50 @@ const urlsToCache = [
   '/icons/icon-512x512.png'
 ];
 
+// Configurações de cache
+const CACHE_CONFIG = {
+  static: {
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+    maxEntries: 100
+  },
+  dynamic: {
+    maxAge: 24 * 60 * 60 * 1000, // 24 horas
+    maxEntries: 50
+  },
+  api: {
+    maxAge: 5 * 60 * 1000, // 5 minutos
+    maxEntries: 30
+  }
+};
+
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
   console.log('SW: Installing service worker');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('SW: Cache opened');
-        // Adicionar recursos essenciais primeiro
-        const essentialResources = [
-          '/',
-          '/offline.html',
-          '/manifest.json',
-          '/favicon.svg'
-        ];
-        
-        return cache.addAll(essentialResources)
-          .then(() => {
-            // Tentar adicionar outros recursos sem falhar se algum não existir
-            return Promise.allSettled(
-              urlsToCache.filter(url => !essentialResources.includes(url))
-                .map(url => cache.add(url).catch(err => console.warn(`SW: Failed to cache ${url}:`, err)))
-            );
-          });
+    Promise.all([
+      // Cache estático
+      caches.open(STATIC_CACHE).then(cache => {
+        console.log('SW: Static cache opened');
+        return cache.addAll([...STATIC_RESOURCES, ...ICONS]);
+      }),
+      // Cache dinâmico
+      caches.open(DYNAMIC_CACHE).then(cache => {
+        console.log('SW: Dynamic cache opened');
+        return cache;
+      }),
+      // Cache de API
+      caches.open(API_CACHE).then(cache => {
+        console.log('SW: API cache opened');
+        return cache;
       })
-      .then(() => {
-        console.log('SW: Installation completed');
-        // Força a ativação imediata
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('SW: Error during installation:', error);
-      })
+    ])
+    .then(() => {
+      console.log('SW: Installation completed');
+      return self.skipWaiting();
+    })
+    .catch((error) => {
+      console.error('SW: Error during installation:', error);
+    })
   );
 });
 
@@ -63,7 +88,8 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          // Remover caches antigos
+          if (![STATIC_CACHE, DYNAMIC_CACHE, API_CACHE].includes(cacheName)) {
             console.log('SW: Removing old cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -72,7 +98,6 @@ self.addEventListener('activate', (event) => {
     })
     .then(() => {
       console.log('SW: Activation completed');
-      // Toma controle imediato de todas as páginas
       return self.clients.claim();
     })
   );
@@ -82,36 +107,34 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Não cachear requisições para APIs externas
-  if (url.hostname.includes('supabase.co') || 
-      url.hostname.includes('stripe.com') ||
-      url.hostname.includes('googleapis.com')) {
-    return;
-  }
-
-  // Estratégia diferente baseada no tipo de requisição
+  // Estratégia baseada no tipo de requisição
   if (event.request.destination === 'document') {
-    // Para documentos HTML: Network First
-    event.respondWith(networkFirst(event.request));
-  } else if (event.request.destination === 'image' || 
-             event.request.url.includes('/icons/') ||
-             event.request.url.includes('/favicon')) {
-    // Para imagens e ícones: Cache First
-    event.respondWith(cacheFirst(event.request));
+    // Páginas HTML: Network First com fallback offline
+    event.respondWith(networkFirstWithOffline(event.request));
+  } else if (event.request.destination === 'image') {
+    // Imagens: Cache First com lazy loading
+    event.respondWith(cacheFirst(event.request, DYNAMIC_CACHE));
+  } else if (event.request.url.includes('/icons/') || 
+             event.request.url.includes('/favicon') ||
+             STATIC_RESOURCES.includes(url.pathname)) {
+    // Recursos estáticos: Cache First
+    event.respondWith(cacheFirst(event.request, STATIC_CACHE));
+  } else if (url.hostname.includes('supabase.co')) {
+    // APIs Supabase: Stale While Revalidate
+    event.respondWith(staleWhileRevalidate(event.request));
   } else {
-    // Para outros recursos: Network First com fallback
-    event.respondWith(networkFirst(event.request));
+    // Outros recursos: Network First
+    event.respondWith(networkFirst(event.request, DYNAMIC_CACHE));
   }
 });
 
-// Estratégia Network First
-async function networkFirst(request) {
+// Estratégia Network First com fallback offline
+async function networkFirstWithOffline(request) {
   try {
     const networkResponse = await fetch(request);
     
     if (networkResponse && networkResponse.status === 200) {
-      // Cachear apenas respostas válidas
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
     
@@ -124,9 +147,28 @@ async function networkFirst(request) {
       return cachedResponse;
     }
     
-    // Se é um documento e não tem cache, mostrar página offline
-    if (request.destination === 'document') {
-      return caches.match('/offline.html');
+    // Fallback para página offline
+    return caches.match('/offline.html');
+  }
+}
+
+// Estratégia Network First
+async function networkFirst(request, cacheName = DYNAMIC_CACHE) {
+  try {
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse && networkResponse.status === 200) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('SW: Network failed, trying cache for:', request.url);
+    
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
     }
     
     throw error;
@@ -134,14 +176,14 @@ async function networkFirst(request) {
 }
 
 // Estratégia Cache First
-async function cacheFirst(request) {
+async function cacheFirst(request, cacheName = STATIC_CACHE) {
   const cachedResponse = await caches.match(request);
   
   if (cachedResponse) {
-    // Atualizar cache em background se possível
+    // Atualizar cache em background
     fetch(request).then(response => {
       if (response && response.status === 200) {
-        caches.open(CACHE_NAME).then(cache => {
+        caches.open(cacheName).then(cache => {
           cache.put(request, response.clone());
         });
       }
@@ -157,7 +199,7 @@ async function cacheFirst(request) {
     const networkResponse = await fetch(request);
     
     if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
     
@@ -168,17 +210,93 @@ async function cacheFirst(request) {
   }
 }
 
+// Estratégia Stale While Revalidate (para APIs)
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(API_CACHE);
+  const cachedResponse = await cache.match(request);
+  
+  // Retorna cache imediatamente se disponível
+  const networkPromise = fetch(request).then(response => {
+    if (response && response.status === 200) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  }).catch(() => {
+    // Ignorar erros de rede
+  });
+  
+  return cachedResponse || networkPromise;
+}
+
+// Limpeza automática de cache
+async function cleanupCache() {
+  const cacheNames = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE];
+  
+  for (const cacheName of cacheNames) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    const config = CACHE_CONFIG[cacheName.replace('styleswift-', '').replace('-v1.4.0', '')];
+    
+    if (keys.length > config.maxEntries) {
+      // Remover entradas mais antigas
+      const sortedKeys = keys.sort((a, b) => {
+        return a.url.localeCompare(b.url);
+      });
+      
+      const keysToDelete = sortedKeys.slice(0, keys.length - config.maxEntries);
+      await Promise.all(keysToDelete.map(key => cache.delete(key)));
+    }
+  }
+}
+
 // Sincronização em background
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    event.waitUntil(doBackgroundSync());
+  console.log('SW: Background sync triggered:', event.tag);
+  
+  switch (event.tag) {
+    case 'background-sync':
+      event.waitUntil(doBackgroundSync());
+      break;
+    case 'cleanup-cache':
+      event.waitUntil(cleanupCache());
+      break;
+    case 'update-appointments':
+      event.waitUntil(syncAppointments());
+      break;
+    default:
+      console.log('SW: Unknown sync tag:', event.tag);
   }
 });
 
-function doBackgroundSync() {
-  // Implementar sincronização de dados quando necessário
-  console.log('Sincronização em background executada');
+// Sincronização de dados em background
+async function doBackgroundSync() {
+  try {
+    // Limpar cache antigo
+    await cleanupCache();
+    
+    // Sincronizar dados pendentes
+    await syncAppointments();
+    
+    console.log('SW: Background sync completed successfully');
+  } catch (error) {
+    console.error('SW: Background sync failed:', error);
+  }
 }
+
+// Sincronizar agendamentos pendentes
+async function syncAppointments() {
+  // Implementar sincronização de agendamentos offline
+  // quando o usuário voltar a ficar online
+  console.log('SW: Syncing appointments...');
+  
+  // Aqui você pode implementar a lógica para sincronizar
+  // agendamentos criados offline com o servidor
+}
+
+// Agendar limpeza de cache
+setInterval(() => {
+  self.registration.sync.register('cleanup-cache');
+}, 24 * 60 * 60 * 1000); // A cada 24 horas
 
 // Notificações push
 self.addEventListener('push', (event) => {

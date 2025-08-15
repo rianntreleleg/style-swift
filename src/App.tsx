@@ -7,16 +7,39 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { MobileOptimizer } from "@/components/MobileOptimizer";
 import Favicon from "@/components/Favicon";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Admin from "./pages/Admin";
-import Auth from "./pages/Auth";
-import Subscription from "./pages/Subscription";
-import PublicBooking from "./pages/PublicBooking";
-import Success from "./pages/Success";
-import Cancel from "./pages/Cancel";
+import { lazy, Suspense } from "react";
+import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 
-const queryClient = new QueryClient();
+// Lazy Loading - Carregamento sob demanda
+const Index = lazy(() => import("./pages/Index"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Subscription = lazy(() => import("./pages/Subscription"));
+const PublicBooking = lazy(() => import("./pages/PublicBooking"));
+const Success = lazy(() => import("./pages/Success"));
+const Cancel = lazy(() => import("./pages/Cancel"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache por 5 minutos
+      staleTime: 5 * 60 * 1000,
+      // Manter cache por 10 minutos
+      gcTime: 10 * 60 * 1000,
+      // Retry 3 vezes em caso de erro
+      retry: 3,
+      // Refetch quando janela ganha foco
+      refetchOnWindowFocus: true,
+      // Refetch quando reconecta
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      // Retry 2 vezes em caso de erro
+      retry: 2,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -28,18 +51,20 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/subscription" element={<Subscription />} />
-                <Route path="/agendamento" element={<PublicBooking />} />
-                <Route path="/success" element={<Success />} />
-                <Route path="/cancel" element={<Cancel />} />
-                <Route path="/:slug" element={<PublicBooking />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<PageLoadingSpinner />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/subscription" element={<Subscription />} />
+                  <Route path="/agendamento" element={<PublicBooking />} />
+                  <Route path="/success" element={<Success />} />
+                  <Route path="/cancel" element={<Cancel />} />
+                  <Route path="/:slug" element={<PublicBooking />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </MobileOptimizer>
         </TooltipProvider>

@@ -1,0 +1,16 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fallbackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fef2f2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fee2e2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#fallbackGradient)"/>
+  <g transform="translate(200,150)">
+    <circle cx="0" cy="0" r="40" fill="#fecaca" stroke="#f87171" stroke-width="2"/>
+    <path d="M-20,-20 L20,20 M20,-20 L-20,20" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+    <text x="0" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#dc2626">
+      Erro ao carregar imagem
+    </text>
+  </g>
+</svg>

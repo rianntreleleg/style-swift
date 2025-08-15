@@ -98,6 +98,8 @@ export default function Admin() {
     dismissBanner,
     canInstall
   } = usePWA();
+
+
   const [tenants, setTenants] = useState<Array<{
     id: string;
     name: string;
@@ -969,6 +971,8 @@ export default function Admin() {
         onDismiss={dismissBanner}
         variant="floating"
       />
+      
+
       
       {/* PWA Install Prompt - Fallback */}
       {canInstall && (
