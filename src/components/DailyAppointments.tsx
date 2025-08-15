@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Search, Phone, Calendar, Clock, MapPin, MessageCircle, Users, TrendingUp, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import {
   Tooltip,
@@ -44,7 +44,7 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const { toast } = useToast();
+
 
   const fetchTodayAppointments = async () => {
     try {
@@ -55,7 +55,14 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
       const { data, error } = await supabase
         .from('appointments')
         .select(`
-          *,
+          id,
+          customer_name,
+          customer_phone,
+          customer_email,
+          start_time,
+          end_time,
+          status,
+          notes,
           services(name, price_cents),
           professionals(name)
         `)
@@ -148,10 +155,10 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
     }
   };
 
-  const enviarWhatsApp = (telefone?: string, nome?: string) => {
-    console.log('enviarWhatsApp called with:', { telefone, nome });
+  const enviarWhatsApp = (telefone?: string, nome?: string, servico?: string, profissional?: string, horario?: string) => {
+    console.log('enviarWhatsApp called with:', { telefone, nome, servico, profissional, horario });
     
-    if (!telefone) {
+    if (!telefone || telefone.trim() === '') {
       toast({
         title: 'Telefone não disponível',
         description: 'Este cliente não possui número de telefone cadastrado',
@@ -161,7 +168,34 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
     }
 
     try {
-      const mensagem = `Olá ${nome || 'cliente'}, sua consulta está confirmada para hoje. Caso precise de alguma coisa, entre em contato conosco.`;
+      const hoje = new Date().toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const mensagem = `*Olá ${nome || 'cliente'}!* 👋
+
+*📋 CONFIRMAÇÃO DE AGENDAMENTO - HOJE*
+
+📅 *Data:* ${hoje}
+🕐 *Horário:* ${horario || 'Confirmar horário'}
+${servico ? `🛠️ *Serviço:* ${servico}` : ''}
+${profissional ? `👨‍💼 *Profissional:* ${profissional}` : ''}
+
+*📍 IMPORTANTE:*
+• Chegue com 10 minutos de antecedência
+• Em caso de cancelamento, avise com pelo menos 2 horas de antecedência
+
+*📞 Precisa de algo?*
+Entre em contato conosco!
+
+*Aguardo você!* 😊
+
+---
+*StyleSwift - Sistema de Agendamento Online*`;
+
       let numeroLimpo = telefone.replace(/\D/g, '');
       
       // Garantir que o número tenha o código do país
@@ -185,7 +219,7 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
       
       toast({
         title: 'WhatsApp aberto',
-        description: 'A conversa foi aberta no WhatsApp',
+        description: 'Mensagem de confirmação pronta para envio',
         variant: 'default'
       });
     } catch (error) {
@@ -407,7 +441,13 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => enviarWhatsApp(appointment.customer_phone, appointment.customer_name)}
+                              onClick={() => enviarWhatsApp(
+                  appointment.customer_phone, 
+                  appointment.customer_name,
+                  appointment.services?.name,
+                  appointment.professionals?.name,
+                  format(parseISO(appointment.start_time), 'HH:mm', { locale: ptBR })
+                )}
                               disabled={!appointment.customer_phone}
                               className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 hover:border-green-300"
                             >

@@ -129,10 +129,10 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
     }
   };
 
-  const handleWhatsAppMessage = (phone: string, customerName: string, appointmentDate: string, appointmentTime: string) => {
-    console.log('handleWhatsAppMessage called with:', { phone, customerName, appointmentDate, appointmentTime });
+  const handleWhatsAppMessage = (phone: string, customerName: string, appointmentDate: string, appointmentTime: string, serviceName?: string, professionalName?: string) => {
+    console.log('handleWhatsAppMessage called with:', { phone, customerName, appointmentDate, appointmentTime, serviceName, professionalName });
     
-    if (!phone) {
+    if (!phone || phone.trim() === '') {
       toast({ 
         title: 'Telefone não disponível', 
         description: 'Este cliente não possui número de telefone cadastrado',
@@ -142,15 +142,33 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
     }
 
     try {
-      const message = `Olá ${customerName}! 
+      const formattedDate = new Date(appointmentDate).toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
 
-Confirmando seu agendamento:
-📅 Data: ${new Date(appointmentDate).toLocaleDateString('pt-BR')}
-🕐 Horário: ${appointmentTime}
+      const message = `*Olá ${customerName}!* 👋
 
-Aguardo você! 😊
+*📋 CONFIRMAÇÃO DE AGENDAMENTO*
 
-*StyleSwift - Agendamento Online*`;
+📅 *Data:* ${formattedDate}
+🕐 *Horário:* ${appointmentTime}
+${serviceName ? `🛠️ *Serviço:* ${serviceName}` : ''}
+${professionalName ? `👨‍💼 *Profissional:* ${professionalName}` : ''}
+
+*📍 IMPORTANTE:*
+• Chegue com 10 minutos de antecedência
+• Em caso de cancelamento, avise com pelo menos 2 horas de antecedência
+
+*📞 Precisa de algo?*
+Entre em contato conosco!
+
+*Aguardo você!* 😊
+
+---
+*StyleSwift - Sistema de Agendamento Online*`;
 
       let cleanPhone = phone.replace(/\D/g, '');
       
@@ -175,7 +193,7 @@ Aguardo você! 😊
       
       toast({ 
         title: 'WhatsApp aberto', 
-        description: 'A conversa foi aberta no WhatsApp',
+        description: 'Mensagem de confirmação pronta para envio',
         variant: 'default' 
       });
     } catch (error) {
@@ -338,7 +356,9 @@ Aguardo você! 😊
               row.raw.customer_phone,
               row.raw.customer_name,
               row.raw.start_time,
-              row.dateTime.time
+              row.dateTime.time,
+              row.raw.services?.name,
+              row.raw.professionals?.name
             )}
             icon={<MessageCircle className="h-4 w-4" />}
             label="WhatsApp"

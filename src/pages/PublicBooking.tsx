@@ -23,7 +23,9 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Mail
+  Mail,
+  AlertCircle,
+  CheckCircle
 } from "lucide-react";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,15 +41,25 @@ import { ThemeApplicator } from "@/components/ThemeApplicator";
 import { TimeSlotSelector } from "@/components/TimeSlotSelector";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Tag } from "lucide-react";
+import { validations } from "@/lib/validations";
 
 const BookingSchema = z.object({
   service_id: z.string({ required_error: "Selecione um serviço" }).uuid("Selecione um serviço"),
   professional_id: z.string({ required_error: "Selecione um profissional" }).uuid("Selecione um profissional"),
   date: z.date({ required_error: "Selecione uma data" }),
   time: z.string({ required_error: "Selecione um horário" }).regex(/^\d{2}:\d{2}$/, "Horário inválido"),
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("E-mail inválido"),
-  phone: z.string().min(10, "Telefone deve ter pelo menos 10 dígitos"),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
+  email: z.string()
+    .min(1, "Email é obrigatório")
+    .email("Digite um email válido (ex: seu@email.com)")
+    .refine((email) => validations.email.validate(email), {
+      message: validations.email.message
+    }),
+  phone: z.string()
+    .min(1, "Telefone é obrigatório")
+    .refine((phone) => validations.phone.validate(phone), {
+      message: validations.phone.message
+    }),
   notes: z.string().optional(),
 });
 
@@ -221,6 +233,7 @@ export default function PublicBooking() {
       customer_id: customerId,
       customer_name: values.name,
       customer_contact: values.phone,
+      customer_phone: values.phone,
       customer_email: values.email,
       start_time: toLocalISOString(start),
       end_time: toLocalISOString(end),
@@ -564,19 +577,98 @@ export default function PublicBooking() {
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium flex items-center gap-2"><User className="h-4 w-4" /> Nome</Label>
-                        <Input className="h-12" placeholder="Seu nome" {...form.register("name")} />
-                        {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <User className="h-4 w-4" /> 
+                          Nome Completo
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input 
+                          className="h-12" 
+                          placeholder="Digite seu nome completo" 
+                          {...form.register("name")} 
+                        />
+                        {form.formState.errors.name && (
+                          <p className="text-sm text-destructive flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {form.formState.errors.name.message}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium flex items-center gap-2"><Mail className="h-4 w-4" /> E-mail</Label>
-                        <Input className="h-12" type="email" placeholder="seu@email.com" {...form.register("email")} />
-                        {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4" /> 
+                          E-mail
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input 
+                          className={cn(
+                            "h-12",
+                            form.watch("email") && !validations.email.validate(form.watch("email")) && form.watch("email").length > 0
+                              ? "border-red-500 focus:border-red-500"
+                              : form.watch("email") && validations.email.validate(form.watch("email"))
+                              ? "border-green-500 focus:border-green-500"
+                              : ""
+                          )}
+                          type="email" 
+                          placeholder="seu@email.com" 
+                          {...form.register("email")} 
+                        />
+                        {form.formState.errors.email && (
+                          <p className="text-sm text-destructive flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {form.formState.errors.email.message}
+                          </p>
+                        )}
+                        {form.watch("email") && validations.email.validate(form.watch("email")) && (
+                          <p className="text-sm text-green-600 flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Email válido
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label className="text-sm font-medium flex items-center gap-2"><PhoneIcon className="h-4 w-4" /> Telefone/WhatsApp</Label>
-                        <Input className="h-12" placeholder="(11) 99999-9999" {...form.register("phone")} />
-                        {form.formState.errors.phone && <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>}
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <PhoneIcon className="h-4 w-4" /> 
+                          Telefone/WhatsApp
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input 
+                          className={cn(
+                            "h-12",
+                            form.watch("phone") && !validations.phone.validate(form.watch("phone")) && form.watch("phone").length > 0
+                              ? "border-red-500 focus:border-red-500"
+                              : form.watch("phone") && validations.phone.validate(form.watch("phone"))
+                              ? "border-green-500 focus:border-green-500"
+                              : ""
+                          )}
+                          placeholder="(11) 99999-9999" 
+                          {...form.register("phone", {
+                            onChange: (e) => {
+                              const value = e.target.value;
+                              // Formata o telefone automaticamente
+                              const formatted = validations.phone.format(value);
+                              if (formatted !== value) {
+                                e.target.value = formatted;
+                                form.setValue("phone", formatted);
+                              }
+                            }
+                          })} 
+                        />
+                        {form.formState.errors.phone && (
+                          <p className="text-sm text-destructive flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {form.formState.errors.phone.message}
+                          </p>
+                        )}
+                        {form.watch("phone") && validations.phone.validate(form.watch("phone")) && (
+                          <p className="text-sm text-green-600 flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Telefone válido
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Formato aceito: (11) 99999-9999 ou 11999999999
+                        </p>
                       </div>
                     </div>
 
@@ -717,8 +809,13 @@ export default function PublicBooking() {
 
                     <Button
                       type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300"
-                      disabled={submitting}
+                      className={cn(
+                        "w-full h-12 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300",
+                        form.formState.isValid && !submitting
+                          ? "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                          : "bg-gray-400 cursor-not-allowed"
+                      )}
+                      disabled={submitting || !form.formState.isValid}
                     >
                       {submitting ? (
                         <>

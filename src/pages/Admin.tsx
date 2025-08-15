@@ -158,7 +158,14 @@ export default function Admin() {
       const { data, error } = await supabase
         .from('appointments')
         .select(`
-          *,
+          id,
+          customer_name,
+          customer_phone,
+          customer_email,
+          start_time,
+          end_time,
+          status,
+          notes,
           services(name, price_cents),
           professionals(name)
         `)
