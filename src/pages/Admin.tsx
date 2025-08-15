@@ -46,6 +46,7 @@ import ProfessionalsTable from "@/components/ProfessionalsTable";
 import ServicesTable from "@/components/ServicesTable";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
 import { MobileSidebar } from "@/components/MobileSidebar";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { checkFeatureAccess, canAddProfessional, type PlanTier } from "@/config/plans";
@@ -87,10 +88,14 @@ export default function Admin() {
     isInstalled,
     isOnline,
     isAdmin,
+    showBanner,
+    isIOS,
+    isAndroid,
     showInstallPrompt,
     hideInstallPrompt,
     installPWA,
     showInstallPromptFn,
+    dismissBanner,
     canInstall
   } = usePWA();
   const [tenants, setTenants] = useState<Array<{
@@ -954,9 +959,20 @@ export default function Admin() {
         </div>
       </main>
 
-      {/* PWA Install Prompt */}
+      {/* PWA Install Banner - Novo sistema mais visível */}
+      <PWAInstallBanner
+        isVisible={showBanner && !isInstalled}
+        isIOS={isIOS}
+        isAndroid={isAndroid}
+        isInstallable={isInstallable}
+        onInstall={showInstallPrompt}
+        onDismiss={dismissBanner}
+        variant="floating"
+      />
+      
+      {/* PWA Install Prompt - Fallback */}
       {canInstall && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-20 right-4 z-40">
           <PWAInstallPrompt variant="card" showBenefits={false} />
         </div>
       )}

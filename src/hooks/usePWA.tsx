@@ -17,8 +17,10 @@ export interface PWAInstallState {
   isAndroid: boolean;
   isOnline: boolean;
   isAdmin: boolean;
+  showBanner: boolean;
   showInstallPrompt: () => Promise<void>;
   dismissInstallPrompt: () => void;
+  dismissBanner: () => void;
   hideInstallPrompt: () => void;
   installPWA: () => Promise<void>;
   showInstallPromptFn: () => Promise<void>;
@@ -29,6 +31,7 @@ export const usePWA = (): PWAInstallState => {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
 
   // Detectar se é iOS
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -44,12 +47,34 @@ export const usePWA = (): PWAInstallState => {
     // Verificar se já está instalado
     setIsInstalled(isStandalone);
 
+    // Se não está instalado, verificar se deve mostrar banner
+    if (!isStandalone) {
+      // Verificar se o usuário já dismissou o banner (localStorage)
+      const dismissed = localStorage.getItem('pwa-banner-dismissed');
+      const dismissedDate = dismissed ? new Date(dismissed) : null;
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      
+      // Mostrar banner se:
+      // 1. Nunca foi dismissado OU
+      // 2. Foi dismissado há mais de 3 dias OU  
+      // 3. É iOS/Android (que podem não suportar beforeinstallprompt)
+      const shouldShow = !dismissed || 
+        (dismissedDate && dismissedDate < threeDaysAgo) ||
+        (isIOS || isAndroid);
+        
+      if (shouldShow) {
+        setTimeout(() => setShowBanner(true), 1500); // 1.5s delay para UX mais agressiva
+      }
+    }
+
     // Listener para o evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setInstallPrompt(promptEvent);
       setIsInstallable(true);
+      setShowBanner(true); // Mostrar banner quando evento é disparado
       console.log('PWA: Install prompt available');
     };
 
@@ -58,6 +83,8 @@ export const usePWA = (): PWAInstallState => {
       setIsInstalled(true);
       setIsInstallable(false);
       setInstallPrompt(null);
+      setShowBanner(false);
+      localStorage.removeItem('pwa-banner-dismissed'); // Limpar estado
       console.log('PWA: App was installed');
     };
 
@@ -70,7 +97,7 @@ export const usePWA = (): PWAInstallState => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [isStandalone]);
+  }, [isStandalone, isIOS, isAndroid]);
 
   const showInstallPrompt = async (): Promise<void> => {
     if (!installPrompt) {
@@ -99,6 +126,11 @@ export const usePWA = (): PWAInstallState => {
     setInstallPrompt(null);
   };
 
+  const dismissBanner = (): void => {
+    setShowBanner(false);
+    localStorage.setItem('pwa-banner-dismissed', new Date().toISOString());
+  };
+
   // Determinar se pode instalar (considerando diferentes plataformas)
   const canInstall = isInstallable || (isIOS && !isStandalone);
 
@@ -121,8 +153,10 @@ export const usePWA = (): PWAInstallState => {
     isAndroid,
     isOnline,
     isAdmin,
+    showBanner,
     showInstallPrompt,
     dismissInstallPrompt,
+    dismissBanner,
     hideInstallPrompt,
     installPWA,
     showInstallPromptFn,
