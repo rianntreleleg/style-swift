@@ -230,7 +230,7 @@ export const TimeSlotSelector = ({
     
     return appointments.some(appointment => {
       // Se há um profissional selecionado, só bloquear para esse profissional
-      if (professionalId && appointment.professional_id !== professionalId) {
+      if (professionalId && (appointment as any).professional_id !== professionalId) {
         return false;
       }
       
@@ -289,7 +289,7 @@ export const TimeSlotSelector = ({
       // Verificar se este slot específico está ocupado
       const isOccupied = appointments.some(appointment => {
         // Se há um profissional selecionado, só verificar para esse profissional
-        if (professionalId && appointment.professional_id !== professionalId) {
+        if (professionalId && (appointment as any).professional_id !== professionalId) {
           return false;
         }
         
@@ -325,7 +325,7 @@ export const TimeSlotSelector = ({
       if (appointment.status === 'cancelado') return false;
       
       // Se há um profissional selecionado, só verificar para esse profissional
-      if (professionalId && appointment.professional_id !== professionalId) {
+      if (professionalId && (appointment as any).professional_id !== professionalId) {
         return false;
       }
       
@@ -352,7 +352,7 @@ export const TimeSlotSelector = ({
       if (appointment.status === 'cancelado') return false;
       
       // Se há um profissional selecionado, só verificar para esse profissional
-      if (professionalId && appointment.professional_id !== professionalId) {
+      if (professionalId && (appointment as any).professional_id !== professionalId) {
         return false;
       }
       
@@ -371,7 +371,7 @@ export const TimeSlotSelector = ({
   const getAppointmentForTimeSlot = (timeSlot: Date) => {
     return appointments.find(appointment => {
       // Se há um profissional selecionado, só verificar para esse profissional
-      if (professionalId && appointment.professional_id !== professionalId) {
+      if (professionalId && (appointment as any).professional_id !== professionalId) {
         return false;
       }
       
@@ -515,16 +515,7 @@ export const TimeSlotSelector = ({
                   <div className="font-medium">
                     {format(timeSlot, 'HH:mm')}
                   </div>
-                  {appointment && (
-                    <div className="text-xs opacity-75 truncate max-w-full">
-                      Agendado
-                    </div>
-                  )}
-                  {occupyingAppointment && (
-                    <div className="text-xs opacity-75 truncate max-w-full text-blue-600">
-                      Indisponível
-                    </div>
-                  )}
+                  {/* Removido texto dos slots bloqueados - apenas cor */}
                 </Button>
               );
             })}
