@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -27,7 +28,9 @@ import {
   Phone,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  Search
 } from 'lucide-react';
 import {
   Tooltip,
@@ -75,6 +78,11 @@ const statusOptions = [
 
 export default function AppointmentsTable({ appointments, tenantId, onAppointmentUpdate }: AppointmentsTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [professionalFilter, setProfessionalFilter] = useState<string>('all');
+  const [serviceFilter, setServiceFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleStatusChange = async (appointmentId: string, newStatus: string) => {
     setUpdatingId(appointmentId);
@@ -376,21 +384,142 @@ Entre em contato conosco!
     }
   ];
 
+  // Aplicar filtros
+  const filteredData = tableData.filter(row => {
+    const matchesSearch = 
+      row.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.professional.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || row.status === statusFilter;
+    const matchesProfessional = professionalFilter === 'all' || row.professional === professionalFilter;
+    const matchesService = serviceFilter === 'all' || row.service === serviceFilter;
+    
+    return matchesSearch && matchesStatus && matchesProfessional && matchesService;
+  });
+
+  // Obter listas únicas para os filtros
+  const uniqueProfessionals = Array.from(new Set(appointments.map(a => a.professionals?.name).filter(Boolean)));
+  const uniqueServices = Array.from(new Set(appointments.map(a => a.services?.name).filter(Boolean)));
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
-          Agendamentos ({appointments.length})
+          Agendamentos ({filteredData.length} de {appointments.length})
         </CardTitle>
         <CardDescription>
           Gerencie todos os agendamentos do estabelecimento
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Filtros */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar agendamentos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filtros
+            </Button>
+          </div>
+
+          {/* Painel de filtros */}
+          {showFilters && (
+            <Card className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Filtro de status */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Status</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todos os status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      {statusOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filtro de profissional */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Profissional</label>
+                  <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todos os profissionais" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os profissionais</SelectItem>
+                      {uniqueProfessionals.map(name => (
+                        <SelectItem key={name} value={name!}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filtro de serviço */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Serviço</label>
+                  <Select value={serviceFilter} onValueChange={setServiceFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todos os serviços" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os serviços</SelectItem>
+                      {uniqueServices.map(name => (
+                        <SelectItem key={name} value={name!}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Botão limpar filtros */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">&nbsp;</label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setProfessionalFilter('all');
+                      setServiceFilter('all');
+                      setSearchTerm('');
+                    }}
+                    className="w-full"
+                  >
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+
         <MobileTable
           columns={columns}
-          data={tableData}
+          data={filteredData}
           emptyMessage="Nenhum agendamento encontrado."
         />
       </CardContent>

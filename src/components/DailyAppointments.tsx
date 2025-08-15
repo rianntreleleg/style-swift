@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Search, Phone, Calendar, Clock, MapPin, MessageCircle, Users, TrendingUp, CheckCircle, AlertCircle, XCircle, Filter } from 'lucide-react';
@@ -14,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { format, isToday, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { format, isToday, parseISO, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 import { toDatabaseString, formatSimpleTime, parseSimpleDateTime } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
 
@@ -45,15 +46,18 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [professionalFilter, setProfessionalFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
 
   const fetchTodayAppointments = async () => {
     try {
-      const today = new Date();
-      const startOfToday = startOfDay(today);
-      const endOfToday = endOfDay(today);
+      const startOfSelectedDate = startOfDay(selectedDate);
+      const endOfSelectedDate = endOfDay(selectedDate);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('appointments')
         .select(`
           id,
@@ -68,9 +72,20 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
           professionals(name)
         `)
         .eq('tenant_id', tenantId)
-        .gte('start_time', toDatabaseString(startOfToday))
-        .lte('start_time', toDatabaseString(endOfToday))
+        .gte('start_time', toDatabaseString(startOfSelectedDate))
+        .lte('start_time', toDatabaseString(endOfSelectedDate))
         .order('start_time', { ascending: true });
+
+      // Aplicar filtros
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      if (professionalFilter !== 'all') {
+        query = query.eq('professionals.name', professionalFilter);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Erro ao buscar agendamentos:', error);
@@ -103,7 +118,7 @@ export const DailyAppointments = ({ tenantId }: DailyAppointmentsProps) => {
     const interval = setInterval(fetchTodayAppointments, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [tenantId]);
+  }, [tenantId, selectedDate, statusFilter, professionalFilter]);
 
   const filteredAppointments = appointments.filter(appointment =>
     appointment.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -267,19 +282,115 @@ Entre em contato conosco!
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar clientes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+      {/* Header com busca e filtros */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar clientes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            Última atualização: {format(new Date(), 'HH:mm', { locale: ptBR })}
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Última atualização: {format(new Date(), 'HH:mm', { locale: ptBR })}
-        </div>
+
+        {/* Painel de filtros */}
+        {showFilters && (
+          <Card className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Filtro de data */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data</label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+                  >
+                    ←
+                  </Button>
+                  <div className="flex-1 text-center text-sm font-medium">
+                    {format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                  >
+                    →
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filtro de status */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                    <SelectItem value="nao_compareceu">Não Compareceu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro de profissional */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Profissional</label>
+                <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todos os profissionais" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os profissionais</SelectItem>
+                    {Array.from(new Set(appointments.map(a => a.professionals?.name).filter(Boolean))).map(name => (
+                      <SelectItem key={name} value={name!}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Botão limpar filtros */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">&nbsp;</label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setProfessionalFilter('all');
+                    setSelectedDate(new Date());
+                  }}
+                  className="w-full"
+                >
+                  Limpar Filtros
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
 
 
