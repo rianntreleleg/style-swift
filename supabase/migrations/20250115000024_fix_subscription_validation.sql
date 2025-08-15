@@ -76,20 +76,5 @@ CREATE TRIGGER trg_enforce_plan_limits
   BEFORE INSERT OR UPDATE ON public.professionals
   FOR EACH ROW EXECUTE FUNCTION public.enforce_plan_limits();
 
--- Update existing tenants to have consistent plan data
-UPDATE public.tenants
-SET 
-  plan_tier = CASE 
-    WHEN plan = 'free' THEN 'essential'
-    WHEN plan = 'pro' THEN 'professional'
-    WHEN plan = 'plus' THEN 'premium'
-    ELSE 'essential'
-  END,
-  plan_status = CASE 
-    WHEN plan = 'free' THEN 'active'
-    ELSE 'pending'
-  END,
-  payment_completed = (plan = 'free');
-
--- Drop old plan column
-ALTER TABLE public.tenants DROP COLUMN IF EXISTS plan;
+-- Note: Plan column migration moved to separate migration file to avoid conflicts
+-- See migration 20250115000025_fix_plan_column_error.sql
