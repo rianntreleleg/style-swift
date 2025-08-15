@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Calendar, Users, Target } from 'lucide-react';
+import { TrendingUp, DollarSign, Calendar, Users } from 'lucide-react';
 import { formatBRL } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 

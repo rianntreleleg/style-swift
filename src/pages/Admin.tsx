@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,20 +21,17 @@ import {
   ExternalLink,
   Plus,
   Calendar,
-  TrendingUp,
   DollarSign,
   Clock,
   Settings,
   BarChart,
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
   Copy,
   Check,
   Eye,
   Crown,
   RefreshCw,
-  Database
+  Database,
+  HelpCircle
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePWA } from "@/hooks/usePWA";
@@ -45,12 +42,12 @@ import BusinessHoursManager from "@/components/BusinessHoursManager";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import ProfessionalsTable from "@/components/ProfessionalsTable";
 import ServicesTable from "@/components/ServicesTable";
-import UpgradePrompt from "@/components/UpgradePrompt";
+
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 import { MobileSidebar } from "@/components/MobileSidebar";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
-import { checkFeatureAccess, canAddProfessional, type PlanTier } from "@/config/plans";
+
 import LogoUpload from "@/components/LogoUpload";
 import LogoIcon from "@/components/LogoIcon";
 import { BackupManager } from "@/components/BackupManager";
@@ -95,7 +92,6 @@ export default function Admin() {
     isIOS,
     isAndroid,
     showInstallPrompt,
-    hideInstallPrompt,
     installPWA,
     showInstallPromptFn,
     dismissBanner,
@@ -165,7 +161,7 @@ export default function Admin() {
     if (!user) return;
     const { data, error } = await supabase
       .from("tenants")
-      .select("id,name,slug,logo_url,theme_variant,plan_tier,plan,payment_status,plan_status,payment_completed")
+      .select("id,name,slug,logo_url,theme_variant,plan_tier,payment_status,payment_completed")
       .eq("owner_id", user.id);
     if (error) {
       toast({ title: "Erro ao carregar estabelecimentos", description: error.message });
@@ -174,10 +170,8 @@ export default function Admin() {
     setTenants((data ?? []).map(tenant => ({
       ...tenant,
       // Garantir que o campo 'plan' esteja presente e correto
-      plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 
-            (tenant.plan as 'essential' | 'professional' | 'premium') || 
-            'essential',
-      plan_status: tenant.plan_status || (tenant.payment_status === 'paid' ? 'active' : 'inactive')
+      plan: (tenant.plan_tier as 'essential' | 'professional' | 'premium') || 'essential',
+      plan_status: tenant.payment_status === 'paid' ? 'active' : 'inactive'
     })));
     if (!selectedTenantId && data && data.length) {
       setSelectedTenantId(data[0].id);
@@ -544,6 +538,15 @@ export default function Admin() {
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-2 ml-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.location.href = '/support'}
+                className="hidden lg:flex"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Suporte
+              </Button>
               <ThemeToggle />
               <Button variant="outline" size="sm" onClick={handleSignOut} className="hidden lg:flex">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -973,10 +976,12 @@ export default function Admin() {
                           <Select
                             defaultValue={selectedTenant.theme_variant || 'barber'}
                             onValueChange={async (value) => {
-                              const { error } = await supabase
-                                .from("tenants")
-                                .update({ theme_variant: value })
-                                .eq("id", selectedTenant.id);
+                                                              const { error } = await supabase
+                                  .from("tenants")
+                                  .update({ 
+                                    theme_variant: value
+                                  })
+                                  .eq("id", selectedTenant.id);
                               if (error) {
                                 toast({ title: "Erro ao atualizar tema", description: error.message });
                               } else {

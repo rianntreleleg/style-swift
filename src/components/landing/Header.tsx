@@ -43,6 +43,13 @@ const Header = () => {
             Temas
           </motion.a>
           <motion.a
+            href="/support"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            whileHover={{ scale: 1.05 }}
+          >
+            Suporte
+          </motion.a>
+          <motion.a
             href="#contato"
             className="text-muted-foreground hover:text-foreground transition-colors"
             whileHover={{ scale: 1.05 }}
@@ -108,11 +115,25 @@ const Header = () => {
                 Recursos
               </a>
               <a
+                href="#pricing"
+                className="text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Planos
+              </a>
+              <a
                 href="#temas"
                 className="text-muted-foreground hover:text-foreground transition-colors py-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Temas
+              </a>
+              <a
+                href="/support"
+                className="text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Suporte
               </a>
               <a
                 href="#contato"

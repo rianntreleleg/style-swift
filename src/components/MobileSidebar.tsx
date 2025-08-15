@@ -22,7 +22,8 @@ import {
   Building2,
   Activity,
   CreditCard,
-  Database
+  Database,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LogoIcon from '@/components/LogoIcon';
@@ -232,6 +233,15 @@ const QuickActions = ({ selectedTenant, onTabChange }) => (
 // Subcomponente para o rodapé
 const SidebarFooter = ({ onSignOut }) => (
   <div className="p-4 border-t bg-background space-y-2">
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => window.location.href = '/support'}
+      className="w-full justify-start"
+    >
+      <HelpCircle className="h-4 w-4 mr-2" />
+      Suporte
+    </Button>
     <Button
       variant="ghost"
       size="sm"

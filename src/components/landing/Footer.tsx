@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, Linkedin, Youtube, Shield, Zap, CreditCard, Truck } from 'lucide-react';
+import { Mail, Phone, Instagram, Shield, Zap, CreditCard, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Footer = () => {
@@ -24,7 +24,7 @@ const Footer = () => {
     {
       title: "Suporte",
       links: [
-        { name: "Central de Ajuda", href: "#" },
+        { name: "Central de Ajuda", href: "/support" },
         { name: "Contato", href: "#contato" },
         { name: "Status", href: "#" },
         { name: "Comunidade", href: "#" },
@@ -80,7 +80,7 @@ const Footer = () => {
             <div className="space-y-3 mb-6">
               <div className="flex items-start gap-3">
                 <Mail className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-muted-foreground">styleswiftagendamentos@gmail.com</span>
+                <span className="text-muted-foreground">styleswiftagendamentos@gmail.com  </span>
               </div>
               <div className="flex items-start gap-3">
                 <Phone className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />

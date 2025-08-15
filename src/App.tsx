@@ -19,6 +19,7 @@ const Subscription = lazy(() => import("./pages/Subscription"));
 const PublicBooking = lazy(() => import("./pages/PublicBooking"));
 const Success = lazy(() => import("./pages/Success"));
 const Cancel = lazy(() => import("./pages/Cancel"));
+const Support = lazy(() => import("./pages/Support"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +58,7 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/subscription" element={<Subscription />} />
+                  <Route path="/support" element={<Support />} />
                   <Route path="/agendamento" element={<PublicBooking />} />
                   <Route path="/success" element={<Success />} />
                   <Route path="/cancel" element={<Cancel />} />

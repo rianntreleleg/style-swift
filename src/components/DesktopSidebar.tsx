@@ -18,7 +18,8 @@ import {
   ExternalLink,
   Building2,
   Activity,
-  Database
+  Database,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LogoIcon from '@/components/LogoIcon';
@@ -81,18 +82,18 @@ const navigationItems = [
     icon: Clock,
     description: 'Configurar horários'
   },
-  {
-    id: 'backups',
-    label: 'Backups',
-    icon: Database,
-    description: 'Gerenciar backups'
-  },
-  {
-    id: 'settings',
-    label: 'Configurações',
-    icon: Settings,
-    description: 'Configurações gerais'
-  }
+      {
+      id: 'backups',
+      label: 'Backups',
+      icon: Database,
+      description: 'Gerenciar backups'
+    },
+    {
+      id: 'settings',
+      label: 'Configurações',
+      icon: Settings,
+      description: 'Configurações gerais'
+    }
 ];
 
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
@@ -252,7 +253,16 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.href = '/support'}
+            className="w-full justify-start"
+          >
+            <HelpCircle className="h-4 w-4 mr-2" />
+            Suporte
+          </Button>
           <Button
             variant="ghost"
             size="sm"
