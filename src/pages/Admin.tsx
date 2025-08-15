@@ -54,6 +54,7 @@ import { checkFeatureAccess, canAddProfessional, type PlanTier } from "@/config/
 import LogoUpload from "@/components/LogoUpload";
 import LogoIcon from "@/components/LogoIcon";
 import { BackupManager } from "@/components/BackupManager";
+import { PaymentRequired } from "@/components/PaymentRequired";
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -120,12 +121,37 @@ export default function Admin() {
   const [services, setServices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  const [planValidated, setPlanValidated] = useState(false);
+  const [planActive, setPlanActive] = useState(false);
+
   useEffect(() => {
     if (!user) {
       navigate('/auth');
       return;
     }
-  }, [user, navigate]);
+
+    // Validate plan status when loading
+    const validatePlan = async () => {
+      if (!selectedTenantId) return;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('validate-plan', {
+          body: { tenantId: selectedTenantId }
+        });
+
+        if (error) throw error;
+
+        setPlanActive(data.isActive);
+        setPlanValidated(true);
+      } catch (error) {
+        console.error('Error validating plan:', error);
+        setPlanValidated(true); // Set validated even on error to show UI
+        setPlanActive(false);
+      }
+    };
+
+    validatePlan();
+  }, [user, navigate, selectedTenantId]);
 
   const fetchTenants = async () => {
     if (!user) return;
@@ -271,6 +297,9 @@ export default function Admin() {
       name: values.name,
       slug: values.slug,
       theme_variant: values.theme_variant,
+      plan_tier: 'essential',
+      plan_status: 'active',
+      payment_completed: true
     } as any);
 
     if (error) {
@@ -437,6 +466,11 @@ export default function Admin() {
 
   if (!user) {
     return null;
+  }
+
+  // Show payment required screen if plan is not active but only if status is truly inactive
+  if (planValidated && !planActive && selectedTenant && selectedTenant.plan_status !== 'pending') {
+    return <PaymentRequired planTier={selectedTenant.plan_tier || 'essential'} />;
   }
 
   return (

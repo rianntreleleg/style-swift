@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Loading } from "@/components/ui/loading";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getProductId } from "@/config/stripe";
 import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -63,7 +64,7 @@ export default function Auth() {
     resolver: zodResolver(SignupSchema),
     defaultValues: {
       theme_variant: "barber",
-      plan_tier: "professional",
+      plan_tier: (searchParams.get('plan') as "essential" | "professional" | "premium") || "professional",
       open_time: "09:00",
       close_time: "18:00",
       working_days: [1,2,3,4,5,6],
@@ -134,6 +135,10 @@ export default function Auth() {
     try {
       const planSelected = values.plan_tier; // Usar o plano selecionado no formulário
       console.log('[AUTH] Plan selected from form:', planSelected);
+      
+      if (!planSelected) {
+        throw new Error('Seleção de plano é obrigatória');
+      }
       
       // Primeiro cria o usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -341,9 +346,7 @@ export default function Auth() {
         tenantId, planSelected, userEmail, customerId
       });
 
-      const productId = planSelected === 'professional' ? 'prod_professional' 
-                      : planSelected === 'premium' ? 'prod_premium' 
-                      : 'prod_SqqVGzUIvJPVpt';
+      const productId = getProductId(planSelected);
 
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout-session', {
         body: { 

@@ -30,11 +30,11 @@ const Index = () => {
     try {
       setLoadingPlan(planId);
       
-      // Salvar plano selecionado e redirecionar para cadastro
+      // Salvar plano selecionado e redirecionar para cadastro com plano pré-selecionado
       localStorage.setItem('planSelected', planId);
       
-      // Redirecionar para página de cadastro onde o usuário escolherá novamente o plano
-      window.location.href = '/auth';
+      // Redirecionar para página de cadastro onde o plano já estará selecionado
+      window.location.href = `/auth?plan=${planId}`;
       
     } catch (e: any) {
       console.error('Redirect error:', e);
