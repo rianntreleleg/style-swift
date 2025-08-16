@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from './use-toast';
+import { useLocalStorage } from './useLocalStorage';
 
 export interface Notification {
   id: string;
@@ -28,6 +29,12 @@ export interface NotificationSettings {
   quiet_hours_end: string;
 }
 
+interface SoundSettings {
+  enabled: boolean;
+  volume: number;
+  type: 'notification' | 'alert' | 'chime' | 'bell';
+}
+
 interface UseNotificationsReturn {
   notifications: Notification[];
   unreadCount: number;
@@ -38,6 +45,8 @@ interface UseNotificationsReturn {
   refreshUnreadCount: () => Promise<void>;
   settings: NotificationSettings | null;
   updateSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
+  playNotificationSound: () => Promise<void>;
+  audioRef: React.RefObject<HTMLAudioElement>;
 }
 
 export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
@@ -46,6 +55,16 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
+  
+  // Configurações de som
+  const [soundSettings] = useLocalStorage<SoundSettings>('notification-sound-settings', {
+    enabled: true,
+    volume: 0.7,
+    type: 'notification'
+  });
+  
+  // Referência para o áudio
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   // Carregar notificações
   const loadNotifications = useCallback(async () => {
@@ -211,6 +230,30 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
     }
   }, [tenantId, user]);
 
+  // Função para tocar som de notificação
+  const playNotificationSound = useCallback(() => {
+    try {
+      // Usar um som simples de beep
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, context.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+      
+      oscillator.start(context.currentTime);
+      oscillator.stop(context.currentTime + 0.5);
+    } catch (error) {
+      console.error('Erro ao tocar som de notificação:', error);
+    }
+  }, []);
+
   // Atualizar configurações
   const updateSettings = useCallback(async (newSettings: Partial<NotificationSettings>) => {
     if (!tenantId || !user || !settings) return;
@@ -274,6 +317,9 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
           // Incrementar contador de não lidas
           setUnreadCount(prev => prev + 1);
           
+          // Tocar som de notificação
+          playNotificationSound();
+          
           // Mostrar toast para notificações importantes
           if (newNotification.is_important) {
             toast({
@@ -315,7 +361,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenantId, user]);
+  }, [tenantId, user, playNotificationSound]);
 
   return {
     notifications,
@@ -326,6 +372,8 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
     loadNotifications,
     refreshUnreadCount,
     settings,
-    updateSettings
+    updateSettings,
+    playNotificationSound,
+    audioRef
   };
 };

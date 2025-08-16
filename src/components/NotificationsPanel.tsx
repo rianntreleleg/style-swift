@@ -18,9 +18,11 @@ import {
   Settings,
   Trash2,
   RefreshCw,
-  CheckCheck
+  CheckCheck,
+  Volume2
 } from 'lucide-react';
 import { useNotifications, type Notification, type NotificationSettings } from '@/hooks/useNotifications';
+import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,6 +86,8 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     settings,
     updateSettings
   } = useNotifications(tenantId);
+  
+  const { settings: soundSettings, updateSettings: updateSoundSettings, playSound } = useSoundSettings();
 
   const [activeTab, setActiveTab] = useState('all');
 
@@ -344,6 +348,97 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                       }
                     />
                   </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-medium mb-3">Configurações de Som</h4>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <Label htmlFor="sound_enabled" className="flex-1 text-sm leading-tight">Som de Notificação</Label>
+                    <Switch
+                      id="sound_enabled"
+                      checked={soundSettings.enabled}
+                      onCheckedChange={(checked) => 
+                        updateSoundSettings({ enabled: checked })
+                      }
+                    />
+                  </div>
+                  
+                  {soundSettings.enabled && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-sm leading-tight">Volume</Label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={Math.round(soundSettings.volume * 100)}
+                          onChange={(e) => 
+                            updateSoundSettings({ volume: parseInt(e.target.value) / 100 })
+                          }
+                          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>0%</span>
+                          <span>{Math.round(soundSettings.volume * 100)}%</span>
+                          <span>100%</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm leading-tight">Tipo de Som</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant={soundSettings.type === 'notification' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => updateSoundSettings({ type: 'notification' })}
+                            className="text-xs capitalize"
+                          >
+                            Notificação
+                          </Button>
+                          <Button
+                            variant={soundSettings.type === 'alert' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => updateSoundSettings({ type: 'alert' })}
+                            className="text-xs capitalize"
+                          >
+                            Alerta
+                          </Button>
+                          <Button
+                            variant={soundSettings.type === 'chime' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => updateSoundSettings({ type: 'chime' })}
+                            className="text-xs capitalize"
+                          >
+                            Chime
+                          </Button>
+                          <Button
+                            variant={soundSettings.type === 'bell' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => updateSoundSettings({ type: 'bell' })}
+                            className="text-xs capitalize"
+                          >
+                            Sino
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={playSound}
+                          className="w-full flex items-center gap-2"
+                        >
+                          <Volume2 className="h-4 w-4" />
+                          Testar Som
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
