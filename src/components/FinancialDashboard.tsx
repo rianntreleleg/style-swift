@@ -34,7 +34,7 @@ import UpgradePrompt from '@/components/UpgradePrompt';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AnimatedContainer, AnimatedItem, AnimatedCard, AnimatedBadge, AnimatedProgress, AnimatedSpinner } from '@/components/MicroInteractions';
-import { TactileButton, TactileCard } from '@/components/TactileFeedback';
+import { TactileCard } from '@/components/TactileFeedback';
 import { Skeleton, DashboardSkeleton } from '@/components/Skeleton';
 
 interface FinancialDashboardProps {
@@ -703,48 +703,57 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             Dashboard Financeiro
           </motion.h2>
           <motion.p 
-            className="text-muted-foreground"
+            className="text-muted-foreground text-sm sm:text-base"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
           >
-            Acompanhe sua receita e performance em tempo real
+            <span className="hidden sm:inline">Acompanhe sua receita e performance em tempo real</span>
+            <span className="sm:hidden">Acompanhe receita e performance</span>
             {!canAccessPremiumFeatures && (
               <span className="ml-2 text-xs text-yellow-600">
-                • Alguns recursos disponíveis apenas no plano Premium
+                <span className="hidden sm:inline">• Alguns recursos disponíveis apenas no plano Premium</span>
+                <span className="sm:hidden">• Recursos Premium</span>
               </span>
             )}
           </motion.p>
         </div>
         
         <motion.div 
-          className="flex gap-2"
+          className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto"
           variants={itemVariants}
         >
-          <TactileButton
+          <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
-            loading={refreshing}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            {refreshing ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"
+              />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
             Atualizar
-          </TactileButton>
+          </Button>
           
           
 
           {canUseAdvancedAnalytics ? (
-            <TactileButton
+            <Button
               variant="outline"
               size="sm"
-                onClick={handleGenerateReport}
-                className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30 hover:border-yellow-500/50"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Gerar Relatório
-                <Crown className="h-3 w-3 ml-1 text-yellow-600" />
-              </TactileButton>
+              onClick={handleGenerateReport}
+              className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30 hover:border-yellow-500/50"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Gerar Relatório
+              <Crown className="h-3 w-3 ml-1 text-yellow-600" />
+            </Button>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -769,7 +778,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
           )}
           
           <Select value={period} onValueChange={(value: '7' | '30' | '90') => setPeriod(value)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-full sm:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -780,7 +789,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
           </Select>
           
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Todos os profissionais" />
             </SelectTrigger>
             <SelectContent>
@@ -795,13 +804,13 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
 
       {/* Cards de métricas principais */}
       <motion.div 
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+        className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
         variants={itemVariants}
       >
         <motion.div variants={cardVariants} whileHover="hover">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Receita Total</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Receita Total</CardTitle>
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -811,7 +820,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             </CardHeader>
             <CardContent>
               <motion.div 
-                className="text-2xl font-bold text-blue-900 dark:text-blue-100"
+                className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-100"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.4, duration: 0.5 }}
@@ -831,7 +840,8 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                   >
                     {growth >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                   </motion.div>
-                  {growth >= 0 ? '+' : ''}{growth.toFixed(1)}% vs período anterior
+                  <span className="hidden sm:inline">{growth >= 0 ? '+' : ''}{growth.toFixed(1)}% vs período anterior</span>
+                  <span className="sm:hidden">{growth >= 0 ? '+' : ''}{growth.toFixed(1)}%</span>
                 </motion.div>
               )}
             </CardContent>
@@ -841,7 +851,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
         <motion.div variants={cardVariants} whileHover="hover">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Agendamentos</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Agendamentos</CardTitle>
               <motion.div
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -851,7 +861,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             </CardHeader>
             <CardContent>
               <motion.div 
-                className="text-2xl font-bold text-green-900 dark:text-green-100"
+                className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-100"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
@@ -864,7 +874,8 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7, duration: 0.5 }}
               >
-                Média: {avgAppointments.toFixed(1)}/dia
+                <span className="hidden sm:inline">Média: {avgAppointments.toFixed(1)}/dia</span>
+                <span className="sm:hidden">{avgAppointments.toFixed(1)}/dia</span>
               </motion.div>
             </CardContent>
           </Card>
@@ -873,7 +884,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
         <motion.div variants={cardVariants} whileHover="hover">
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Ticket Médio</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Ticket Médio</CardTitle>
               <motion.div
                 animate={{ rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -883,7 +894,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             </CardHeader>
             <CardContent>
               <motion.div 
-                className="text-2xl font-bold text-purple-900 dark:text-purple-100"
+                className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-100"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6, duration: 0.5 }}
@@ -896,7 +907,8 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8, duration: 0.5 }}
               >
-                Por agendamento
+                <span className="hidden sm:inline">Por agendamento</span>
+                <span className="sm:hidden">Por agend.</span>
               </motion.div>
             </CardContent>
           </Card>
@@ -905,7 +917,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
         <motion.div variants={cardVariants} whileHover="hover">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/20 dark:to-orange-900/20 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Plano Atual</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">Plano Atual</CardTitle>
               <motion.div
                 animate={{ y: [0, -2, 0] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -915,7 +927,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             </CardHeader>
             <CardContent>
               <motion.div 
-                className="text-2xl font-bold text-orange-900 dark:text-orange-100 capitalize"
+                className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100 capitalize"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.7, duration: 0.5 }}
@@ -945,78 +957,245 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
         />
       </motion.div>
 
-      {/* Tabs para dados detalhados */}
-      <motion.div variants={itemVariants}>
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="professionals" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Profissionais
-            </TabsTrigger>
-            <TabsTrigger value="services" className="flex items-center gap-2">
-              <Award className="h-4 w-4" />
-              Serviços
-            </TabsTrigger>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger value="heatmap" className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Horários
-                  {!canAccessPremiumFeatures && <Crown className="h-3 w-3 text-yellow-600" />}
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Heatmap de horários mais procurados</p>
-                {!canAccessPremiumFeatures && (
-                  <p className="text-xs text-muted-foreground">Disponível apenas no plano Premium</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger value="comparison" className="flex items-center gap-2">
-                  <BarChart className="h-4 w-4" />
-                  Comparação
-                  {!canAccessPremiumFeatures && <Crown className="h-3 w-3 text-yellow-600" />}
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Comparação de períodos</p>
-                {!canAccessPremiumFeatures && (
-                  <p className="text-xs text-muted-foreground">Disponível apenas no plano Premium</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-            <TabsTrigger value="insights" className="flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              Insights
-            </TabsTrigger>
-          </TabsList>
+      {/* Seção de Navegação */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        {/* Indicador de tab ativa */}
+        <motion.div 
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="w-2 h-2 bg-primary rounded-full" />
+          <span className="capitalize">
+            {selectedTab === 'professionals' && 'Profissionais'}
+            {selectedTab === 'services' && 'Serviços'}
+            {selectedTab === 'heatmap' && 'Horários'}
+            {selectedTab === 'comparison' && 'Comparação'}
+            {selectedTab === 'insights' && 'Insights'}
+          </span>
+          {!canAccessPremiumFeatures && (selectedTab === 'heatmap' || selectedTab === 'comparison') && (
+            <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+              <Crown className="h-3 w-3 mr-1" />
+              Premium
+            </Badge>
+          )}
+        </motion.div>
 
-          <TabsContent value="professionals" className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
+        {/* Menu de navegação */}
+        <Card className="p-4 bg-muted/20 border-border/50">
+          <div className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={selectedTab === 'professionals' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedTab('professionals')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-10 px-3 rounded-lg transition-all duration-200 hover:bg-muted/50"
+                >
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Profissionais</span>
+                  <span className="sm:hidden">Prof.</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="space-y-2">
+                  <p className="font-medium">Performance por Profissional</p>
+                  <p className="text-sm text-muted-foreground">Receita e agendamentos por profissional no período</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={selectedTab === 'services' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedTab('services')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-10 px-3 rounded-lg transition-all duration-200 hover:bg-muted/50"
+                >
+                  <Award className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Serviços</span>
+                  <span className="sm:hidden">Serv.</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="space-y-2">
+                  <p className="font-medium">Receita por Serviço</p>
+                  <p className="text-sm text-muted-foreground">Serviços mais vendidos e distribuição de receita</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={selectedTab === 'heatmap' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedTab('heatmap')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-10 px-3 rounded-lg transition-all duration-200 hover:bg-muted/50 relative"
+                >
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Horários</span>
+                  <span className="sm:hidden">Hor.</span>
+                  {!canAccessPremiumFeatures && (
+                    <Crown className="h-2 w-2 sm:h-3 sm:w-3 text-yellow-600 absolute -top-1 -right-1" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="space-y-2">
+                  <p className="font-medium">Heatmap de Horários</p>
+                  <p className="text-sm text-muted-foreground">Visualize os horários mais procurados por dia da semana</p>
+                  {!canAccessPremiumFeatures && (
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Crown className="h-4 w-4 text-yellow-600" />
+                      <p className="text-xs text-yellow-600 font-medium">Recurso Premium</p>
+                    </div>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={selectedTab === 'comparison' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedTab('comparison')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-10 px-3 rounded-lg transition-all duration-200 hover:bg-muted/50 relative"
+                >
+                  <BarChart className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Comparação</span>
+                  <span className="sm:hidden">Comp.</span>
+                  {!canAccessPremiumFeatures && (
+                    <Crown className="h-2 w-2 sm:h-3 sm:w-3 text-yellow-600 absolute -top-1 -right-1" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="space-y-2">
+                  <p className="font-medium">Comparação de Períodos</p>
+                  <p className="text-sm text-muted-foreground">Compare receita, agendamentos e ticket médio entre períodos</p>
+                  {!canAccessPremiumFeatures && (
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Crown className="h-4 w-4 text-yellow-600" />
+                      <p className="text-xs text-yellow-600 font-medium">Recurso Premium</p>
+                    </div>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={selectedTab === 'insights' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedTab('insights')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-10 px-3 rounded-lg transition-all duration-200 hover:bg-muted/50"
+                >
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Insights</span>
+                  <span className="sm:hidden">Ins.</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="space-y-2">
+                  <p className="font-medium">Análises e Insights</p>
+                  <p className="text-sm text-muted-foreground">Melhores profissionais e serviços do período</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Seção de Conteúdo */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        {selectedTab === 'professionals' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Performance por Profissional
+                </CardTitle>
+                <CardDescription>
+                  Receita e agendamentos por profissional no período
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {professionalRevenue
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .map((item, index) => (
+                      <motion.div 
+                        key={index} 
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors gap-3"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1, duration: 0.3 }}
+                        whileHover={{ scale: 1.02, x: 5 }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <motion.div 
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                              index === 0 ? 'bg-yellow-500' : 
+                              index === 1 ? 'bg-gray-400' : 
+                              index === 2 ? 'bg-orange-500' : 'bg-blue-500'
+                            }`}
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                          >
+                            {index + 1}
+                          </motion.div>
+                          <div>
+                            <div className="font-medium">{item.professional_name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {item.appointments} agendamentos
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right sm:text-right">
+                          <div className="font-bold text-lg">{formatBRL(item.revenue)}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {totalRevenue > 0 ? ((item.revenue / totalRevenue) * 100).toFixed(1) : '0'}% do total
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {selectedTab === 'services' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Lista de serviços */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Performance por Profissional
+                    <Award className="h-5 w-5" />
+                    Receita por Serviço
                   </CardTitle>
                   <CardDescription>
-                    Receita e agendamentos por profissional no período
+                    Serviços mais vendidos e sua contribuição para a receita
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {professionalRevenue
+                    {serviceRevenue
                       .sort((a, b) => b.revenue - a.revenue)
                       .map((item, index) => (
                         <motion.div 
                           key={index} 
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors gap-3"
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1, duration: 0.3 }}
@@ -1025,22 +1204,22 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                           <div className="flex items-center gap-3">
                             <motion.div 
                               className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                                index === 0 ? 'bg-yellow-500' : 
-                                index === 1 ? 'bg-gray-400' : 
-                                index === 2 ? 'bg-orange-500' : 'bg-blue-500'
+                                index === 0 ? 'bg-green-500' : 
+                                index === 1 ? 'bg-blue-500' : 
+                                index === 2 ? 'bg-purple-500' : 'bg-gray-500'
                               }`}
                               whileHover={{ scale: 1.1, rotate: 5 }}
                             >
                               {index + 1}
                             </motion.div>
                             <div>
-                              <div className="font-medium">{item.professional_name}</div>
+                              <div className="font-medium">{item.service_name}</div>
                               <div className="text-sm text-muted-foreground">
-                                {item.appointments} agendamentos
+                                {item.count} vendas
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right sm:text-right">
                             <div className="font-bold text-lg">{formatBRL(item.revenue)}</div>
                             <div className="text-sm text-muted-foreground">
                               {totalRevenue > 0 ? ((item.revenue / totalRevenue) * 100).toFixed(1) : '0'}% do total
@@ -1051,233 +1230,157 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
-          </TabsContent>
 
-          <TabsContent value="services" className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Lista de serviços */}
+              {/* Gráfico de pizza */}
+              <PieChart
+                data={pieData}
+                title="Distribuição de Receita"
+                description="Percentual de receita por serviço"
+              />
+            </div>
+          </motion.div>
+        )}
+
+        {selectedTab === 'heatmap' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {canAccessPremiumFeatures ? (
+              <HeatmapChart
+                data={heatmapData}
+                totalRevenue={totalRevenue}
+              />
+            ) : (
+              <UpgradePrompt
+                requiredPlan="premium"
+                featureName="Heatmap de Horários"
+                currentPlan={planTier || 'essential'}
+              />
+            )}
+          </motion.div>
+        )}
+
+        {selectedTab === 'comparison' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {canAccessPremiumFeatures ? (
+              <ComparisonChart
+                data={comparisonData}
+                title="Comparação de Períodos"
+                description={`Comparação entre os últimos ${period} dias e o período anterior`}
+              />
+            ) : (
+              <UpgradePrompt
+                requiredPlan="premium"
+                featureName="Comparação de Períodos"
+                currentPlan={planTier || 'essential'}
+              />
+            )}
+          </motion.div>
+        )}
+
+        {selectedTab === 'insights' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Award className="h-5 w-5" />
-                      Receita por Serviço
+                      <TrendingUp className="h-5 w-5" />
+                      Melhor Performance
                     </CardTitle>
-                    <CardDescription>
-                      Serviços mais vendidos e sua contribuição para a receita
-                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {serviceRevenue
-                        .sort((a, b) => b.revenue - a.revenue)
-                        .map((item, index) => (
-                          <motion.div 
-                            key={index} 
-                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1, duration: 0.3 }}
-                            whileHover={{ scale: 1.02, x: 5 }}
+                    {topProfessional && (
+                      <motion.div 
+                        className="space-y-3"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.4, duration: 0.5 }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <motion.div
+                            animate={{ rotate: [0, 10, -10, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                           >
-                            <div className="flex items-center gap-3">
-                              <motion.div 
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                                  index === 0 ? 'bg-green-500' : 
-                                  index === 1 ? 'bg-blue-500' : 
-                                  index === 2 ? 'bg-purple-500' : 'bg-gray-500'
-                                }`}
-                                whileHover={{ scale: 1.1, rotate: 5 }}
-                              >
-                                {index + 1}
-                              </motion.div>
-                              <div>
-                                <div className="font-medium">{item.service_name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {item.count} vendas
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-lg">{formatBRL(item.revenue)}</div>
-                                                          <div className="text-sm text-muted-foreground">
-                              {totalRevenue > 0 ? ((item.revenue / totalRevenue) * 100).toFixed(1) : '0'}% do total
-                            </div>
-                            </div>
+                            <Award className="h-5 w-5 text-yellow-500" />
                           </motion.div>
-                        ))}
-                    </div>
+                          <span className="font-medium">Profissional Top</span>
+                        </div>
+                        <div className="text-lg font-bold">{topProfessional.professional_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatBRL(topProfessional.revenue)} • {topProfessional.appointments} agendamentos
+                          {totalRevenue > 0 && (
+                            <span className="text-blue-600 ml-1">
+                              ({((topProfessional.revenue / totalRevenue) * 100).toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
                   </CardContent>
                 </Card>
-
-                {/* Gráfico de pizza */}
-                <PieChart
-                  data={pieData}
-                  title="Distribuição de Receita"
-                  description="Percentual de receita por serviço"
-                />
-              </div>
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="heatmap" className="space-y-4">
-            {canAccessPremiumFeatures ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <HeatmapChart
-                  data={heatmapData}
-                  totalRevenue={totalRevenue}
-                />
               </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <UpgradePrompt
-                  requiredPlan="premium"
-                  featureName="Heatmap de Horários"
-                  currentPlan={planTier || 'essential'}
-                />
-              </motion.div>
-            )}
-          </TabsContent>
 
-          <TabsContent value="comparison" className="space-y-4">
-            {canAccessPremiumFeatures ? (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
               >
-                <ComparisonChart
-                  data={comparisonData}
-                  title="Comparação de Períodos"
-                  description={`Comparação entre os últimos ${period} dias e o período anterior`}
-                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="h-5 w-5" />
+                      Serviço Mais Vendido
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topService && (
+                      <motion.div 
+                        className="space-y-3"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.5, duration: 0.5 }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <motion.div
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                          >
+                            <Award className="h-5 w-5 text-green-500" />
+                          </motion.div>
+                          <span className="font-medium">Serviço Top</span>
+                        </div>
+                        <div className="text-lg font-bold">{topService.service_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatBRL(topService.revenue)} • {topService.count} vendas
+                          {totalRevenue > 0 && (
+                            <span className="text-green-600 ml-1">
+                              ({((topService.revenue / totalRevenue) * 100).toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </CardContent>
+                </Card>
               </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <UpgradePrompt
-                  requiredPlan="premium"
-                  featureName="Comparação de Períodos"
-                  currentPlan={planTier || 'essential'}
-                />
-              </motion.div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="insights" className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="grid gap-4 md:grid-cols-2">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}
-                >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5" />
-                        Melhor Performance
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {topProfessional && (
-                        <motion.div 
-                          className="space-y-3"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.4, duration: 0.5 }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <motion.div
-                              animate={{ rotate: [0, 10, -10, 0] }}
-                              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                            >
-                              <Award className="h-5 w-5 text-yellow-500" />
-                            </motion.div>
-                            <span className="font-medium">Profissional Top</span>
-                          </div>
-                          <div className="text-lg font-bold">{topProfessional.professional_name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatBRL(topProfessional.revenue)} • {topProfessional.appointments} agendamentos
-                            {totalRevenue > 0 && (
-                              <span className="text-blue-600 ml-1">
-                                ({((topProfessional.revenue / totalRevenue) * 100).toFixed(1)}%)
-                              </span>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Star className="h-5 w-5" />
-                        Serviço Mais Vendido
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {topService && (
-                        <motion.div 
-                          className="space-y-3"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.5, duration: 0.5 }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <motion.div
-                              animate={{ scale: [1, 1.1, 1] }}
-                              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                            >
-                              <Award className="h-5 w-5 text-green-500" />
-                            </motion.div>
-                            <span className="font-medium">Serviço Top</span>
-                          </div>
-                          <div className="text-lg font-bold">{topService.service_name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatBRL(topService.revenue)} • {topService.count} vendas
-                            {totalRevenue > 0 && (
-                              <span className="text-green-600 ml-1">
-                                ({((topService.revenue / totalRevenue) * 100).toFixed(1)}%)
-                              </span>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-            </motion.div>
-          </TabsContent>
-        </Tabs>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
       </motion.div>
     </TooltipProvider>

@@ -389,7 +389,7 @@ export default function PublicBooking() {
 
       toast({
         title: "Agendamento em processamento",
-        description: "Seu agendamento foi adicionado à fila de processamento e será confirmado em breve. Você receberá uma notificação quando for concluído."
+        description: "Seu agendamento foi adicionado à fila de processamento e será confirmado em breve. Você receberá um email de notificação quando for concluído."
       });
 
       // Reset form only after successful submission

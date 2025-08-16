@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +81,8 @@ const statusOptions = [
   { value: 'nao_compareceu', label: 'Não Compareceu', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' }
 ];
 
-export default function AppointmentsTable({ appointments, tenantId, onAppointmentUpdate }: AppointmentsTableProps) {
+export default function AppointmentsTable({ appointments: initialAppointments, tenantId, onAppointmentUpdate }: AppointmentsTableProps) {
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -89,6 +90,30 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const { checkAndCompleteAppointment } = useAutoComplete();
+
+  // Atualizar estado local quando as props mudarem, mas preservar alterações locais recentes
+  useEffect(() => {
+    // Só atualizar se os dados forem realmente diferentes dos atuais
+    // Isso previne que atualizações locais sejam sobrescritas imediatamente
+    const currentIds = new Set(appointments.map(a => a.id));
+    const newIds = new Set(initialAppointments.map(a => a.id));
+    
+    // Verificar se há diferença real nos dados
+    const hasRealDifference = 
+      currentIds.size !== newIds.size || 
+      [...currentIds].some(id => !newIds.has(id)) ||
+      initialAppointments.some(newApp => {
+        const currentApp = appointments.find(a => a.id === newApp.id);
+        return !currentApp || 
+               currentApp.status !== newApp.status ||
+               currentApp.customer_name !== newApp.customer_name ||
+               currentApp.start_time !== newApp.start_time;
+      });
+    
+    if (hasRealDifference) {
+      setAppointments(initialAppointments);
+    }
+  }, [initialAppointments]);
 
 
   const handleStatusChange = async (appointmentId: string, newStatus: string) => {
@@ -102,13 +127,24 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
 
       if (error) throw error;
 
-
-
       toast({ 
         title: 'Status atualizado com sucesso!',
         description: `Agendamento marcado como ${newStatus}`
       });
-      onAppointmentUpdate();
+      
+      // Atualizar dados locais imediatamente
+      setAppointments(prev => 
+        prev.map(app => 
+          app.id === appointmentId 
+            ? { ...app, status: newStatus }
+            : app
+        )
+      );
+      
+      // Chamar callback se fornecido
+      if (onAppointmentUpdate) {
+        onAppointmentUpdate();
+      }
     } catch (error: any) {
       toast({
         title: 'Erro ao atualizar status',
@@ -136,6 +172,9 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
 
       toast({ title: 'Agendamento excluído com sucesso!', description: 'O agendamento foi removido do sistema' });
 
+      // Atualizar dados locais imediatamente
+      setAppointments(prev => prev.filter(app => app.id !== appointmentId));
+      
       // Chamar callback para atualizar a lista
       if (onAppointmentUpdate) {
         onAppointmentUpdate();
@@ -157,7 +196,19 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
         title: 'Agendamento concluído',
         description: 'O agendamento foi marcado como concluído automaticamente (24h após o horário programado).',
       });
-      onAppointmentUpdate();
+      
+      // Atualizar dados locais imediatamente
+      setAppointments(prev => 
+        prev.map(app => 
+          app.id === appointmentId 
+            ? { ...app, status: 'concluido' }
+            : app
+        )
+      );
+      
+      if (onAppointmentUpdate) {
+        onAppointmentUpdate();
+      }
     } catch (error: any) {
       console.error('[AUTO-COMPLETE] Erro ao verificar agendamento:', error);
       toast({
@@ -366,18 +417,17 @@ Entre em contato conosco!
       key: 'status',
       label: 'Status',
       mobilePriority: true,
-      render: (value: string) => (
+      render: (value: string, row: any) => (
         <div className="flex items-center gap-2">
           {getStatusIcon(value)}
           <Select
             value={value}
             onValueChange={(newStatus) => {
-              const appointment = tableData.find(row => row.status === value);
-              if (appointment?.raw.id) {
-                void handleStatusChange(appointment.raw.id, newStatus);
+              if (row.raw.id) {
+                void handleStatusChange(row.raw.id, newStatus);
               }
             }}
-            disabled={updatingId === tableData.find(row => row.status === value)?.raw.id}
+            disabled={updatingId === row.raw.id}
           >
             <SelectTrigger className="w-32">
               <SelectValue />
