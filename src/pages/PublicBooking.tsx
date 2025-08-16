@@ -337,7 +337,10 @@ export default function PublicBooking() {
       const result = await createAppointment(item.data);
       console.log(`[FILA] Agendamento ID: ${item.id} criado com sucesso!`);
       removeFromQueue(item.id);
-      toast({ title: "Agendamento realizado com sucesso!", description: "Você receberá uma confirmação em breve." });
+      toast({ 
+        title: "Agendamento realizado com sucesso!", 
+        description: "Seu agendamento foi confirmado com sucesso. Você receberá uma confirmação por WhatsApp em breve." 
+      });
     } catch (error: any) {
       item.attempts++;
       console.log(`[FILA] Erro no agendamento ID: ${item.id}. Tentativa ${item.attempts}/${maxAttempts}. Erro:`, error.message);
@@ -347,7 +350,7 @@ export default function PublicBooking() {
         removeFromQueue(item.id);
         toast({
           title: "Erro ao realizar agendamento",
-          description: error.message || "Tente novamente mais tarde.",
+          description: error.message || "Ocorreu um erro ao processar seu agendamento. Por favor, tente novamente mais tarde.",
           variant: "destructive"
         });
       }
@@ -386,7 +389,7 @@ export default function PublicBooking() {
 
       toast({
         title: "Agendamento em processamento",
-        description: "Seu agendamento foi adicionado à fila e será processado em breve."
+        description: "Seu agendamento foi adicionado à fila de processamento e será confirmado em breve. Você receberá uma notificação quando for concluído."
       });
 
       // Reset form only after successful submission
@@ -394,8 +397,8 @@ export default function PublicBooking() {
       setSelectedDate(null);
     } catch (error: any) {
       toast({
-        title: "Erro ao adicionar à fila",
-        description: error.message,
+        title: "Erro ao processar agendamento",
+        description: error.message || "Ocorreu um erro ao adicionar seu agendamento à fila de processamento. Por favor, tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -498,14 +501,14 @@ export default function PublicBooking() {
       await navigator.clipboard.writeText(url);
       setCopied(true);
       toast({
-        title: 'Link copiado!',
-        description: 'O link foi copiado para a área de transferência.',
+        title: 'Link copiado com sucesso!',
+        description: 'O link de agendamento foi copiado para a área de transferência. Agora você pode compartilhá-lo com seus clientes.',
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast({
-        title: 'Erro ao copiar',
-        description: 'Não foi possível copiar o link. Tente novamente.',
+        title: 'Erro ao copiar link',
+        description: 'Não foi possível copiar o link de agendamento para a área de transferência. Por favor, tente novamente.',
         variant: 'destructive',
       });
     }

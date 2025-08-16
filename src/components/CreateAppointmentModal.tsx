@@ -160,7 +160,7 @@ export function CreateAppointmentModal({
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: error.message || 'Ocorreu um erro ao carregar os dados necessários',
         variant: 'destructive',
       });
     }
@@ -198,7 +198,7 @@ export function CreateAppointmentModal({
       if (error) throw error;
 
       if (data === true) {
-        setConflictError('Já existe um agendamento para este profissional neste horário.');
+        setConflictError('Já existe um agendamento para este profissional neste horário. Por favor, escolha outro horário.');
       }
     } catch (error: any) {
       console.error('Erro ao validar conflitos:', error);
@@ -219,7 +219,7 @@ export function CreateAppointmentModal({
     if (conflictError) {
       toast({
         title: 'Conflito de horário',
-        description: conflictError,
+        description: conflictError || 'Existe um conflito de horário para este profissional',
         variant: 'destructive',
       });
       return;
@@ -264,8 +264,8 @@ export function CreateAppointmentModal({
       }
 
       toast({
-        title: 'Agendamento criado!',
-        description: 'O agendamento foi criado com sucesso.',
+        title: 'Agendamento criado com sucesso!',
+        description: 'O agendamento foi registrado no sistema e o cliente será notificado.',
       });
 
       setOpen(false);
@@ -274,7 +274,7 @@ export function CreateAppointmentModal({
     } catch (error: any) {
       toast({
         title: 'Erro ao criar agendamento',
-        description: error.message,
+        description: error.message || 'Ocorreu um erro ao criar o agendamento. Por favor, tente novamente.',
         variant: 'destructive',
       });
     } finally {

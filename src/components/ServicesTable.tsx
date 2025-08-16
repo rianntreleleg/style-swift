@@ -77,13 +77,13 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
 
       if (error) throw error;
 
-      toast({ title: 'Serviço atualizado com sucesso!' });
+      toast({ title: 'Serviço atualizado com sucesso!', description: 'Os dados do serviço foram salvos no sistema' });
       setEditingId(null);
       onServiceUpdate();
     } catch (error: any) {
       toast({ 
         title: 'Erro ao atualizar serviço', 
-        description: error.message,
+        description: error.message || 'Ocorreu um erro ao atualizar os dados do serviço',
         variant: 'destructive'
       });
     }
@@ -110,12 +110,12 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
 
       if (error) throw error;
 
-      toast({ title: 'Serviço excluído com sucesso!' });
+      toast({ title: 'Serviço excluído com sucesso!', description: 'O serviço foi removido do sistema' });
       onServiceUpdate();
     } catch (error: any) {
       toast({ 
         title: 'Erro ao excluir serviço', 
-        description: error.message,
+        description: error.message || 'Ocorreu um erro ao excluir o serviço do sistema',
         variant: 'destructive'
       });
     }
@@ -130,12 +130,12 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
 
       if (error) throw error;
 
-      toast({ title: `Serviço ${!currentActive ? 'ativado' : 'desativado'} com sucesso!` });
+      toast({ title: `Serviço ${!currentActive ? 'ativado' : 'desativado'} com sucesso!`, description: `O serviço foi ${!currentActive ? 'ativado' : 'desativado'} no sistema` });
       onServiceUpdate();
     } catch (error: any) {
       toast({ 
-        title: 'Erro ao alterar status', 
-        description: error.message,
+        title: 'Erro ao alterar status do serviço', 
+        description: error.message || 'Ocorreu um erro ao alterar o status do serviço',
         variant: 'destructive'
       });
     }

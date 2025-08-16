@@ -19,8 +19,8 @@ export const LoadingSpinner = ({
   };
 
   const containerClasses = fullScreen 
-    ? "fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50"
-    : "flex items-center justify-center p-8";
+    ? "fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100]"
+    : "flex items-center justify-center p-8 w-full";
 
   return (
     <motion.div 
@@ -30,7 +30,7 @@ export const LoadingSpinner = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-4 flex flex-col items-center justify-center">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ 
@@ -59,9 +59,11 @@ export const LoadingSpinner = ({
 
 // Componente específico para lazy loading de páginas
 export const PageLoadingSpinner = () => (
-  <LoadingSpinner 
-    size="lg" 
-    text="Carregando página..." 
-    fullScreen={true} 
-  />
+  <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[100]">
+    <LoadingSpinner 
+      size="lg" 
+      text="Carregando página..." 
+      fullScreen={false} 
+    />
+  </div>
 );

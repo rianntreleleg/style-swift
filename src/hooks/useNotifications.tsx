@@ -168,8 +168,8 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       setUnreadCount(0);
       
       toast({
-        title: 'Notificações marcadas como lidas',
-        description: `${data} notificações foram marcadas como lidas`,
+        title: 'Notificações marcadas como lidas com sucesso!',
+        description: `${data} notificação(ões) foram marcada(s) como lida(s) no sistema de notificações.`,
       });
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
@@ -277,8 +277,8 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       setSettings(data);
       
       toast({
-        title: 'Configurações atualizadas',
-        description: 'Suas configurações de notificação foram salvas',
+        title: 'Configurações de notificação atualizadas!',
+        description: 'Suas configurações de notificação foram salvas e aplicadas com sucesso no sistema.',
       });
     } catch (error) {
       console.error('Erro ao atualizar configurações:', error);

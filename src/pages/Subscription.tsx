@@ -52,8 +52,8 @@ export default function Subscription() {
     } catch (error: any) {
       console.error('Erro ao carregar assinatura:', error);
       toast({
-        title: 'Erro ao carregar dados',
-        description: error.message,
+        title: 'Erro ao carregar dados da assinatura',
+        description: error.message || 'Ocorreu um erro ao carregar as informações da sua assinatura. Por favor, tente novamente.',
         variant: 'destructive'
       });
     } finally {
@@ -64,8 +64,8 @@ export default function Subscription() {
   const handleCancelSubscription = async () => {
     if (!tenant?.stripe_subscription_id) {
       toast({
-        title: 'Erro',
-        description: 'ID da assinatura não encontrado',
+        title: 'Erro ao cancelar assinatura',
+        description: 'Não foi possível identificar o ID da assinatura. Por favor, entre em contato com o suporte.',
         variant: 'destructive'
       });
       return;
@@ -84,8 +84,8 @@ export default function Subscription() {
       if (error) throw error;
 
       toast({
-        title: 'Assinatura cancelada',
-        description: 'Sua assinatura foi cancelada com sucesso. Você continuará tendo acesso até o final do período pago.'
+        title: 'Assinatura cancelada com sucesso!',
+        description: 'Sua assinatura foi cancelada. Você continuará tendo acesso completo até o final do período pago atual.'
       });
 
       // Atualizar dados locais
@@ -93,8 +93,8 @@ export default function Subscription() {
     } catch (error: any) {
       console.error('Erro ao cancelar assinatura:', error);
       toast({
-        title: 'Erro ao cancelar',
-        description: error.message || 'Ocorreu um erro ao cancelar a assinatura',
+        title: 'Erro ao cancelar assinatura',
+        description: error.message || 'Ocorreu um erro ao processar o cancelamento da assinatura. Por favor, tente novamente ou entre em contato com o suporte.',
         variant: 'destructive'
       });
     } finally {
@@ -105,8 +105,8 @@ export default function Subscription() {
   const openStripePortal = async () => {
     if (!tenant?.stripe_customer_id) {
       toast({
-        title: 'Erro',
-        description: 'Customer ID não encontrado',
+        title: 'Erro ao acessar portal do cliente',
+        description: 'Não foi possível identificar o ID do cliente. Por favor, entre em contato com o suporte.',
         variant: 'destructive'
       });
       return;
@@ -125,8 +125,8 @@ export default function Subscription() {
     } catch (error: any) {
       console.error('Erro ao abrir portal:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível abrir o portal de pagamento',
+        title: 'Erro ao acessar portal de pagamento',
+        description: 'Não foi possível abrir o portal de pagamento. Por favor, tente novamente ou entre em contato com o suporte.',
         variant: 'destructive'
       });
     }

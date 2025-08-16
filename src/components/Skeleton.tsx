@@ -7,6 +7,7 @@ interface SkeletonProps {
   height?: string | number;
   rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full';
   animate?: boolean;
+  display?: 'inline' | 'block' | 'inline-block';
 }
 
 export const Skeleton = ({ 
@@ -14,7 +15,8 @@ export const Skeleton = ({
   width, 
   height, 
   rounded = 'md',
-  animate = true 
+  animate = true,
+  display = 'inline-block'
 }: SkeletonProps) => {
   const roundedClasses = {
     none: '',
@@ -24,12 +26,20 @@ export const Skeleton = ({
     full: 'rounded-full'
   };
 
+  const displayClasses = {
+    inline: 'inline',
+    block: 'block',
+    'inline-block': 'inline-block'
+  };
+
   return (
     <motion.div
       className={cn(
         'bg-muted',
         roundedClasses[rounded],
-        className
+        className,
+        displayClasses[display],
+        !width && !className?.includes('w-') ? 'w-full' : ''
       )}
       style={{ width, height }}
       animate={animate ? {
@@ -46,7 +56,7 @@ export const Skeleton = ({
 
 // Skeletons específicos para diferentes componentes
 export const CardSkeleton = () => (
-  <div className="space-y-3">
+  <div className="space-y-3 w-full">
     <Skeleton className="h-4 w-3/4" />
     <Skeleton className="h-4 w-1/2" />
     <Skeleton className="h-4 w-2/3" />
@@ -54,7 +64,7 @@ export const CardSkeleton = () => (
 );
 
 export const TableSkeleton = ({ rows = 5 }: { rows?: number }) => (
-  <div className="space-y-2">
+  <div className="space-y-2 w-full">
     {/* Header */}
     <div className="flex gap-2">
       <Skeleton className="h-4 w-1/4" />
@@ -83,7 +93,7 @@ export const AvatarSkeleton = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) =
 
   return (
     <Skeleton 
-      className={cn('rounded-full', sizeClasses[size])} 
+      className={cn('rounded-full', sizeClasses[size], 'inline-block')} 
     />
   );
 };
@@ -97,13 +107,13 @@ export const ButtonSkeleton = ({ variant = 'default' }: { variant?: 'default' | 
 
   return (
     <Skeleton 
-      className={cn(baseClasses, variantClasses[variant], 'rounded-md')} 
+      className={cn(baseClasses, variantClasses[variant], 'rounded-md inline-block')} 
     />
   );
 };
 
 export const DashboardSkeleton = () => (
-  <div className="space-y-6">
+  <div className="space-y-6 w-full">
     {/* Stats Cards */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, i) => (

@@ -135,9 +135,19 @@ export default function Auth() {
       if (error) throw error;
       toast({ title: "Login realizado com sucesso!" });
     } catch (error: any) {
+      // Traduzir mensagens de erro comuns
+      let errorMessage = error.message;
+      if (errorMessage === "Invalid login credentials") {
+        errorMessage = "Credenciais de login inválidas";
+      } else if (errorMessage.includes("email")) {
+        errorMessage = "Email inválido";
+      } else if (errorMessage.includes("password")) {
+        errorMessage = "Senha incorreta";
+      }
+      
       toast({
-        title: "Erro",
-        description: error.message,
+        title: "Erro no login",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -208,8 +218,8 @@ export default function Auth() {
         // Se já tem tenant pago, redirecionar para o admin
         if (existingPaidTenant) {
           toast({
-            title: "Conta já existe!",
-            description: "Você já possui uma conta ativa. Redirecionando para o painel...",
+            title: "Conta já existente!",
+            description: "Você já possui uma conta ativa no sistema. Redirecionando para o painel administrativo...",
           });
           
           setTimeout(() => {
@@ -318,7 +328,7 @@ export default function Auth() {
         
         toast({
           title: "Conta criada com sucesso! 🎉",
-          description: "Redirecionando para o pagamento..."
+          description: "Sua conta foi criada com sucesso. Redirecionando para o pagamento seguro..."
         });
         
         // Redirecionamento imediato para checkout
@@ -335,8 +345,8 @@ export default function Auth() {
     } catch (error: any) {
       console.error('[AUTH] Error during signup:', error);
       toast({
-        title: "Erro",
-        description: error.message,
+        title: "Erro no processo de autenticação",
+        description: error.message || "Ocorreu um erro durante o processo de autenticação. Por favor, tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -363,8 +373,8 @@ export default function Auth() {
       
       console.error('[AUTH] Dados faltando:', missingFields);
       toast({
-        title: "Erro",
-        description: `Dados de pagamento não encontrados: ${missingFields.join(', ')}. Tente se cadastrar novamente.`,
+        title: "Dados de pagamento não encontrados",
+        description: `Não foi possível localizar os dados necessários para o pagamento: ${missingFields.join(', ')}. Por favor, tente se cadastrar novamente.`,
         variant: "destructive"
       });
       return;

@@ -683,14 +683,14 @@ Cada dúvida inclui uma explicação detalhada, passos para solução e links pa
       
       if (results.length === 0) {
         toast({
-          title: "Nenhum resultado encontrado",
-          description: `Não encontramos resultados para: "${searchQuery}"`,
+          title: "Nenhum resultado encontrado na busca",
+          description: `Não encontramos resultados para o termo pesquisado: "${searchQuery}". Tente usar palavras-chave diferentes.`,
           variant: "destructive"
         });
       } else {
         toast({
-          title: "Busca concluída",
-          description: `Encontramos ${results.reduce((count, cat) => count + cat.questions.length, 0)} resultados para: "${searchQuery}"`,
+          title: "Busca concluída com sucesso!",
+          description: `Encontramos ${results.reduce((count, cat) => count + cat.questions.length, 0)} resultado(s) para o termo pesquisado: "${searchQuery}"`,
         });
       }
     }
@@ -721,8 +721,8 @@ Enviado via formulário de contato do StyleSwift`;
     window.open(whatsappUrl, '_blank');
     
     toast({
-      title: "Mensagem enviada!",
-      description: "Abrindo WhatsApp para enviar sua mensagem.",
+      title: "Mensagem enviada com sucesso!",
+      description: "O WhatsApp está sendo aberto para você enviar sua mensagem diretamente para nossa equipe de suporte.",
     });
     
     // Reset form
@@ -1251,8 +1251,8 @@ Enviado via formulário de contato do StyleSwift`;
                     className="bg-black text-primary hover:bg-gray-100"
                     onClick={() => {
                       toast({
-                        title: "Contato de Emergência",
-                        description: "Ligando para suporte de emergência: (11) 99999-9999",
+                        title: "Contato de emergência iniciado",
+                        description: "Encaminhando chamada para o suporte de emergência: (11) 99999-9999. Nossa equipe está pronta para ajudar.",
                       });
                     }}
                   >

@@ -62,13 +62,13 @@ export const useCreateService = () => {
       
       toast({
         title: 'Serviço criado com sucesso!',
-        description: 'O serviço foi adicionado ao seu estabelecimento.',
+        description: 'O novo serviço foi adicionado ao seu estabelecimento com sucesso.',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Erro ao criar serviço',
-        description: error.message || 'Tente novamente.',
+        description: error.message || 'Ocorreu um erro ao adicionar o serviço. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },
@@ -98,14 +98,14 @@ export const useUpdateService = () => {
       queryClient.invalidateQueries({ queryKey: serviceKeys.all });
       
       toast({
-        title: 'Serviço atualizado!',
-        description: 'As alterações foram salvas.',
+        title: 'Serviço atualizado com sucesso!',
+        description: 'As alterações no cadastro do serviço foram salvas com sucesso no sistema.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao atualizar',
-        description: error.message || 'Tente novamente.',
+        title: 'Erro ao atualizar serviço',
+        description: error.message || 'Ocorreu um erro ao atualizar o cadastro do serviço. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },
@@ -131,14 +131,14 @@ export const useDeleteService = () => {
       queryClient.invalidateQueries({ queryKey: serviceKeys.all });
       
       toast({
-        title: 'Serviço excluído!',
-        description: 'O serviço foi removido do seu estabelecimento.',
+        title: 'Serviço excluído com sucesso!',
+        description: 'O serviço foi removido do seu estabelecimento e não aparecerá mais nas agendas.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao excluir',
-        description: error.message || 'Tente novamente.',
+        title: 'Erro ao excluir serviço',
+        description: error.message || 'Ocorreu um erro ao remover o serviço do estabelecimento. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },

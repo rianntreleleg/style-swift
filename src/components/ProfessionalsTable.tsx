@@ -81,13 +81,13 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
 
       if (error) throw error;
 
-      toast({ title: 'Profissional atualizado com sucesso!' });
+      toast({ title: 'Profissional atualizado com sucesso!', description: 'Os dados do profissional foram salvos no sistema' });
       setEditingId(null);
       onProfessionalUpdate();
     } catch (error: any) {
       toast({ 
         title: 'Erro ao atualizar profissional', 
-        description: error.message,
+        description: error.message || 'Ocorreu um erro ao atualizar os dados do profissional',
         variant: 'destructive'
       });
     }
@@ -113,12 +113,12 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
 
       if (error) throw error;
 
-      toast({ title: 'Profissional excluído com sucesso!' });
+      toast({ title: 'Profissional excluído com sucesso!', description: 'O profissional foi removido do sistema' });
       onProfessionalUpdate();
     } catch (error: any) {
       toast({ 
         title: 'Erro ao excluir profissional', 
-        description: error.message,
+        description: error.message || 'Ocorreu um erro ao excluir o profissional do sistema',
         variant: 'destructive'
       });
     }
@@ -147,8 +147,8 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
 
         if (count && count >= limit) {
           toast({ 
-            title: 'Limite atingido', 
-            description: `Seu plano atual permite apenas ${limit} profissional(ais) ativo(s).`,
+            title: 'Limite de profissionais atingido', 
+            description: `Seu plano atual permite apenas ${limit} profissional(ais) ativo(s). Considere fazer um upgrade para adicionar mais profissionais.`,
             variant: 'destructive'
           });
           return;
@@ -162,12 +162,12 @@ export default function ProfessionalsTable({ professionals, tenantId, onProfessi
 
       if (error) throw error;
 
-      toast({ title: `Profissional ${!currentActive ? 'ativado' : 'desativado'} com sucesso!` });
+      toast({ title: `Profissional ${!currentActive ? 'ativado' : 'desativado'} com sucesso!`, description: `O profissional foi ${!currentActive ? 'ativado' : 'desativado'} no sistema` });
       onProfessionalUpdate();
     } catch (error: any) {
       toast({ 
-        title: 'Erro ao alterar status', 
-        description: error.message,
+        title: 'Erro ao alterar status do profissional', 
+        description: error.message || 'Ocorreu um erro ao alterar o status do profissional',
         variant: 'destructive'
       });
     }

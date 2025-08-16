@@ -138,15 +138,15 @@ export const TwoFactorAuth = ({ userId, onSuccess, onCancel }: TwoFactorAuthProp
         setSelectedMethod(methodType);
         setStep('verify');
         toast({
-          title: "Código enviado!",
-          description: `Verifique seu ${methodType === 'sms' ? 'SMS' : 'email'} para o código de verificação.`,
+          title: "Código de verificação enviado!",
+          description: `Um código de verificação foi enviado para seu ${methodType === 'sms' ? 'SMS' : 'email'}. Verifique sua caixa de entrada.`,
         });
       }
     } catch (error) {
       console.error('Erro ao configurar 2FA:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível configurar a autenticação de dois fatores.",
+        title: "Erro ao configurar 2FA",
+        description: "Não foi possível configurar a autenticação de dois fatores. Por favor, tente novamente mais tarde.",
         variant: "destructive"
       });
     } finally {
@@ -157,8 +157,8 @@ export const TwoFactorAuth = ({ userId, onSuccess, onCancel }: TwoFactorAuthProp
   const verifyCode = async () => {
     if (!verificationCode.trim()) {
       toast({
-        title: "Código obrigatório",
-        description: "Digite o código de verificação.",
+        title: "Código de verificação obrigatório",
+        description: "Por favor, digite o código de verificação de seis dígitos.",
         variant: "destructive"
       });
       return;
@@ -190,8 +190,8 @@ export const TwoFactorAuth = ({ userId, onSuccess, onCancel }: TwoFactorAuthProp
 
       setStep('complete');
       toast({
-        title: "2FA ativado!",
-        description: "Autenticação de dois fatores configurada com sucesso.",
+        title: "Autenticação de dois fatores ativada!",
+        description: "A autenticação de dois fatores foi configurada e ativada com sucesso na sua conta.",
       });
 
       setTimeout(() => {
@@ -201,8 +201,8 @@ export const TwoFactorAuth = ({ userId, onSuccess, onCancel }: TwoFactorAuthProp
     } catch (error) {
       console.error('Erro ao verificar código:', error);
       toast({
-        title: "Código inválido",
-        description: "Verifique o código e tente novamente.",
+        title: "Código de verificação inválido",
+        description: "O código digitado não é válido. Verifique o código e tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -213,9 +213,9 @@ export const TwoFactorAuth = ({ userId, onSuccess, onCancel }: TwoFactorAuthProp
   const copySecretKey = () => {
     navigator.clipboard.writeText(secretKey);
     toast({
-      title: "Chave copiada!",
-      description: "Chave secreta copiada para a área de transferência.",
-    });
+        title: "Chave secreta copiada!",
+        description: "A chave secreta foi copiada para a área de transferência com sucesso.",
+      });
   };
 
   const resendCode = async () => {
@@ -228,14 +228,14 @@ export const TwoFactorAuth = ({ userId, onSuccess, onCancel }: TwoFactorAuthProp
       if (error) throw error;
 
       toast({
-        title: "Código reenviado!",
-        description: "Verifique seu dispositivo para o novo código.",
+        title: "Código de verificação reenviado!",
+        description: "Um novo código de verificação foi enviado. Verifique seu dispositivo.",
       });
     } catch (error) {
       console.error('Erro ao reenviar código:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível reenviar o código.",
+        title: "Erro ao reenviar código",
+        description: "Não foi possível reenviar o código de verificação. Por favor, tente novamente mais tarde.",
         variant: "destructive"
       });
     } finally {

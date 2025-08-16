@@ -90,13 +90,13 @@ export const useCreateProfessional = () => {
       
       toast({
         title: 'Profissional criado com sucesso!',
-        description: 'O profissional foi adicionado ao seu estabelecimento.',
+        description: 'O novo profissional foi adicionado ao seu estabelecimento com sucesso.',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Erro ao criar profissional',
-        description: error.message || 'Tente novamente.',
+        description: error.message || 'Ocorreu um erro ao adicionar o profissional. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },
@@ -126,14 +126,14 @@ export const useUpdateProfessional = () => {
       queryClient.invalidateQueries({ queryKey: professionalKeys.all });
       
       toast({
-        title: 'Profissional atualizado!',
-        description: 'As alterações foram salvas.',
+        title: 'Profissional atualizado com sucesso!',
+        description: 'As alterações no cadastro do profissional foram salvas com sucesso no sistema.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao atualizar',
-        description: error.message || 'Tente novamente.',
+        title: 'Erro ao atualizar profissional',
+        description: error.message || 'Ocorreu um erro ao atualizar o cadastro do profissional. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },
@@ -159,14 +159,14 @@ export const useDeleteProfessional = () => {
       queryClient.invalidateQueries({ queryKey: professionalKeys.all });
       
       toast({
-        title: 'Profissional excluído!',
-        description: 'O profissional foi removido do seu estabelecimento.',
+        title: 'Profissional excluído com sucesso!',
+        description: 'O profissional foi removido do seu estabelecimento e não aparecerá mais nas agendas.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao excluir',
-        description: error.message || 'Tente novamente.',
+        title: 'Erro ao excluir profissional',
+        description: error.message || 'Ocorreu um erro ao remover o profissional do estabelecimento. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },

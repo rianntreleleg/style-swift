@@ -201,15 +201,15 @@ export const SystemMonitor = ({ tenantId }: { tenantId: string }) => {
       ));
 
       toast({
-        title: "Alerta reconhecido!",
-        description: "O alerta foi marcado como reconhecido.",
+        title: "Alerta reconhecido com sucesso!",
+        description: "O alerta foi marcado como reconhecido no sistema de monitoramento.",
       });
 
     } catch (error) {
       console.error('Erro ao reconhecer alerta:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível reconhecer o alerta.",
+        title: "Erro ao reconhecer alerta",
+        description: "Não foi possível marcar o alerta como reconhecido. Por favor, tente novamente.",
         variant: "destructive"
       });
     }
@@ -223,15 +223,15 @@ export const SystemMonitor = ({ tenantId }: { tenantId: string }) => {
       ));
 
       toast({
-        title: "Alerta resolvido!",
-        description: "O alerta foi marcado como resolvido.",
+        title: "Alerta resolvido com sucesso!",
+        description: "O alerta foi marcado como resolvido no sistema de monitoramento.",
       });
 
     } catch (error) {
       console.error('Erro ao resolver alerta:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível resolver o alerta.",
+        title: "Erro ao resolver alerta",
+        description: "Não foi possível marcar o alerta como resolvido. Por favor, tente novamente.",
         variant: "destructive"
       });
     }

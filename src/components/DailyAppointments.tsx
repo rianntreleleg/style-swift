@@ -81,8 +81,8 @@ export const DailyAppointments = ({ tenantId, onAppointmentUpdate }: DailyAppoin
       if (error) {
         console.error('Erro ao buscar agendamentos:', error);
         toast({
-          title: 'Erro',
-          description: 'Não foi possível carregar os agendamentos',
+          title: 'Erro ao carregar agendamentos',
+          description: 'Não foi possível carregar os agendamentos do dia. Por favor, tente novamente.',
           variant: 'destructive'
         });
         return;
@@ -183,7 +183,7 @@ export const DailyAppointments = ({ tenantId, onAppointmentUpdate }: DailyAppoin
 
       if (error) throw error;
 
-      toast({ title: 'Status atualizado com sucesso!' });
+      toast({ title: 'Status atualizado com sucesso!', description: 'O status do agendamento foi atualizado no sistema' });
       
       // Atualizar dados locais
       setAppointments(prev => 
@@ -200,8 +200,8 @@ export const DailyAppointments = ({ tenantId, onAppointmentUpdate }: DailyAppoin
       }
     } catch (error: any) {
       toast({
-        title: 'Erro ao atualizar status',
-        description: error.message,
+        title: 'Erro ao atualizar status do agendamento',
+        description: error.message || 'Ocorreu um erro ao atualizar o status do agendamento',
         variant: 'destructive'
       });
     } finally {
@@ -214,10 +214,10 @@ export const DailyAppointments = ({ tenantId, onAppointmentUpdate }: DailyAppoin
     
     if (!telefone || telefone.trim() === '') {
       toast({
-        title: 'Telefone não disponível',
-        description: 'Este cliente não possui número de telefone cadastrado',
-        variant: 'destructive'
-      });
+          title: 'Telefone não disponível',
+          description: 'Este cliente não possui número de telefone cadastrado no sistema',
+          variant: 'destructive'
+        });
       return;
     }
 
@@ -259,8 +259,8 @@ Entre em contato conosco!
       
       if (!numeroLimpo || numeroLimpo.length < 12) {
         toast({
-          title: 'Número inválido',
-          description: 'O número de telefone não está em um formato válido',
+          title: 'Número de telefone inválido',
+          description: 'O número de telefone informado não está em um formato válido para envio via WhatsApp',
           variant: 'destructive'
         });
         return;
@@ -272,17 +272,17 @@ Entre em contato conosco!
       window.open(url, '_blank');
       
       toast({
-        title: 'WhatsApp aberto',
-        description: 'Mensagem de confirmação pronta para envio',
-        variant: 'default'
-      });
+          title: 'WhatsApp aberto com sucesso!',
+          description: 'A mensagem de confirmação está pronta para envio no WhatsApp',
+          variant: 'default'
+        });
     } catch (error) {
       console.error('Erro ao abrir WhatsApp:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível abrir o WhatsApp',
-        variant: 'destructive'
-      });
+          title: 'Erro ao abrir WhatsApp',
+          description: 'Não foi possível abrir o WhatsApp. Verifique se o aplicativo está instalado no dispositivo',
+          variant: 'destructive'
+        });
     }
   };
 

@@ -110,7 +110,7 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
     } catch (error: any) {
       toast({
         title: 'Erro ao atualizar status',
-        description: error.message,
+        description: error.message || 'Ocorreu um erro ao atualizar o status do agendamento',
         variant: 'destructive'
       });
     } finally {
@@ -132,7 +132,7 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
         throw error;
       }
 
-      toast({ title: 'Agendamento excluído com sucesso!' });
+      toast({ title: 'Agendamento excluído com sucesso!', description: 'O agendamento foi removido do sistema' });
 
       // Chamar callback para atualizar a lista
       if (onAppointmentUpdate) {
@@ -142,7 +142,7 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
       console.error('Erro detalhado:', error);
       toast({
         title: 'Erro ao excluir agendamento',
-        description: error.message || 'Erro desconhecido ao excluir agendamento',
+        description: error.message || 'Ocorreu um erro desconhecido ao excluir o agendamento',
         variant: 'destructive'
       });
     }
@@ -152,15 +152,15 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
     try {
       await checkAndCompleteAppointment.mutateAsync(appointmentId);
       toast({
-        title: 'Agendamento Concluído',
-        description: 'Agendamento marcado como concluído automaticamente (24h após horário).',
+        title: 'Agendamento concluído',
+        description: 'O agendamento foi marcado como concluído automaticamente (24h após o horário programado).',
       });
       onAppointmentUpdate();
     } catch (error: any) {
       console.error('[AUTO-COMPLETE] Erro ao verificar agendamento:', error);
       toast({
-        title: 'Erro na Verificação',
-        description: error.message,
+        title: 'Erro na verificação',
+        description: error.message || 'Ocorreu um erro ao verificar o agendamento',
         variant: 'destructive',
       });
     }
@@ -172,7 +172,7 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
     if (!phone || phone.trim() === '') {
       toast({ 
         title: 'Telefone não disponível', 
-        description: 'Este cliente não possui número de telefone cadastrado',
+        description: 'Este cliente não possui número de telefone cadastrado no sistema',
         variant: 'destructive' 
       });
       return;
@@ -217,7 +217,7 @@ Entre em contato conosco!
       if (!cleanPhone || cleanPhone.length < 12) {
         toast({ 
           title: 'Número inválido', 
-          description: 'O número de telefone não está em um formato válido',
+          description: 'O número de telefone informado não está em um formato válido',
           variant: 'destructive' 
         });
         return;
@@ -230,14 +230,14 @@ Entre em contato conosco!
       
       toast({ 
         title: 'WhatsApp aberto', 
-        description: 'Mensagem de confirmação pronta para envio',
+        description: 'A mensagem de confirmação está pronta para envio',
         variant: 'default' 
       });
     } catch (error) {
       console.error('Erro ao abrir WhatsApp:', error);
       toast({ 
-        title: 'Erro', 
-        description: 'Não foi possível abrir o WhatsApp',
+        title: 'Erro ao abrir WhatsApp', 
+        description: 'Não foi possível abrir o WhatsApp. Verifique se o aplicativo está instalado',
         variant: 'destructive' 
       });
     }

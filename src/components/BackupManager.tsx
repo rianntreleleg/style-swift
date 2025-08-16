@@ -162,8 +162,8 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
     // Check if user has backup access
     if (!canUseBackup) {
       toast({
-        title: "Recurso Premium",
-        description: "Backup automático está disponível apenas para usuários Premium. Faça upgrade do seu plano para acessar esta funcionalidade.",
+        title: "Recurso Premium necessário",
+        description: "O sistema de backup automático está disponível apenas para usuários Premium. Faça upgrade do seu plano para acessar esta funcionalidade avançada.",
         variant: "destructive"
       });
       return;
@@ -182,8 +182,8 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
       if (error) throw error;
 
       toast({
-        title: "Backup iniciado!",
-        description: "O backup está sendo criado. Você será notificado quando estiver pronto.",
+        title: "Backup iniciado com sucesso!",
+        description: "O processo de criação de backup foi iniciado. Você receberá uma notificação quando o processo for concluído.",
       });
 
       // Reload backups after a short delay
@@ -195,8 +195,8 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
     } catch (error) {
       console.error('Erro ao criar backup:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível criar o backup.",
+        title: "Erro ao iniciar backup",
+        description: "Não foi possível iniciar o processo de criação de backup. Por favor, tente novamente mais tarde.",
         variant: "destructive"
       });
     } finally {
@@ -216,14 +216,14 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
       // For now, we'll just show a success message
       toast({
         title: "Download iniciado!",
-        description: "O download do backup foi iniciado.",
+        description: "O download do arquivo de backup foi iniciado. Verifique sua pasta de downloads para o arquivo.",
       });
 
     } catch (error) {
       console.error('Erro ao baixar backup:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível baixar o backup.",
+        title: "Erro ao baixar backup",
+        description: "Não foi possível iniciar o download do arquivo de backup. Por favor, verifique sua conexão e tente novamente.",
         variant: "destructive"
       });
     }
@@ -247,8 +247,8 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
       if (error) throw error;
 
       toast({
-        title: "Backup restaurado",
-        description: `${data.restoredRecords} registros foram restaurados com sucesso.`,
+        title: "Backup restaurado com sucesso!",
+        description: `${data.restoredRecords} registro(s) foram restaurados com sucesso no sistema. Os dados foram atualizados.`,
       });
       
       // Reload data after restoration
@@ -257,8 +257,8 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
     } catch (error) {
       console.error('Erro ao restaurar backup:', error);
       toast({
-        title: "Erro na restauração",
-        description: "Não foi possível restaurar o backup.",
+        title: "Erro na restauração do backup",
+        description: "Não foi possível restaurar o backup. Por favor, verifique os logs do sistema e tente novamente.",
         variant: "destructive",
       });
     } finally {

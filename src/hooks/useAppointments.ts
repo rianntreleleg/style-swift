@@ -160,7 +160,7 @@ export const useCreateAppointment = () => {
       
       toast({
         title: 'Agendamento criado com sucesso!',
-        description: 'O agendamento foi salvo no sistema.',
+        description: 'O novo agendamento foi salvo no sistema com sucesso.',
       });
     },
     onError: (error: any) => {
@@ -173,7 +173,7 @@ export const useCreateAppointment = () => {
       
       toast({
         title: 'Erro ao criar agendamento',
-        description: errorMessage,
+        description: errorMessage || 'Ocorreu um erro ao criar o agendamento. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },
@@ -202,14 +202,14 @@ export const useUpdateAppointment = () => {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
       
       toast({
-        title: 'Agendamento atualizado!',
-        description: 'As alterações foram salvas.',
+        title: 'Agendamento atualizado com sucesso!',
+        description: 'As alterações no agendamento foram salvas com sucesso no sistema.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao atualizar',
-        description: error.message || 'Tente novamente.',
+        title: 'Erro ao atualizar agendamento',
+        description: error.message || 'Ocorreu um erro ao atualizar o agendamento. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },
@@ -236,14 +236,14 @@ export const useDeleteAppointment = () => {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
       
       toast({
-        title: 'Agendamento excluído!',
-        description: 'O agendamento foi removido do sistema.',
+        title: 'Agendamento excluído com sucesso!',
+        description: 'O agendamento foi removido do sistema e não aparecerá mais nas agendas.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao excluir',
-        description: error.message || 'Tente novamente.',
+        title: 'Erro ao excluir agendamento',
+        description: error.message || 'Ocorreu um erro ao remover o agendamento do sistema. Por favor, tente novamente.',
         variant: 'destructive',
       });
     },
