@@ -8,6 +8,7 @@ interface PlanLimits {
   has_financial_dashboard: boolean;
   has_auto_confirmation: boolean;
   has_advanced_analytics: boolean;
+  has_backup: boolean;
 }
 
 interface Permissions {
@@ -16,6 +17,7 @@ interface Permissions {
   canAddService: boolean;
   canUseAutoConfirmation: boolean;
   canUseAdvancedAnalytics: boolean;
+  canUseBackup: boolean;
   planLimits: PlanLimits;
   isLoading: boolean;
 }
@@ -28,12 +30,14 @@ export const usePermissions = (tenantId?: string) => {
     canAddService: false,
     canUseAutoConfirmation: false,
     canUseAdvancedAnalytics: false,
+    canUseBackup: false,
     planLimits: {
       max_professionals: 1,
       max_services: 5,
       has_financial_dashboard: false,
       has_auto_confirmation: false,
-      has_advanced_analytics: false
+      has_advanced_analytics: false,
+      has_backup: false
     },
     isLoading: true
   });
@@ -46,8 +50,8 @@ export const usePermissions = (tenantId?: string) => {
 
     const fetchPermissions = async () => {
       try {
-        // Usar a nova função RPC para verificar acesso pago
-        const { data: accessData, error: accessError } = await supabase.rpc('check_tenant_paid_access', {
+        // Usar a nova função RPC para verificar acesso pago (com backup)
+        const { data: accessData, error: accessError } = await supabase.rpc('check_tenant_paid_access_with_backup', {
           p_tenant_id: tenantId
         });
 
@@ -67,7 +71,8 @@ export const usePermissions = (tenantId?: string) => {
           max_services: planTier === 'premium' ? 999 : planTier === 'professional' ? 15 : 5,
           has_financial_dashboard: access.has_financial_dashboard,
           has_auto_confirmation: access.has_auto_confirmation,
-          has_advanced_analytics: access.has_advanced_analytics
+          has_advanced_analytics: access.has_advanced_analytics,
+          has_backup: planTier === 'premium' && isPaid
         };
 
         // Verificar limites atuais
@@ -93,6 +98,7 @@ export const usePermissions = (tenantId?: string) => {
           canAddService: isPaid && currentServices < planLimits.max_services,
           canUseAutoConfirmation: planLimits.has_auto_confirmation,
           canUseAdvancedAnalytics: planLimits.has_advanced_analytics,
+          canUseBackup: planLimits.has_backup,
           planLimits,
           isLoading: false
         });

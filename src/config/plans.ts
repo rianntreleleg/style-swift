@@ -12,6 +12,7 @@ export const PLAN_FEATURES = {
     hasSupport: false,
     hasAutoConfirmation: false,
     hasBulkActions: false,
+    hasBackup: false,
     features: [
       "Dashboard comum",
       "Agendamentos do dia e histórico",
@@ -22,7 +23,8 @@ export const PLAN_FEATURES = {
     limitations: [
       "Sem dashboard financeiro",
       "Sem lembrete automático 1h antes",
-      "Sem suporte"
+      "Sem suporte",
+      "Sem backup automático"
     ]
   },
   professional: {
@@ -36,6 +38,7 @@ export const PLAN_FEATURES = {
     hasSupport: true,
     hasAutoConfirmation: true,
     hasBulkActions: true,
+    hasBackup: false,
     features: [
       "Dashboard financeiro + todas as funções do Essencial",
       "Até 3 profissionais cadastrados",
@@ -45,7 +48,8 @@ export const PLAN_FEATURES = {
     ],
     limitations: [
       "Sem relatórios avançados",
-      "Sem robô de atendimento 24h"
+      "Sem robô de atendimento 24h",
+      "Sem backup automático"
     ]
   },
   premium: {
@@ -59,6 +63,7 @@ export const PLAN_FEATURES = {
     hasSupport: true,
     hasAutoConfirmation: true,
     hasBulkActions: true,
+    hasBackup: true,
     features: [
       "Dashboard financeiro",
       "Relatórios completos",
@@ -68,6 +73,7 @@ export const PLAN_FEATURES = {
       "E-mail de confirmação",
       "Tema persoalizado",
       "Suporte 24h",
+      "Backup automático mensal",
       "Todas as funcionalidades"
     ],
     limitations: []

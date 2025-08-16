@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 interface Backup {
   id: string;
@@ -61,9 +63,12 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  const [autoBackup, setAutoBackup] = useState(true);
-  const [backupFrequency, setBackupFrequency] = useState('daily');
+  const [autoBackup, setAutoBackup] = useState(false); // Padrão desativado
+  const [backupFrequency, setBackupFrequency] = useState('monthly'); // Padrão mensal
   const [retentionDays, setRetentionDays] = useState(30);
+
+  // Usar hook de permissões
+  const { canUseBackup, planLimits, isLoading: permissionsLoading } = usePermissions(tenantId);
   const [restoreOptions, setRestoreOptions] = useState({
     restoreAppointments: true,
     restoreCustomers: true,
@@ -72,9 +77,11 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
   });
 
   useEffect(() => {
-    loadBackups();
-    loadBackupStats();
-  }, [tenantId]);
+    if (canUseBackup) {
+      loadBackups();
+      loadBackupStats();
+    }
+  }, [tenantId, canUseBackup]);
 
   const loadBackups = async () => {
     try {
@@ -135,8 +142,8 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
   };
 
   const createBackup = async () => {
-    // Check if user has premium plan
-    if (planTier !== 'premium') {
+    // Check if user has backup access
+    if (!canUseBackup) {
       toast({
         title: "Recurso Premium",
         description: "Backup automático está disponível apenas para usuários Premium. Faça upgrade do seu plano para acessar esta funcionalidade.",
@@ -274,6 +281,37 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
     ? Math.round((stats.successful_backups / stats.total_backups) * 100) 
     : 100;
 
+  // Loading state
+  if (permissionsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-muted rounded w-1/2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Se não tem acesso ao backup, mostrar prompt de upgrade
+  if (!canUseBackup) {
+    return (
+      <UpgradePrompt
+        requiredPlan="premium"
+        featureName="Sistema de Backup"
+        currentPlan={planTier || 'essential'}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Estatísticas de Backup */}
@@ -343,7 +381,7 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
             <div>
               <Label className="text-base font-medium">Backup Automático</Label>
               <p className="text-sm text-muted-foreground">
-                Criar backups automaticamente
+                Criar backups automaticamente (desativado por padrão)
               </p>
             </div>
             <Switch
@@ -363,7 +401,7 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
                 >
                   <option value="daily">Diário</option>
                   <option value="weekly">Semanal</option>
-                  <option value="monthly">Mensal</option>
+                  <option value="monthly">Mensal (padrão)</option>
                 </select>
               </div>
               <div className="space-y-2">
