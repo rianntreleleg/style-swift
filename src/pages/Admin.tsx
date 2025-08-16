@@ -36,6 +36,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { usePWA } from "@/hooks/usePWA";
 import { motion } from "framer-motion";
+import { NotificationBell } from "@/components/NotificationBell";
 import AppointmentsTable from "@/components/AppointmentsTable";
 import { DailyAppointments } from "@/components/DailyAppointments";
 import { CreateAppointmentModal } from "@/components/CreateAppointmentModal";
@@ -594,6 +595,7 @@ export default function Admin() {
                 <HelpCircle className="h-4 w-4 mr-2" />
                 Suporte
               </Button>
+              {selectedTenantId && <NotificationBell tenantId={selectedTenantId} />}
               <ThemeToggle />
               <Button variant="outline" size="sm" onClick={handleSignOut} className="hidden lg:flex">
                 <LogOut className="h-4 w-4 mr-2" />

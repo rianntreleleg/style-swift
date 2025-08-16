@@ -9,6 +9,7 @@ import { MobileOptimizer } from "@/components/MobileOptimizer";
 import Favicon from "@/components/Favicon";
 import { lazy, Suspense } from "react";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
+import { NotificationProvider } from "@/components/NotificationProvider";
 
 // Lazy Loading - Carregamento sob demanda
 const Index = lazy(() => import("./pages/Index"));
@@ -49,25 +50,27 @@ const App = () => (
         <TooltipProvider>
           <Favicon />
           <MobileOptimizer>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Suspense fallback={<PageLoadingSpinner />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/subscription" element={<Subscription />} />
-                  <Route path="/support" element={<Support />} />
-                  <Route path="/agendamento" element={<PublicBooking />} />
-                  <Route path="/success" element={<Success />} />
-                  <Route path="/cancel" element={<Cancel />} />
-                  <Route path="/:slug" element={<PublicBooking />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
+            <NotificationProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Suspense fallback={<PageLoadingSpinner />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/subscription" element={<Subscription />} />
+                    <Route path="/support" element={<Support />} />
+                    <Route path="/agendamento" element={<PublicBooking />} />
+                    <Route path="/success" element={<Success />} />
+                    <Route path="/cancel" element={<Cancel />} />
+                    <Route path="/:slug" element={<PublicBooking />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </NotificationProvider>
           </MobileOptimizer>
         </TooltipProvider>
       </AuthProvider>
