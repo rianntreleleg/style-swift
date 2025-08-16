@@ -27,6 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { motion } from 'framer-motion';
 import { CalendarIcon, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { format, addDays, startOfDay, addMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -312,10 +313,20 @@ export function CreateAppointmentModal({
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Dados do cliente */}
-          <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
             <h4 className="font-medium">Dados do Cliente</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.1 }}
+              >
                 <Label htmlFor="customer_name">Nome *</Label>
                 <Input
                   id="customer_name"
@@ -323,13 +334,23 @@ export function CreateAppointmentModal({
                   placeholder="Nome completo do cliente"
                 />
                 {form.formState.errors.customer_name && (
-                  <p className="text-sm text-red-500">
+                  <motion.p 
+                    className="text-sm text-red-500"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {form.formState.errors.customer_name.message}
-                  </p>
+                  </motion.p>
                 )}
-              </div>
+              </motion.div>
 
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.1 }}
+              >
                 <Label htmlFor="customer_phone">Telefone *</Label>
                 <Input
                   id="customer_phone"
@@ -337,14 +358,24 @@ export function CreateAppointmentModal({
                   placeholder="(11) 99999-9999"
                 />
                 {form.formState.errors.customer_phone && (
-                  <p className="text-sm text-red-500">
+                  <motion.p 
+                    className="text-sm text-red-500"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {form.formState.errors.customer_phone.message}
-                  </p>
+                  </motion.p>
                 )}
-              </div>
+              </motion.div>
             </div>
 
-            <div className="space-y-2">
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: 0.2 }}
+            >
               <Label htmlFor="customer_email">Email</Label>
               <Input
                 id="customer_email"
@@ -353,18 +384,33 @@ export function CreateAppointmentModal({
                 placeholder="email@exemplo.com (opcional)"
               />
               {form.formState.errors.customer_email && (
-                <p className="text-sm text-red-500">
+                <motion.p 
+                  className="text-sm text-red-500"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
                   {form.formState.errors.customer_email.message}
-                </p>
+                </motion.p>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Dados do agendamento */}
-          <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="space-y-4"
+          >
             <h4 className="font-medium">Dados do Agendamento</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.2 }}
+              >
                 <Label>Profissional *</Label>
                 <Select
                   value={form.watch('professional_id')}
@@ -382,13 +428,23 @@ export function CreateAppointmentModal({
                   </SelectContent>
                 </Select>
                 {form.formState.errors.professional_id && (
-                  <p className="text-sm text-red-500">
+                  <motion.p 
+                    className="text-sm text-red-500"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {form.formState.errors.professional_id.message}
-                  </p>
+                  </motion.p>
                 )}
-              </div>
+              </motion.div>
 
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.2 }}
+              >
                 <Label>Serviço *</Label>
                 <Select
                   value={form.watch('service_id')}
@@ -406,15 +462,25 @@ export function CreateAppointmentModal({
                   </SelectContent>
                 </Select>
                 {form.formState.errors.service_id && (
-                  <p className="text-sm text-red-500">
+                  <motion.p 
+                    className="text-sm text-red-500"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {form.formState.errors.service_id.message}
-                  </p>
+                  </motion.p>
                 )}
-              </div>
+              </motion.div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.3 }}
+              >
                 <Label>Data *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -445,13 +511,23 @@ export function CreateAppointmentModal({
                   </PopoverContent>
                 </Popover>
                 {form.formState.errors.date && (
-                  <p className="text-sm text-red-500">
+                  <motion.p 
+                    className="text-sm text-red-500"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {form.formState.errors.date.message}
-                  </p>
+                  </motion.p>
                 )}
-              </div>
+              </motion.div>
 
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.3 }}
+              >
                 <Label>Horário *</Label>
                 <Select
                   value={form.watch('time')}
@@ -469,45 +545,72 @@ export function CreateAppointmentModal({
                   </SelectContent>
                 </Select>
                 {form.formState.errors.time && (
-                  <p className="text-sm text-red-500">
+                  <motion.p 
+                    className="text-sm text-red-500"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {form.formState.errors.time.message}
-                  </p>
+                  </motion.p>
                 )}
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Observações */}
-          <div className="space-y-2">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="space-y-2"
+          >
             <Label htmlFor="notes">Observações</Label>
             <Textarea
               id="notes"
               {...form.register('notes')}
               placeholder="Observações sobre o agendamento (opcional)"
             />
-          </div>
+          </motion.div>
 
           {/* Alerta de conflito */}
-          {validationLoading && (
-            <Alert>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <AlertDescription>
-                Verificando conflitos de horário...
-              </AlertDescription>
-            </Alert>
-          )}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
+            {validationLoading && (
+              <Alert>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <AlertDescription>
+                  Verificando conflitos de horário...
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {conflictError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {conflictError}
-              </AlertDescription>
-            </Alert>
-          )}
+            {conflictError && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {conflictError}
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </motion.div>
 
           {/* Botões */}
-          <div className="flex justify-end gap-3">
+          <motion.div 
+            className="flex justify-end gap-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+          >
             <Button
               type="button"
               variant="outline"
@@ -523,7 +626,7 @@ export function CreateAppointmentModal({
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Criar Agendamento
             </Button>
-          </div>
+          </motion.div>
         </form>
       </DialogContent>
     </Dialog>

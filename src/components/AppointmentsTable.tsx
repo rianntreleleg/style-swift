@@ -45,6 +45,8 @@ import { formatBRL, cn } from '@/lib/utils';
 import { formatSimpleTime, formatSimpleDateTime, parseSimpleDateTime } from '@/lib/dateUtils';
 import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
 import { useAutoComplete } from '@/hooks/useAutoComplete';
+import { motion } from 'framer-motion';
+import { AnimatedContainer, AnimatedItem, AnimatedCard } from '@/components/MicroInteractions';
 
 
 interface Appointment {
@@ -266,12 +268,16 @@ Entre em contato conosco!
     switch (status) {
       case 'confirmado':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'agendado':
+        return <Clock className="h-4 w-4 text-blue-600" />;
+      case 'concluido':
+        return <CheckCircle className="h-4 w-4 text-purple-600" />;
       case 'cancelado':
         return <XCircle className="h-4 w-4 text-red-600" />;
       case 'nao_compareceu':
         return <AlertCircle className="h-4 w-4 text-orange-600" />;
       default:
-        return <Calendar className="h-4 w-4 text-blue-600" />;
+        return <Calendar className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -444,21 +450,41 @@ Entre em contato conosco!
   const uniqueServices = Array.from(new Set(appointments.map(a => a.services?.name).filter(Boolean)));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Agendamentos ({filteredData.length} de {appointments.length})
-        </CardTitle>
-        <CardDescription>
-          Gerencie todos os agendamentos do estabelecimento
-        </CardDescription>
-      </CardHeader>
+    <AnimatedCard>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
+            >
+              <Calendar className="h-5 w-5" />
+            </motion.div>
+            Agendamentos ({filteredData.length} de {appointments.length})
+          </CardTitle>
+          <CardDescription>
+            Gerencie todos os agendamentos do estabelecimento
+          </CardDescription>
+        </CardHeader>
+      </motion.div>
       <CardContent className="space-y-4">
         {/* Filtros */}
-        <div className="space-y-4">
+        <motion.div 
+          className="space-y-4"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
           <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+            <motion.div 
+              className="relative flex-1 max-w-sm"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar agendamentos..."
@@ -466,7 +492,7 @@ Entre em contato conosco!
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
-            </div>
+            </motion.div>
             <Button
               variant="outline"
               size="sm"
@@ -479,91 +505,124 @@ Entre em contato conosco!
           </div>
 
           {/* Painel de filtros */}
-          {showFilters && (
-            <Card className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Filtro de status */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Status</label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todos os status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os status</SelectItem>
-                      {statusOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Filtro de profissional */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Profissional</label>
-                  <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todos os profissionais" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os profissionais</SelectItem>
-                      {uniqueProfessionals.map(name => (
-                        <SelectItem key={name} value={name!}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Filtro de serviço */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Serviço</label>
-                  <Select value={serviceFilter} onValueChange={setServiceFilter}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todos os serviços" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os serviços</SelectItem>
-                      {uniqueServices.map(name => (
-                        <SelectItem key={name} value={name!}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Botão limpar filtros */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">&nbsp;</label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setStatusFilter('all');
-                      setProfessionalFilter('all');
-                      setServiceFilter('all');
-                      setSearchTerm('');
-                    }}
-                    className="w-full"
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: showFilters ? 1 : 0, height: showFilters ? 'auto' : 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            {showFilters && (
+              <AnimatedCard className="p-4" delay={0.1}>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Filtro de status */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.1 }}
                   >
-                    Limpar Filtros
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          )}
-        </div>
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Todos os status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os status</SelectItem>
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
 
-        <MobileTable
-          columns={columns}
-          data={filteredData}
-          emptyMessage="Nenhum agendamento encontrado."
-        />
+                  {/* Filtro de profissional */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.2 }}
+                  >
+                    <label className="text-sm font-medium">Profissional</label>
+                    <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Todos os profissionais" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os profissionais</SelectItem>
+                        {uniqueProfessionals.map(name => (
+                          <SelectItem key={name} value={name!}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+
+                  {/* Filtro de serviço */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.3 }}
+                  >
+                    <label className="text-sm font-medium">Serviço</label>
+                    <Select value={serviceFilter} onValueChange={setServiceFilter}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Todos os serviços" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os serviços</SelectItem>
+                        {uniqueServices.map(name => (
+                          <SelectItem key={name} value={name!}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+
+                  {/* Botão limpar filtros */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.4 }}
+                  >
+                    <label className="text-sm font-medium">&nbsp;</label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setStatusFilter('all');
+                        setProfessionalFilter('all');
+                        setServiceFilter('all');
+                        setSearchTerm('');
+                      }}
+                      className="w-full"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </motion.div>
+                </div>
+              </AnimatedCard>
+            )}
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <MobileTable
+            columns={columns}
+            data={filteredData}
+            emptyMessage="Nenhum agendamento encontrado."
+          />
+        </motion.div>
       </CardContent>
-    </Card>
+    </AnimatedCard>
   );
 }

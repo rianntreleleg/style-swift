@@ -26,6 +26,8 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { formatBRL } from '@/lib/utils';
 import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
+import { motion } from 'framer-motion';
+import { AnimatedCard } from '@/components/MicroInteractions';
 
 interface Service {
   id: string;
@@ -142,121 +144,187 @@ export default function ServicesTable({ services, tenantId, onServiceUpdate }: S
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Scissors className="h-5 w-5" />
-          Serviços
-        </CardTitle>
-        <CardDescription>
-          Gerencie os serviços oferecidos pelo estabelecimento
-        </CardDescription>
-      </CardHeader>
+    <AnimatedCard>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <motion.div
+              animate={{ rotate: [0, 15, -15, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
+            >
+              <Scissors className="h-5 w-5" />
+            </motion.div>
+            Serviços
+          </CardTitle>
+          <CardDescription>
+            Gerencie os serviços oferecidos pelo estabelecimento
+          </CardDescription>
+        </CardHeader>
+      </motion.div>
       <CardContent>
-        <MobileTable
-          columns={[
-            { key: 'name', label: 'Serviço' },
-            { key: 'price', label: 'Preço' },
-            { key: 'duration', label: 'Duração' },
-            { key: 'status', label: 'Status' },
-            { key: 'actions', label: 'Ações' }
-          ]}
-          data={services.map((service) => ({
-            id: service.id,
-            name: editingId === service.id ? (
-              <div className="space-y-2">
-                <Input
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  placeholder="Nome do serviço"
-                />
-                <Input
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  placeholder="Descrição (opcional)"
-                />
-              </div>
-            ) : (
-              <div>
-                <div className="font-medium">{service.name}</div>
-                {service.description && (
-                  <div className="text-sm text-muted-foreground">{service.description}</div>
-                )}
-              </div>
-            ),
-            price: editingId === service.id ? (
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editForm.price_reais}
-                  onChange={(e) => setEditForm({ ...editForm, price_reais: e.target.value })}
-                  className="w-20"
-                />
-              </div>
-            ) : (
-              <div className="font-medium">{formatBRL(service.price_cents)}</div>
-            ),
-            duration: editingId === service.id ? (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  value={editForm.duration_minutes}
-                  onChange={(e) => setEditForm({ ...editForm, duration_minutes: e.target.value })}
-                  className="w-20"
-                />
-                <span className="text-sm text-muted-foreground">min</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>{service.duration_minutes} min</span>
-              </div>
-            ),
-            status: <StatusBadge status={service.active ? "Ativo" : "Inativo"} variant={service.active ? "default" : "secondary"} />,
-            actions: editingId === service.id ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <ActionButton
-                  onClick={handleSave}
-                  icon={<Save className="h-4 w-4" />}
-                  label="Salvar"
-                  variant="default"
-                />
-                <ActionButton
-                  onClick={handleCancel}
-                  icon={<X className="h-4 w-4" />}
-                  label="Cancelar"
-                  variant="outline"
-                />
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <ActionButton
-                  onClick={() => handleEdit(service)}
-                  icon={<Edit className="h-4 w-4" />}
-                  label="Editar"
-                  variant="outline"
-                />
-                <ActionButton
-                  onClick={() => handleToggleActive(service.id, service.active)}
-                  icon={service.active ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                  label={service.active ? "Desativar" : "Ativar"}
-                  variant="outline"
-                />
-                <ActionButton
-                  onClick={() => handleDelete(service.id)}
-                  icon={<Trash2 className="h-4 w-4" />}
-                  label="Excluir"
-                  variant="destructive"
-                />
-              </div>
-            )
-          }))}
-          emptyMessage="Nenhum serviço cadastrado"
-        />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <MobileTable
+            columns={[
+              { key: 'name', label: 'Serviço' },
+              { key: 'price', label: 'Preço' },
+              { key: 'duration', label: 'Duração' },
+              { key: 'status', label: 'Status' },
+              { key: 'actions', label: 'Ações' }
+            ]}
+            data={services.map((service, index) => ({
+              id: service.id,
+              name: editingId === service.id ? (
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    placeholder="Nome do serviço"
+                  />
+                  <Input
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    placeholder="Descrição (opcional)"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <div className="font-medium">{service.name}</div>
+                  {service.description && (
+                    <div className="text-sm text-muted-foreground">{service.description}</div>
+                  )}
+                </motion.div>
+              ),
+              price: editingId === service.id ? (
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editForm.price_reais}
+                    onChange={(e) => setEditForm({ ...editForm, price_reais: e.target.value })}
+                    className="w-20"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                  className="font-medium"
+                >
+                  {formatBRL(service.price_cents)}
+                </motion.div>
+              ),
+              duration: editingId === service.id ? (
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    value={editForm.duration_minutes}
+                    onChange={(e) => setEditForm({ ...editForm, duration_minutes: e.target.value })}
+                    className="w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">min</span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                  className="flex items-center gap-1"
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>{service.duration_minutes} min</span>
+                </motion.div>
+              ),
+              status: (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <StatusBadge status={service.active ? "Ativo" : "Inativo"} variant={service.active ? "default" : "secondary"} />
+                </motion.div>
+              ),
+              actions: editingId === service.id ? (
+                <motion.div 
+                  className="flex flex-wrap items-center gap-2"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ActionButton
+                    onClick={handleSave}
+                    icon={<Save className="h-4 w-4" />}
+                    label="Salvar"
+                    variant="default"
+                  />
+                  <ActionButton
+                    onClick={handleCancel}
+                    icon={<X className="h-4 w-4" />}
+                    label="Cancelar"
+                    variant="outline"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  className="flex flex-wrap items-center gap-2"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <ActionButton
+                    onClick={() => handleEdit(service)}
+                    icon={<Edit className="h-4 w-4" />}
+                    label="Editar"
+                    variant="outline"
+                  />
+                  <ActionButton
+                    onClick={() => handleToggleActive(service.id, service.active)}
+                    icon={service.active ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    label={service.active ? "Desativar" : "Ativar"}
+                    variant="outline"
+                  />
+                  <ActionButton
+                    onClick={() => handleDelete(service.id)}
+                    icon={<Trash2 className="h-4 w-4" />}
+                    label="Excluir"
+                    variant="destructive"
+                  />
+                </motion.div>
+              )
+            }))}
+            emptyMessage="Nenhum serviço cadastrado"
+          />
+        </motion.div>
       </CardContent>
-    </Card>
+    </AnimatedCard>
   );
 }

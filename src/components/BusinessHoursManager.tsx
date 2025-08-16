@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Clock, Save, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { motion } from 'framer-motion';
 
 interface BusinessHour {
   id: string;
@@ -119,119 +120,186 @@ export default function BusinessHoursManager({ tenantId }: BusinessHoursManagerP
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Horários de Funcionamento
-          </CardTitle>
-          <CardDescription>
-            Configure os horários de funcionamento do seu estabelecimento
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <motion.div
+                animate={{ rotate: [0, 30, -30, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              >
+                <Clock className="h-5 w-5" />
+              </motion.div>
+              Horários de Funcionamento
+            </CardTitle>
+            <CardDescription>
+              Configure os horários de funcionamento do seu estabelecimento
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-8">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Loader2 className="h-8 w-8 text-muted-foreground" />
+              </motion.div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Horários de Funcionamento
-        </CardTitle>
-        <CardDescription>
-          Configure os horários de funcionamento do seu estabelecimento
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-4">
-          {weekdays.map(({ value, label }) => {
-            const hour = businessHours.find(h => h.weekday === value);
-            
-            return (
-              <div key={value} className="p-4 border rounded-lg">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-24 sm:w-32">
-                      <Label className="text-sm font-medium">{label}</Label>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={!hour?.closed}
-                        onCheckedChange={() => handleToggleClosed(value)}
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        {hour?.closed ? 'Fechado' : 'Aberto'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {!hour?.closed && (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="space-y-1 w-full sm:w-auto">
-                        <Label className="text-xs text-muted-foreground">Abertura</Label>
-                        <Input
-                          type="time"
-                          value={hour?.open_time || ''}
-                          onChange={(e) => handleTimeChange(value, 'open_time', e.target.value)}
-                          className="w-full sm:w-32"
-                        />
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <motion.div
+                animate={{ rotate: [0, 15, -15, 0] }}
+                transition={{ duration: 3, repeat: Infinity, repeatDelay: 5 }}
+              >
+                <Clock className="h-5 w-5" />
+              </motion.div>
+              Horários de Funcionamento
+            </CardTitle>
+            <CardDescription>
+              Configure os horários de funcionamento do seu estabelecimento
+            </CardDescription>
+          </CardHeader>
+        </motion.div>
+        <CardContent className="space-y-6">
+          <motion.div 
+            className="space-y-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            {weekdays.map(({ value, label }, index) => {
+              const hour = businessHours.find(h => h.weekday === value);
+              
+              return (
+                <motion.div 
+                  key={value} 
+                  className="p-4 border rounded-lg"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10, delay: 0.1 + index * 0.05 }}
+                  whileHover={{ scale: 1.01 }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-24 sm:w-32">
+                        <Label className="text-sm font-medium">{label}</Label>
                       </div>
                       
-                      <div className="space-y-1 w-full sm:w-auto">
-                        <Label className="text-xs text-muted-foreground">Fechamento</Label>
-                        <Input
-                          type="time"
-                          value={hour?.close_time || ''}
-                          onChange={(e) => handleTimeChange(value, 'close_time', e.target.value)}
-                          className="w-full sm:w-32"
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={!hour?.closed}
+                          onCheckedChange={() => handleToggleClosed(value)}
                         />
+                        <span className="text-sm text-muted-foreground">
+                          {hour?.closed ? 'Fechado' : 'Aberto'}
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
-        <div className="flex justify-end pt-4">
-          <Button 
-            onClick={handleSave} 
-            disabled={saving}
-            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                    {!hour?.closed && (
+                      <motion.div 
+                        className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: 0.2 + index * 0.05 }}
+                      >
+                        <div className="space-y-1 w-full sm:w-auto">
+                          <Label className="text-xs text-muted-foreground">Abertura</Label>
+                          <Input
+                            type="time"
+                            value={hour?.open_time || ''}
+                            onChange={(e) => handleTimeChange(value, 'open_time', e.target.value)}
+                            className="w-full sm:w-32"
+                          />
+                        </div>
+                        
+                        <div className="space-y-1 w-full sm:w-auto">
+                          <Label className="text-xs text-muted-foreground">Fechamento</Label>
+                          <Input
+                            type="time"
+                            value={hour?.close_time || ''}
+                            onChange={(e) => handleTimeChange(value, 'close_time', e.target.value)}
+                            className="w-full sm:w-32"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+
+          <motion.div 
+            className="flex justify-end pt-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
           >
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Salvar Horários
-              </>
-            )}
-          </Button>
-        </div>
+            <Button 
+              onClick={handleSave} 
+              disabled={saving}
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            >
+              {saving ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="mr-2"
+                  >
+                    <Loader2 className="h-4 w-4" />
+                  </motion.div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Salvar Horários
+                </>
+              )}
+            </Button>
+          </motion.div>
 
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-          <h4 className="font-medium mb-2">Dicas:</h4>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Configure os horários de acordo com o funcionamento real do seu estabelecimento</li>
-            <li>• Os clientes só poderão agendar horários dentro dos períodos configurados</li>
-            <li>• Você pode definir dias específicos como fechados</li>
-            <li>• As alterações são aplicadas imediatamente</li>
-          </ul>
-        </div>
-      </CardContent>
-    </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+          >
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-medium mb-2">Dicas:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Configure os horários de acordo com o funcionamento real do seu estabelecimento</li>
+                <li>• Os clientes só poderão agendar horários dentro dos períodos configurados</li>
+                <li>• Você pode definir dias específicos como fechados</li>
+                <li>• As alterações são aplicadas imediatamente</li>
+              </ul>
+            </div>
+          </motion.div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

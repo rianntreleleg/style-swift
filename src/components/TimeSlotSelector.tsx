@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { toDatabaseString, getLocalDayBounds, parseSimpleDateTime } from '@/lib/dateUtils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Tag } from "lucide-react";
+import { motion } from 'framer-motion';
 
 interface Appointment {
   id: string;
@@ -410,33 +411,56 @@ export const TimeSlotSelector = ({
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-4"
+      >
         <Skeleton className="h-10 w-full" />
         <div className="grid grid-cols-6 gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: i * 0.05 }}
+            >
+              <Skeleton className="h-16 w-full" />
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   if (hours.closed) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Fechado</h3>
-          <p className="text-muted-foreground">
-            Não há horários disponíveis para {format(selectedDate, 'EEEE', { locale: ptBR })}.
-          </p>
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card>
+          <CardContent className="p-6 text-center">
+            <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Fechado</h3>
+            <p className="text-muted-foreground">
+              Não há horários disponíveis para {format(selectedDate, 'EEEE', { locale: ptBR })}.
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-4"
+    >
       {/* Informações do serviço */}
       {selectedService && (() => {
         // Lógica para deixar o JSX mais limpo
@@ -447,84 +471,114 @@ export const TimeSlotSelector = ({
         }).format(selectedService.price_cents / 100);
 
         return (
-          <Alert className="mt-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>{selectedService.name}</AlertTitle>
-            <AlertDescription className="mt-2 space-y-1">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Clock className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span>Duração: {serviceDuration} minutos ({slotText})</span>
-              </div>
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Tag className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span>Preço: {formattedPrice}</span>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <Alert className="mt-4">
+              <Info className="h-4 w-4" />
+              <AlertTitle>{selectedService.name}</AlertTitle>
+              <AlertDescription className="mt-2 space-y-1">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Clock className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>Duração: {serviceDuration} minutos ({slotText})</span>
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Tag className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>Preço: {formattedPrice}</span>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </motion.div>
         );
       })()}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Horários Disponíveis
-          </CardTitle>
-          <CardDescription>
-            {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })} • {hours.open} - {hours.close}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-            {timeSlots.map((timeSlot, index) => {
-              const isBooked = isTimeSlotBooked(timeSlot);
-              const isBlocked = isTimeSlotBlocked(timeSlot);
-              const isPast = isTimeSlotPast(timeSlot);
-              const isMultiSlotOccupied = isTimeSlotOccupiedByMultiSlot(timeSlot);
-              const isPartiallyOccupied = isTimeSlotPartiallyOccupied(timeSlot);
-              const appointment = getAppointmentForTimeSlot(timeSlot);
-              const occupyingAppointment = getOccupyingAppointment(timeSlot);
-              const isSelected = selectedTime === format(timeSlot, 'HH:mm');
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <motion.div
+                animate={{ rotate: [0, 15, -15, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
+              >
+                <Clock className="h-5 w-5" />
+              </motion.div>
+              Horários Disponíveis
+            </CardTitle>
+            <CardDescription>
+              {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })} • {hours.open} - {hours.close}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+              {timeSlots.map((timeSlot, index) => {
+                const isBooked = isTimeSlotBooked(timeSlot);
+                const isBlocked = isTimeSlotBlocked(timeSlot);
+                const isPast = isTimeSlotPast(timeSlot);
+                const isMultiSlotOccupied = isTimeSlotOccupiedByMultiSlot(timeSlot);
+                const isPartiallyOccupied = isTimeSlotPartiallyOccupied(timeSlot);
+                const appointment = getAppointmentForTimeSlot(timeSlot);
+                const occupyingAppointment = getOccupyingAppointment(timeSlot);
+                const isSelected = selectedTime === format(timeSlot, 'HH:mm');
 
-              let buttonClass = '';
-              if (isBooked) {
-                buttonClass = 'bg-red-100 text-red-800 border-red-300 cursor-not-allowed';
-              } else if (isBlocked) {
-                buttonClass = 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed';
-              } else if (isPast) {
-                buttonClass = 'bg-orange-100 text-orange-800 border-orange-300 cursor-not-allowed';
-              } else if (isMultiSlotOccupied) {
-                buttonClass = 'bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed';
-              } else if (isPartiallyOccupied) {
-                buttonClass = 'bg-blue-100 text-blue-800 border-blue-300 cursor-not-allowed';
-              } else if (isSelected) {
-                buttonClass = 'bg-primary text-primary-foreground';
-              } else {
-                buttonClass = 'hover:bg-primary/10';
-              }
+                let buttonClass = '';
+                if (isBooked) {
+                  buttonClass = 'bg-red-100 text-red-800 border-red-300 cursor-not-allowed';
+                } else if (isBlocked) {
+                  buttonClass = 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed';
+                } else if (isPast) {
+                  buttonClass = 'bg-orange-100 text-orange-800 border-orange-300 cursor-not-allowed';
+                } else if (isMultiSlotOccupied) {
+                  buttonClass = 'bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed';
+                } else if (isPartiallyOccupied) {
+                  buttonClass = 'bg-blue-100 text-blue-800 border-blue-300 cursor-not-allowed';
+                } else if (isSelected) {
+                  buttonClass = 'bg-primary text-primary-foreground';
+                } else {
+                  buttonClass = 'hover:bg-primary/10';
+                }
 
-              return (
-                <Button
-                  type="button"
-                  key={index}
-                  variant={isSelected ? "default" : "outline"}
-                  className={`h-14 md:h-16 flex flex-col items-center justify-center p-2 text-xs min-h-[44px] ${buttonClass}`}
-                  onClick={() => handleTimeSlotClick(timeSlot)}
-                  disabled={isBooked || isBlocked || isPast || isMultiSlotOccupied || isPartiallyOccupied}
-                >
-                  <div className="font-medium">
-                    {format(timeSlot, 'HH:mm')}
-                  </div>
-                  {/* Removido texto dos slots bloqueados - apenas cor */}
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                return (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                    whileHover={!isBooked && !isBlocked && !isPast && !isMultiSlotOccupied && !isPartiallyOccupied ? { scale: 1.05 } : {}}
+                    whileTap={!isBooked && !isBlocked && !isPast && !isMultiSlotOccupied && !isPartiallyOccupied ? { scale: 0.95 } : {}}
+                  >
+                    <Button
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      className={`h-14 md:h-16 flex flex-col items-center justify-center p-2 text-xs min-h-[44px] ${buttonClass}`}
+                      onClick={() => handleTimeSlotClick(timeSlot)}
+                      disabled={isBooked || isBlocked || isPast || isMultiSlotOccupied || isPartiallyOccupied}
+                    >
+                      <div className="font-medium">
+                        {format(timeSlot, 'HH:mm')}
+                      </div>
+                      {/* Removido texto dos slots bloqueados - apenas cor */}
+                    </Button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Legenda */}
-      <div className="grid grid-cols-2 md:flex md:items-center gap-2 md:gap-4 text-xs md:text-sm flex-wrap">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+        className="grid grid-cols-2 md:flex md:items-center gap-2 md:gap-4 text-xs md:text-sm flex-wrap"
+      >
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-gray-300 bg-white rounded"></div>
           <span>Disponível</span>
@@ -553,43 +607,60 @@ export const TimeSlotSelector = ({
           <div className="w-3 h-3 md:w-4 md:h-4 bg-primary border-2 border-primary rounded"></div>
           <span>Selecionado</span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Informações do horário selecionado */}
       {selectedTime && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <div className="font-medium">
-                  Horário selecionado: {selectedTime}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                </div>
-                {selectedService && (
-                  <div className="text-sm text-blue-600">
-                    Serviço: {selectedService.name} ({serviceDuration} min)
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.4 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </motion.div>
+                <div>
+                  <div className="font-medium">
+                    Horário selecionado: {selectedTime}
                   </div>
-                )}
+                  <div className="text-sm text-muted-foreground">
+                    {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  </div>
+                  {selectedService && (
+                    <div className="text-sm text-blue-600">
+                      Serviço: {selectedService.name} ({serviceDuration} min)
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Informações sobre o sistema de slots */}
       {selectedService && serviceSlots > 1 && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Informação sobre slots</AlertTitle>
-          <AlertDescription>
-            Este serviço ocupa {serviceSlots} slots de 30 minutos ({serviceDuration} min total). 
-            Todos os slots necessários devem estar disponíveis para o agendamento.
-          </AlertDescription>
-        </Alert>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+        >
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>Informação sobre slots</AlertTitle>
+            <AlertDescription>
+              Este serviço ocupa {serviceSlots} slots de 30 minutos ({serviceDuration} min total). 
+              Todos os slots necessários devem estar disponíveis para o agendamento.
+            </AlertDescription>
+          </Alert>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };

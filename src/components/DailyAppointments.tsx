@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { motion } from 'framer-motion';
 import { format, isToday, parseISO, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 import { toDatabaseString, formatSimpleTime, parseSimpleDateTime } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
@@ -160,15 +161,15 @@ export const DailyAppointments = ({ tenantId, onAppointmentUpdate }: DailyAppoin
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'confirmado':
-        return <CheckCircle className="h-4 w-4" />;
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'agendado':
-        return <Clock className="h-4 w-4" />;
+        return <Clock className="h-4 w-4 text-blue-600" />;
       case 'concluido':
-        return <CheckCircle className="h-4 w-4" />;
+        return <CheckCircle className="h-4 w-4 text-purple-600" />;
       case 'cancelado':
-        return <XCircle className="h-4 w-4" />;
+        return <XCircle className="h-4 w-4 text-red-600" />;
       default:
-        return <AlertCircle className="h-4 w-4" />;
+        return <AlertCircle className="h-4 w-4 text-orange-600" />;
     }
   };
 
@@ -319,11 +320,26 @@ Entre em contato conosco!
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
       {/* Header com busca e filtros */}
-      <div className="space-y-4">
+      <motion.div 
+        className="space-y-4"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
+          <motion.div 
+            className="relative flex-1 max-w-sm"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
+          >
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar clientes..."
@@ -331,312 +347,348 @@ Entre em contato conosco!
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
             />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
           >
-            <Filter className="h-4 w-4" />
-            Filtros
-          </Button>
-          <div className="text-sm text-muted-foreground">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filtros
+            </Button>
+          </motion.div>
+          <motion.div 
+            className="text-sm text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, delay: 0.2 }}
+          >
             Última atualização: {format(new Date(), 'HH:mm', { locale: ptBR })}
-          </div>
+          </motion.div>
         </div>
 
         {/* Painel de filtros */}
-        {showFilters && (
-          <Card className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Filtro de data */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data</label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: showFilters ? 1 : 0, height: showFilters ? 'auto' : 0 }}
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden"
+        >
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Card className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Filtro de data */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.1 }}
                   >
-                    ←
-                  </Button>
-                  <div className="flex-1 text-center text-sm font-medium">
-                    {format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                    <label className="text-sm font-medium">Data</label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+                      >
+                        ←
+                      </Button>
+                      <div className="flex-1 text-center text-sm font-medium">
+                        {format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                      >
+                        →
+                      </Button>
+                    </div>
+                  </motion.div>
+
+                  {/* Filtro de status */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.2 }}
                   >
-                    →
-                  </Button>
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Todos os status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os status</SelectItem>
+                        <SelectItem value="agendado">Agendado</SelectItem>
+                        <SelectItem value="confirmado">Confirmado</SelectItem>
+                        <SelectItem value="concluido">Concluído</SelectItem>
+                        <SelectItem value="cancelado">Cancelado</SelectItem>
+                        <SelectItem value="nao_compareceu">Não Compareceu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+
+                  {/* Filtro de profissional */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.3 }}
+                  >
+                    <label className="text-sm font-medium">Profissional</label>
+                    <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Todos os profissionais" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os profissionais</SelectItem>
+                        {Array.from(new Set(appointments.map(a => a.professionals?.name).filter(Boolean))).map(name => (
+                          <SelectItem key={name} value={name!}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+
+                  {/* Botão limpar filtros */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.4 }}
+                  >
+                    <label className="text-sm font-medium">&nbsp;</label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setStatusFilter('all');
+                        setProfessionalFilter('all');
+                        setSelectedDate(new Date());
+                      }}
+                      className="w-full"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </motion.div>
                 </div>
-              </div>
-
-              {/* Filtro de status */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Todos os status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os status</SelectItem>
-                    <SelectItem value="agendado">Agendado</SelectItem>
-                    <SelectItem value="confirmado">Confirmado</SelectItem>
-                    <SelectItem value="concluido">Concluído</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                    <SelectItem value="nao_compareceu">Não Compareceu</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filtro de profissional */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Profissional</label>
-                <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Todos os profissionais" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os profissionais</SelectItem>
-                    {Array.from(new Set(appointments.map(a => a.professionals?.name).filter(Boolean))).map(name => (
-                      <SelectItem key={name} value={name!}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Botão limpar filtros */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">&nbsp;</label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter('all');
-                    setProfessionalFilter('all');
-                    setSelectedDate(new Date());
-                  }}
-                  className="w-full"
-                >
-                  Limpar Filtros
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-      </div>
-
-
+              </Card>
+            </motion.div>
+          )}
+        </motion.div>
+      </motion.div>
 
       {/* Dashboard/Relatório */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-              <span className="text-sm font-medium">Total</span>
-            </div>
-            <div className="text-2xl font-bold">{totalAppointments}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
-              <span className="text-sm font-medium">Confirmados</span>
-            </div>
-            <div className="text-2xl font-bold">{confirmedAppointments}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-              <span className="text-sm font-medium">Pendentes</span>
-            </div>
-            <div className="text-2xl font-bold">{pendingAppointments}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-purple-500"></div>
-              <span className="text-sm font-medium">Concluídos</span>
-            </div>
-            <div className="text-2xl font-bold">{completedAppointments}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-red-500"></div>
-              <span className="text-sm font-medium">Cancelados</span>
-            </div>
-            <div className="text-2xl font-bold">{cancelledAppointments}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-              <span className="text-sm font-medium">Receita</span>
-            </div>
-            <div className="text-2xl font-bold">R$ {(totalRevenue / 100).toFixed(2)}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          {[
+            { count: totalAppointments, label: "Total", color: "blue" },
+            { count: confirmedAppointments, label: "Confirmados", color: "green" },
+            { count: pendingAppointments, label: "Pendentes", color: "yellow" },
+            { count: completedAppointments, label: "Concluídos", color: "purple" },
+            { count: cancelledAppointments, label: "Cancelados", color: "red" },
+            { count: (totalRevenue / 100).toFixed(2), label: "Receita", color: "emerald" }
+          ].map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: 0.1 + index * 0.05 }}
+            >
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full bg-${item.color}-500`}></div>
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </div>
+                  <div className="text-2xl font-bold">{item.count}</div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Agendamentos de Hoje ({filteredAppointments.length})
-          </CardTitle>
-          <CardDescription>
-            Lista de agendamentos para hoje - atualizada automaticamente
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredAppointments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm 
-                ? 'Nenhum agendamento encontrado com o filtro aplicado'
-                : 'Nenhum agendamento para hoje'
-              }
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Horário</TableHead>
-                  <TableHead>Profissional</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAppointments.map((appointment) => (
-                  <TableRow key={appointment.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{appointment.customer_name}</div>
-                        {appointment.notes && (
-                          <div className="text-sm text-muted-foreground">
-                            {appointment.notes}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Agendamentos de Hoje ({filteredAppointments.length})
+            </CardTitle>
+            <CardDescription>
+              Lista de agendamentos para hoje - atualizada automaticamente
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {filteredAppointments.length === 0 ? (
+              <motion.div 
+                className="text-center py-8 text-muted-foreground"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                {searchTerm 
+                  ? 'Nenhum agendamento encontrado com o filtro aplicado'
+                  : 'Nenhum agendamento para hoje'
+                }
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Horário</TableHead>
+                      <TableHead>Profissional</TableHead>
+                      <TableHead>Serviço</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Contato</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAppointments.map((appointment, index) => (
+                      <motion.tr
+                        key={appointment.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.05 }}
+                      >
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{appointment.customer_name}</div>
+                            {appointment.notes && (
+                              <div className="text-sm text-muted-foreground">
+                                {appointment.notes}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {formatSimpleTime(appointment.start_time)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {appointment.professionals ? (
-                        <div className="font-medium">{appointment.professionals.name}</div>
-                      ) : (
-                        <span className="text-muted-foreground">Não definido</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{appointment.services?.name || 'Não definido'}</div>
-                        {appointment.services?.price_cents && (
-                          <div className="text-sm text-muted-foreground">
-                            R$ {(appointment.services.price_cents / 100).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {formatSimpleTime(appointment.start_time)}
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusColor(appointment.status)} className="flex items-center gap-1">
-                        {getStatusIcon(appointment.status)}
-                        {getStatusText(appointment.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {appointment.customer_phone && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <Phone className="h-3 w-3" />
-                            {appointment.customer_phone}
+                        </TableCell>
+                        <TableCell>
+                          {appointment.professionals ? (
+                            <div className="font-medium">{appointment.professionals.name}</div>
+                          ) : (
+                            <span className="text-muted-foreground">Não definido</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{appointment.services?.name || 'Não definido'}</div>
+                            {appointment.services?.price_cents && (
+                              <div className="text-sm text-muted-foreground">
+                                R$ {(appointment.services.price_cents / 100).toFixed(2)}
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {appointment.customer_email && (
-                          <div className="text-sm text-muted-foreground">
-                            {appointment.customer_email}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusColor(appointment.status)} className="flex items-center gap-1">
+                            {getStatusIcon(appointment.status)}
+                            {getStatusText(appointment.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {appointment.customer_phone && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Phone className="h-3 w-3" />
+                                {appointment.customer_phone}
+                              </div>
+                            )}
+                            {appointment.customer_email && (
+                              <div className="text-sm text-muted-foreground">
+                                {appointment.customer_email}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <Select
-                          value={appointment.status}
-                          onValueChange={(newStatus) => handleStatusChange(appointment.id, newStatus)}
-                          disabled={updatingId === appointment.id}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="agendado">Agendado</SelectItem>
-                            <SelectItem value="confirmado">Confirmado</SelectItem>
-                            <SelectItem value="concluido">Concluído</SelectItem>
-                            <SelectItem value="cancelado">Cancelado</SelectItem>
-                            <SelectItem value="nao_compareceu">Não Compareceu</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => enviarWhatsApp(
-                      appointment.customer_phone, 
-                      appointment.customer_name,
-                      appointment.services?.name,
-                      appointment.professionals?.name,
-                      formatSimpleTime(appointment.start_time)
-                    )}
-                                disabled={!appointment.customer_phone}
-                                className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 hover:border-green-300"
-                              >
-                                <MessageCircle className="h-4 w-4 mr-1" />
-                                WhatsApp
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Enviar mensagem no WhatsApp</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center gap-2 justify-end">
+                            <Select
+                              value={appointment.status}
+                              onValueChange={(newStatus) => handleStatusChange(appointment.id, newStatus)}
+                              disabled={updatingId === appointment.id}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="agendado">Agendado</SelectItem>
+                                <SelectItem value="confirmado">Confirmado</SelectItem>
+                                <SelectItem value="concluido">Concluído</SelectItem>
+                                <SelectItem value="cancelado">Cancelado</SelectItem>
+                                <SelectItem value="nao_compareceu">Não Compareceu</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => enviarWhatsApp(
+                                      appointment.customer_phone, 
+                                      appointment.customer_name,
+                                      appointment.services?.name,
+                                      appointment.professionals?.name,
+                                      formatSimpleTime(appointment.start_time)
+                                    )}
+                                    disabled={!appointment.customer_phone}
+                                    className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 hover:border-green-300"
+                                  >
+                                    <MessageCircle className="h-4 w-4 mr-1" />
+                                    WhatsApp
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Enviar mensagem no WhatsApp</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </motion.div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 };
