@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { usePermissionsSimplified } from "@/hooks/usePermissionsSimplified";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   HelpCircle, 
@@ -91,9 +92,25 @@ const Support = () => {
     fetchTenantId();
   }, [user]);
 
-  // Usar hook de permissões
-  const { planLimits, isLoading: permissionsLoading } = usePermissions(tenantId || undefined);
-  const isEssentialPlan = planLimits && !planLimits.has_financial_dashboard;
+  // Usar hook de permissões (testando versão simplificada)
+  const permissionsOriginal = usePermissions(tenantId || undefined);
+  const permissionsSimplified = usePermissionsSimplified(tenantId || undefined);
+  
+  console.log('Support - Comparação de permissões:', {
+    original: {
+      hasSupport: permissionsOriginal.planLimits?.has_financial_dashboard,
+      planTier: permissionsOriginal.planLimits,
+      loading: permissionsOriginal.isLoading
+    },
+    simplified: {
+      hasSupport: permissionsSimplified.canUseSupport,
+      planTier: permissionsSimplified.planTier,
+      loading: permissionsSimplified.isLoading
+    }
+  });
+  
+  const { planLimits, isLoading: permissionsLoading } = permissionsOriginal;
+  const isEssentialPlan = permissionsSimplified.planTier === 'essential' || !permissionsSimplified.canUseSupport;
 
   // FAQ Data
   const faqs = [
@@ -984,146 +1001,79 @@ Enviado via formulário de contato do StyleSwift`;
                   </p>
                 </div>
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Contact Methods */}
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold">Canais de Atendimento</h3>
-                <div className="space-y-4">
-                  {contactMethods.map((method, index) => (
-                    <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className={`p-3 rounded-lg ${method.available ? 'bg-primary/10' : 'bg-muted'}`}>
-                            <method.icon className={`h-6 w-6 ${method.available ? 'text-primary' : 'text-muted-foreground'}`} />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold flex items-center gap-2">
-                              {method.title}
-                              {method.available && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Disponível
-                                </Badge>
-                              )}
-                            </h4>
-                            <p className="text-muted-foreground text-sm mb-2">{method.description}</p>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">
-                                Tempo médio: {method.responseTime}
-                              </span>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                disabled={!method.available}
-                                onClick={() => {
-                                  if (method.title === "Chat ao Vivo") {
-                                    toast({
-                                      title: "Chat ao Vivo",
-                                      description: "Conectando você ao nosso atendente...",
-                                    });
-                                  } else if (method.title === "Email de Suporte") {
-                                    // Abrir cliente de email padrão
-                                    window.location.href = "mailto:suporte@styleswift.com.br?subject=Suporte StyleSwift";
-                                  } else if (method.title === "Telefone") {
-                                    // Fazer chamada telefônica
-                                    window.location.href = "tel:+5511999999999";
-                                  } else if (method.title === "Base de Conhecimento") {
-                                    toast({
-                                      title: "Base de Conhecimento",
-                                      description: "Direcionando para nossa base de conhecimento...",
-                                    });
-                                  } else {
-                                    toast({
-                                      title: "Em breve",
-                                      description: "Este canal de atendimento estará disponível em breve.",
-                                    });
-                                  }
-                                }}
-                              >
-                                {method.action}
-                              </Button>
-                            </div>
-                          </div>
+                {/* Contact Form */}
+                <div className="max-w-2xl mx-auto">
+                  <Card className="border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Envie uma Mensagem
+                      </CardTitle>
+                      <CardDescription>
+                        Preencha o formulário abaixo e nossa equipe entrará em contato
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleContactSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Nome Completo</Label>
+                          <Input 
+                            id="name" 
+                            placeholder="Seu nome" 
+                            value={contactForm.name}
+                            onChange={(e) => handleInputChange('name', e.target.value)}
+                            required 
+                          />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input 
+                            id="email" 
+                            type="email" 
+                            placeholder="seu@email.com" 
+                            value={contactForm.email}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
+                            required 
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="subject">Assunto</Label>
+                          <Select value={contactForm.subject} onValueChange={(value) => handleInputChange('subject', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um assunto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {supportCategories.map((category) => (
+                                <SelectItem key={category.id} value={category.title}>
+                                  {category.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="message">Mensagem</Label>
+                          <Textarea 
+                            id="message" 
+                            placeholder="Descreva sua dúvida ou problema em detalhes..." 
+                            rows={5}
+                            value={contactForm.message}
+                            onChange={(e) => handleInputChange('message', e.target.value)}
+                            required 
+                          />
+                        </div>
+                        
+                        <Button type="submit" className="w-full">
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Enviar via WhatsApp
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
-
-              {/* Contact Form */}
-              <div>
-                <Card className="border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Mail className="h-5 w-5" />
-                      Envie uma Mensagem
-                    </CardTitle>
-                    <CardDescription>
-                      Preencha o formulário abaixo e nossa equipe entrará em contato
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleContactSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nome Completo</Label>
-                        <Input 
-                          id="name" 
-                          placeholder="Seu nome" 
-                          value={contactForm.name}
-                          onChange={(e) => handleInputChange('name', e.target.value)}
-                          required 
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input 
-                          id="email" 
-                          type="email" 
-                          placeholder="seu@email.com" 
-                          value={contactForm.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          required 
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="subject">Assunto</Label>
-                        <Select value={contactForm.subject} onValueChange={(value) => handleInputChange('subject', value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um assunto" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {supportCategories.map((category) => (
-                              <SelectItem key={category.id} value={category.title}>
-                                {category.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="message">Mensagem</Label>
-                        <Textarea 
-                          id="message" 
-                          placeholder="Descreva sua dúvida ou problema em detalhes..." 
-                          rows={5}
-                          value={contactForm.message}
-                          onChange={(e) => handleInputChange('message', e.target.value)}
-                          required 
-                        />
-                      </div>
-                      
-                      <Button type="submit" className="w-full">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Enviar via WhatsApp
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
               </>
             )}
           </motion.section>
@@ -1196,60 +1146,7 @@ Enviado via formulário de contato do StyleSwift`;
                 );
               })}
             </div>
-
-            {/* Learning Resources */}
-            <div>
-              <h3 className="text-2xl font-semibold mb-6">Materiais de Aprendizado</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {resources.map((resource, index) => {
-                  const IconComponent = resource.icon;
-                  return (
-                    <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-primary/10 rounded-lg">
-                            <IconComponent className="h-6 w-6 text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-semibold">{resource.title}</h4>
-                              <Badge variant="secondary">{resource.type}</Badge>
-                            </div>
-                            <p className="text-muted-foreground text-sm mt-2 mb-4">
-                              {resource.description}
-                            </p>
-                            <Button 
-                              variant="outline" 
-                              className="w-full"
-                              onClick={() => {
-                                if (resource.title === "Vídeos Tutoriais") {
-                                  toast({
-                                    title: "Em desenvolvimento",
-                                    description: "Esta funcionalidade está em desenvolvimento e estará disponível em breve.",
-                                    variant: "destructive"
-                                  });
-                                } else {
-                                  openModal(resource.title, resource.content || "Conteúdo em breve disponível.");
-                                }
-                              }}
-                            >
-                              {resource.title === "Vídeos Tutoriais" ? (
-                                <>
-                                  <AlertCircle className="h-4 w-4 mr-2" />
-                                  Não acessível
-                                </>
-                              ) : (
-                                "Acessar"
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
+              
           </motion.section>
         )}
 
@@ -1323,7 +1220,7 @@ Enviado via formulário de contato do StyleSwift`;
         {/* Emergency Support Banner */}
         <section className="mt-16">
           {isEssentialPlan ? (
-            <Card className="border-0 shadow-lg bg-gradient-to-r from-red-500/10 to-pink-500/10 border-red-500/20">
+            <Card className="border-0 shadow-lg bg-gradient-to-r from-red-500/10 to-bliue-500/10 border-red-500/20">
               <CardContent className="p-8 text-center">
                 <Lock className="h-12 w-12 mx-auto mb-4 text-red-500" />
                 <h3 className="text-2xl font-bold mb-2 text-red-500">Ajuda de Emergência Bloqueada</h3>
@@ -1351,7 +1248,7 @@ Enviado via formulário de contato do StyleSwift`;
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
                     variant="secondary" 
-                    className="bg-white text-primary hover:bg-gray-100"
+                    className="bg-black text-primary hover:bg-gray-100"
                     onClick={() => {
                       toast({
                         title: "Contato de Emergência",

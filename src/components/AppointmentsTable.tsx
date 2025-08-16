@@ -46,6 +46,7 @@ import { formatSimpleTime, formatSimpleDateTime, parseSimpleDateTime } from '@/l
 import { MobileTable, StatusBadge, ActionButton } from '@/components/MobileTable';
 import { useAutoComplete } from '@/hooks/useAutoComplete';
 
+
 interface Appointment {
   id: string;
   customer_name: string;
@@ -87,6 +88,7 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
   const [showFilters, setShowFilters] = useState(false);
   const { checkAndCompleteAppointment } = useAutoComplete();
 
+
   const handleStatusChange = async (appointmentId: string, newStatus: string) => {
     setUpdatingId(appointmentId);
 
@@ -98,7 +100,12 @@ export default function AppointmentsTable({ appointments, tenantId, onAppointmen
 
       if (error) throw error;
 
-      toast({ title: 'Status atualizado com sucesso!' });
+
+
+      toast({ 
+        title: 'Status atualizado com sucesso!',
+        description: `Agendamento marcado como ${newStatus}`
+      });
       onAppointmentUpdate();
     } catch (error: any) {
       toast({

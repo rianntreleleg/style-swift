@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +31,7 @@ import {
   Crown,
   RefreshCw,
   Database,
-  HelpCircle
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePWA } from "@/hooks/usePWA";
@@ -54,6 +54,58 @@ import LogoUpload from "@/components/LogoUpload";
 import LogoIcon from "@/components/LogoIcon";
 import { BackupManager } from "@/components/BackupManager";
 import { PaymentRequired } from "@/components/PaymentRequired";
+
+
+// Definir interfaces para os tipos
+interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url?: string | null;
+  theme_variant?: string;
+  plan_tier?: string;
+  plan_status?: string;
+  plan: 'essential' | 'professional' | 'premium';
+  payment_status?: string;
+  payment_completed?: boolean;
+}
+
+interface Appointment {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  notes?: string;
+  services: {
+    name: string;
+    price_cents: number;
+  } | null;
+  professionals: {
+    name: string;
+  } | null;
+}
+
+interface Professional {
+  id: string;
+  name: string;
+  bio?: string;
+  avatar_url?: string;
+  active: boolean;
+  tenant_id: string;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  price_cents: number;
+  duration_minutes: number;
+  description?: string;
+  active: boolean;
+  tenant_id: string;
+}
 
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -102,22 +154,13 @@ export default function Admin() {
   } = usePWA();
 
 
-  const [tenants, setTenants] = useState<Array<{
-    id: string;
-    name: string;
-    slug: string;
-    logo_url?: string | null;
-    theme_variant?: string;
-    plan_tier?: string;
-    plan_status?: string;
-    plan: 'essential' | 'professional' | 'premium';
-  }>>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({ services: 0, pros: 0, upcoming: 0 });
   const [copied, setCopied] = useState(false);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [professionals, setProfessionals] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const [planValidated, setPlanValidated] = useState(false);
@@ -160,7 +203,7 @@ export default function Admin() {
     validatePayment();
   }, [user, navigate, selectedTenantId]);
 
-  const fetchTenants = async () => {
+  const fetchTenants = useCallback(async () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("tenants")
@@ -179,23 +222,13 @@ export default function Admin() {
     if (!selectedTenantId && data && data.length) {
       setSelectedTenantId(data[0].id);
     }
-  };
+  }, [user, selectedTenantId]);
 
   useEffect(() => {
     fetchTenants();
-  }, [user]);
+  }, [user, fetchTenants]);
 
-  useEffect(() => {
-    if (selectedTenantId) {
-      serviceForm.setValue("tenant_id", selectedTenantId);
-      proForm.setValue("tenant_id", selectedTenantId);
-      fetchAppointments();
-      fetchProfessionals();
-      fetchServices();
-    }
-  }, [selectedTenantId]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     if (!selectedTenantId) return;
 
     try {
@@ -218,17 +251,17 @@ export default function Admin() {
 
       if (error) throw error;
       setAppointments(data || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
       toast({
         title: 'Erro ao carregar agendamentos',
-        description: error.message,
+        description: (error as Error).message,
         variant: 'destructive'
       });
     }
-  };
+  }, [selectedTenantId]);
 
-  const fetchProfessionals = async () => {
+  const fetchProfessionals = useCallback(async () => {
     if (!selectedTenantId) return;
 
     try {
@@ -240,17 +273,17 @@ export default function Admin() {
 
       if (error) throw error;
       setProfessionals(data || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao carregar profissionais:', error);
       toast({
         title: 'Erro ao carregar profissionais',
-        description: error.message,
+        description: (error as Error).message,
         variant: 'destructive'
       });
     }
-  };
+  }, [selectedTenantId]);
 
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     if (!selectedTenantId) return;
 
     try {
@@ -262,15 +295,15 @@ export default function Admin() {
 
       if (error) throw error;
       setServices(data || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao carregar serviços:', error);
       toast({
         title: 'Erro ao carregar serviços',
-        description: error.message,
+        description: (error as Error).message,
         variant: 'destructive'
       });
     }
-  };
+  }, [selectedTenantId]);
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -298,6 +331,17 @@ export default function Admin() {
 
   const selectedTenant = useMemo(() => tenants.find(t => t.id === selectedTenantId) || null, [tenants, selectedTenantId]);
 
+  // useEffect to set form values and fetch data when selectedTenantId changes
+  useEffect(() => {
+    if (selectedTenantId) {
+      serviceForm.setValue("tenant_id", selectedTenantId);
+      proForm.setValue("tenant_id", selectedTenantId);
+      fetchAppointments();
+      fetchProfessionals();
+      fetchServices();
+    }
+  }, [selectedTenantId, serviceForm, proForm, fetchAppointments, fetchProfessionals, fetchServices]);
+
   const onCreateTenant = async (values: TenantForm) => {
     if (!user) return;
 
@@ -309,7 +353,7 @@ export default function Admin() {
       plan_tier: 'essential',
       plan_status: 'active',
       payment_completed: true
-    } as any);
+    });
 
     if (error) {
       toast({ title: "Erro ao criar estabelecimento", description: error.message });
@@ -336,7 +380,7 @@ export default function Admin() {
       duration_minutes: values.duration_minutes,
       description: values.description,
       active: true
-    } as any);
+    });
 
     if (error) {
       toast({ title: "Erro ao criar serviço", description: error.message });
@@ -407,7 +451,7 @@ export default function Admin() {
         bio: values.bio,
         avatar_url: values.avatar_url || null,
         active: true
-      } as any);
+      });
 
       if (error) {
         toast({ title: "Erro ao criar profissional", description: error.message });
@@ -422,10 +466,10 @@ export default function Admin() {
         proForm.setValue("tenant_id", selectedTenantId);
         fetchProfessionals();
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro ao verificar limites",
-        description: error.message,
+        description: (error as Error).message,
         variant: 'destructive'
       });
     }
@@ -661,6 +705,8 @@ export default function Admin() {
                   </CardContent>
                 </Card>
               )}
+
+
 
               {/* Link de Agendamento */}
               {selectedTenant && (
@@ -928,6 +974,8 @@ export default function Admin() {
               <BusinessHoursManager tenantId={selectedTenantId} />
             </div>
           )}
+
+
 
 
 

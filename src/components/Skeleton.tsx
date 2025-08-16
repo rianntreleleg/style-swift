@@ -34,7 +34,6 @@ export const Skeleton = ({
       style={{ width, height }}
       animate={animate ? {
         opacity: [0.5, 1, 0.5],
-        scale: [0.98, 1, 0.98],
       } : {}}
       transition={{
         duration: 1.5,

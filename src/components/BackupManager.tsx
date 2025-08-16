@@ -25,6 +25,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePermissionsSimplified } from '@/hooks/usePermissionsSimplified';
 import UpgradePrompt from '@/components/UpgradePrompt';
 
 interface Backup {
@@ -67,8 +68,24 @@ export const BackupManager = ({ tenantId, planTier }: { tenantId: string; planTi
   const [backupFrequency, setBackupFrequency] = useState('monthly'); // Padrão mensal
   const [retentionDays, setRetentionDays] = useState(30);
 
-  // Usar hook de permissões
-  const { canUseBackup, planLimits, isLoading: permissionsLoading } = usePermissions(tenantId);
+  // Usar hook de permissões (testando versão simplificada)
+  const permissionsOriginal = usePermissions(tenantId);
+  const permissionsSimplified = usePermissionsSimplified(tenantId);
+  
+  console.log('Backup - Comparação de permissões:', {
+    original: {
+      canUseBackup: permissionsOriginal.canUseBackup,
+      planTier: permissionsOriginal.planLimits,
+      loading: permissionsOriginal.isLoading
+    },
+    simplified: {
+      canUseBackup: permissionsSimplified.canUseBackup,
+      planTier: permissionsSimplified.planTier,
+      loading: permissionsSimplified.isLoading
+    }
+  });
+  
+  const { canUseBackup, planLimits, isLoading: permissionsLoading } = permissionsSimplified;
   const [restoreOptions, setRestoreOptions] = useState({
     restoreAppointments: true,
     restoreCustomers: true,

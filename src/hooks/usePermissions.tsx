@@ -50,28 +50,85 @@ export const usePermissions = (tenantId?: string) => {
 
     const fetchPermissions = async () => {
       try {
-        // Usar a nova função RPC para verificar acesso pago (com backup)
-        const { data: accessData, error: accessError } = await supabase.rpc('check_tenant_paid_access_with_backup', {
-          p_tenant_id: tenantId
-        });
+        let accessData = null;
+        let error = null;
 
-        if (accessError) {
-          console.error('Erro ao verificar acesso:', accessError);
+        // Tentar usar a função RPC corrigida primeiro
+        try {
+          const rpcResult = await supabase.rpc('check_tenant_paid_access_with_backup', {
+            p_tenant_id: tenantId
+          });
+          accessData = rpcResult.data;
+          error = rpcResult.error;
+        } catch (rpcError) {
+          console.warn('Função RPC com backup falhou, tentando fallback:', rpcError);
+          
+          // Fallback: usar função RPC sem backup
+          try {
+            const fallbackResult = await supabase.rpc('check_tenant_paid_access', {
+              p_tenant_id: tenantId
+            });
+            accessData = fallbackResult.data;
+            error = fallbackResult.error;
+            
+            // Adicionar has_backup manualmente para o fallback
+            if (accessData && accessData[0]) {
+              accessData[0].has_backup = accessData[0].plan_tier === 'premium' && accessData[0].is_paid;
+            }
+          } catch (fallbackError) {
+            console.warn('Função RPC fallback também falhou, usando consulta direta:', fallbackError);
+            
+            // Fallback final: consulta direta na tabela
+            const { data: tenantData, error: tenantError } = await supabase
+              .from('tenants')
+              .select('plan_tier, plan, payment_completed, plan_status')
+              .eq('id', tenantId)
+              .single();
+
+            if (!tenantError && tenantData) {
+              const planTier = tenantData.plan_tier || tenantData.plan || 'essential';
+              const isPaid = tenantData.payment_completed || tenantData.plan_status === 'active';
+              
+              accessData = [{
+                is_paid: isPaid,
+                plan_tier: planTier,
+                has_financial_dashboard: (planTier === 'professional' || planTier === 'premium') && isPaid,
+                has_auto_confirmation: (planTier === 'professional' || planTier === 'premium') && isPaid,
+                has_advanced_analytics: planTier === 'premium' && isPaid,
+                has_backup: planTier === 'premium' && isPaid
+              }];
+              error = null;
+            } else {
+              error = tenantError;
+            }
+          }
+        }
+
+        if (error) {
+          console.error('Erro ao verificar acesso:', error);
           setPermissions(prev => ({ ...prev, isLoading: false }));
           return;
         }
 
-        const access = accessData[0]; // RPC retorna array
-        const planTier = access.plan_tier || 'essential';
-        const isPaid = access.is_paid;
+        const access = accessData && accessData[0] ? accessData[0] : {
+          is_paid: false,
+          plan_tier: 'essential',
+          has_financial_dashboard: false,
+          has_auto_confirmation: false,
+          has_advanced_analytics: false,
+          has_backup: false
+        };
 
-        // Usar dados da função RPC para definir limites
+        const planTier = access.plan_tier || 'essential';
+        const isPaid = access.is_paid || false;
+
+        // Definir limites baseados no plano com regras claras
         const planLimits: PlanLimits = {
           max_professionals: planTier === 'premium' ? 999 : planTier === 'professional' ? 3 : 1,
           max_services: planTier === 'premium' ? 999 : planTier === 'professional' ? 15 : 5,
-          has_financial_dashboard: access.has_financial_dashboard,
-          has_auto_confirmation: access.has_auto_confirmation,
-          has_advanced_analytics: access.has_advanced_analytics,
+          has_financial_dashboard: (planTier === 'professional' || planTier === 'premium') && isPaid,
+          has_auto_confirmation: (planTier === 'professional' || planTier === 'premium') && isPaid,
+          has_advanced_analytics: planTier === 'premium' && isPaid,
           has_backup: planTier === 'premium' && isPaid
         };
 
@@ -104,7 +161,7 @@ export const usePermissions = (tenantId?: string) => {
         });
 
       } catch (error) {
-        console.error('Erro ao buscar permissões:', error);
+        console.error('Erro geral ao buscar permissões:', error);
         setPermissions(prev => ({ ...prev, isLoading: false }));
       }
     };

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RevenueChart from '@/components/RevenueChart';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePermissionsSimplified } from '@/hooks/usePermissionsSimplified';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -66,8 +67,25 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
   const [growth, setGrowth] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Usar hook de permissões
-  const { canAccessFinancialDashboard, planLimits, isLoading: permissionsLoading, canUseAdvancedAnalytics } = usePermissions(tenantId);
+  // Usar hook de permissões (testando versão simplificada)
+  const permissionsOriginal = usePermissions(tenantId);
+  const permissionsSimplified = usePermissionsSimplified(tenantId);
+  
+  // Usar versão simplificada para teste, mas manter logs para comparação
+  console.log('Comparação de permissões:', {
+    original: {
+      canAccess: permissionsOriginal.canAccessFinancialDashboard,
+      planTier: permissionsOriginal.planLimits,
+      loading: permissionsOriginal.isLoading
+    },
+    simplified: {
+      canAccess: permissionsSimplified.canAccessFinancialDashboard,
+      planTier: permissionsSimplified.planTier,
+      loading: permissionsSimplified.isLoading
+    }
+  });
+  
+  const { canAccessFinancialDashboard, planLimits, isLoading: permissionsLoading, canUseAdvancedAnalytics } = permissionsSimplified;
 
   useEffect(() => {
     if (tenantId && canAccessFinancialDashboard) {
