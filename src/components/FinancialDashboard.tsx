@@ -5,6 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RevenueChart from '@/components/RevenueChart';
+import HeatmapChart from '@/components/HeatmapChart';
+import PieChart from '@/components/PieChart';
+import ComparisonChart from '@/components/ComparisonChart';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePermissionsSimplified } from '@/hooks/usePermissionsSimplified';
@@ -22,7 +25,9 @@ import {
   Award,
   Clock,
   Star,
-  FileText
+  FileText,
+  Activity,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import { formatBRL } from '@/lib/utils';
 import UpgradePrompt from '@/components/UpgradePrompt';
@@ -55,6 +60,27 @@ interface ServiceRevenue {
   count: number;
 }
 
+interface HeatmapData {
+  hour: number;
+  day: string;
+  count: number;
+  revenue: number;
+}
+
+interface PieData {
+  label: string;
+  value: number;
+  color: string;
+  percentage: number;
+}
+
+interface ComparisonData {
+  current: number;
+  previous: number;
+  label: string;
+  color: string;
+}
+
 export default function FinancialDashboard({ tenantId, planTier }: FinancialDashboardProps) {
   const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
   const [professionalRevenue, setProfessionalRevenue] = useState<ProfessionalRevenue[]>([]);
@@ -66,6 +92,13 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
   const [loading, setLoading] = useState(false);
   const [growth, setGrowth] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Novos estados para gráficos adicionais
+  const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([]);
+  const [pieData, setPieData] = useState<PieData[]>([]);
+  const [comparisonData, setComparisonData] = useState<ComparisonData[]>([]);
+  const [previousPeriodData, setPreviousPeriodData] = useState<RevenueData[]>([]);
+  const [selectedTab, setSelectedTab] = useState<string>('professionals');
 
   // Usar hook de permissões (testando versão simplificada)
   const permissionsOriginal = usePermissions(tenantId);
@@ -86,6 +119,16 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
   });
   
   const { canAccessFinancialDashboard, planLimits, isLoading: permissionsLoading, canUseAdvancedAnalytics } = permissionsSimplified;
+  
+  // Verificar se o usuário pode acessar recursos premium
+  const canAccessPremiumFeatures = planTier === 'premium';
+  
+  // Redirecionar para aba disponível se tentar acessar premium sem permissão
+  useEffect(() => {
+    if (!canAccessPremiumFeatures && (selectedTab === 'heatmap' || selectedTab === 'comparison')) {
+      setSelectedTab('professionals');
+    }
+  }, [canAccessPremiumFeatures, selectedTab]);
 
   useEffect(() => {
     if (tenantId && canAccessFinancialDashboard) {
@@ -121,7 +164,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      // Buscar agendamentos concluídos no período
+      // Buscar agendamentos concluídos no período atual
       const { data: appointments, error } = await supabase
         .from('appointments')
         .select(`
@@ -136,14 +179,34 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
 
       if (error) throw error;
 
+      // Buscar dados do período anterior para comparação
+      const previousStartDate = new Date(startDate);
+      previousStartDate.setDate(previousStartDate.getDate() - days);
+      
+      const { data: previousAppointments } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          services(name, price_cents),
+          professionals(name)
+        `)
+        .eq('tenant_id', tenantId)
+        .eq('status', 'concluido')
+        .gte('start_time', previousStartDate.toISOString())
+        .lt('start_time', startDate.toISOString())
+        .order('start_time', { ascending: true });
+
       // Processar dados de receita
       const revenueByDate: { [key: string]: RevenueData } = {};
       const revenueByProfessional: { [key: string]: ProfessionalRevenue } = {};
       const revenueByService: { [key: string]: ServiceRevenue } = {};
+      const heatmapByHourDay: { [key: string]: HeatmapData } = {};
       let total = 0;
 
       appointments?.forEach(appointment => {
         const date = new Date(appointment.start_time).toISOString().split('T')[0];
+        const hour = new Date(appointment.start_time).getHours();
+        const dayOfWeek = new Date(appointment.start_time).toLocaleDateString('pt-BR', { weekday: 'long' });
         const revenue = appointment.services?.price_cents || 0;
         const professionalName = appointment.professionals?.name || 'Sem profissional';
         const serviceName = appointment.services?.name || 'Serviço não especificado';
@@ -169,7 +232,28 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
         revenueByService[serviceName].revenue += revenue;
         revenueByService[serviceName].count += 1;
 
+        // Heatmap por hora e dia
+        const heatmapKey = `${dayOfWeek}-${hour}`;
+        if (!heatmapByHourDay[heatmapKey]) {
+          heatmapByHourDay[heatmapKey] = { hour, day: dayOfWeek, count: 0, revenue: 0 };
+        }
+        heatmapByHourDay[heatmapKey].count += 1;
+        heatmapByHourDay[heatmapKey].revenue += revenue;
+
         total += revenue;
+      });
+
+      // Processar dados do período anterior
+      const previousRevenueByDate: { [key: string]: RevenueData } = {};
+      previousAppointments?.forEach(appointment => {
+        const date = new Date(appointment.start_time).toISOString().split('T')[0];
+        const revenue = appointment.services?.price_cents || 0;
+        
+        if (!previousRevenueByDate[date]) {
+          previousRevenueByDate[date] = { date, revenue: 0, appointments: 0 };
+        }
+        previousRevenueByDate[date].revenue += revenue;
+        previousRevenueByDate[date].appointments += 1;
       });
 
       // Filtrar por profissional selecionado
@@ -184,16 +268,60 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             return appointmentsForDate && appointmentsForDate.length > 0;
           });
 
+      // Preparar dados para gráficos
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'];
+      
+      // Dados para gráfico de pizza (serviços)
+      const pieChartData = Object.values(revenueByService)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 8)
+        .map((service, index) => ({
+          label: service.service_name,
+          value: service.revenue,
+          color: colors[index % colors.length],
+          percentage: total > 0 ? (service.revenue / total) * 100 : 0
+        }));
+
+      // Dados para comparação de períodos
+      const currentAppointmentsTotal = Object.values(revenueByDate).reduce((sum, item) => sum + item.appointments, 0);
+      const previousAppointmentsTotal = Object.values(previousRevenueByDate).reduce((sum, item) => sum + item.appointments, 0);
+      const previousRevenueTotal = Object.values(previousRevenueByDate).reduce((sum, item) => sum + item.revenue, 0);
+      
+      const comparisonChartData = [
+        {
+          current: total,
+          previous: previousRevenueTotal,
+          label: 'Receita Total',
+          color: '#3b82f6'
+        },
+        {
+          current: currentAppointmentsTotal,
+          previous: previousAppointmentsTotal,
+          label: 'Agendamentos',
+          color: '#10b981'
+        },
+        {
+          current: currentAppointmentsTotal > 0 ? total / currentAppointmentsTotal : 0,
+          previous: previousAppointmentsTotal > 0 ? previousRevenueTotal / previousAppointmentsTotal : 0,
+          label: 'Ticket Médio',
+          color: '#f59e0b'
+        }
+      ];
+
       setRevenueData(filteredRevenueByDate);
+      setPreviousPeriodData(Object.values(previousRevenueByDate));
       setProfessionalRevenue(Object.values(revenueByProfessional));
       setServiceRevenue(Object.values(revenueByService));
       setTotalRevenue(total);
+      setHeatmapData(Object.values(heatmapByHourDay));
+      setPieData(pieChartData);
+      setComparisonData(comparisonChartData);
 
-      // Calcular crescimento
-      if (filteredRevenueByDate.length >= 2) {
-        const recent = filteredRevenueByDate.slice(-7).reduce((sum, item) => sum + item.revenue, 0);
-        const previous = filteredRevenueByDate.slice(-14, -7).reduce((sum, item) => sum + item.revenue, 0);
-        const growthRate = previous > 0 ? ((recent - previous) / previous) * 100 : 0;
+      // Calcular crescimento baseado no período anterior
+      if (Object.values(previousRevenueByDate).length > 0) {
+        const currentPeriodRevenue = total;
+        const previousPeriodRevenue = Object.values(previousRevenueByDate).reduce((sum, item) => sum + item.revenue, 0);
+        const growthRate = previousPeriodRevenue > 0 ? ((currentPeriodRevenue - previousPeriodRevenue) / previousPeriodRevenue) * 100 : 0;
         setGrowth(growthRate);
       }
 
@@ -478,8 +606,8 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
   const totalAppointments = revenueData.reduce((sum, item) => sum + item.appointments, 0);
   const avgAppointments = revenueData.length > 0 ? totalAppointments / revenueData.length : 0;
   const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
-  const topProfessional = professionalRevenue.sort((a, b) => b.revenue - a.revenue)[0];
-  const topService = serviceRevenue.sort((a, b) => b.revenue - a.revenue)[0];
+  const topProfessional = professionalRevenue.length > 0 ? professionalRevenue.sort((a, b) => b.revenue - a.revenue)[0] : null;
+  const topService = serviceRevenue.length > 0 ? serviceRevenue.sort((a, b) => b.revenue - a.revenue)[0] : null;
 
   // Animações
   const containerVariants = {
@@ -581,6 +709,11 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
             transition={{ delay: 0.3, duration: 0.5 }}
           >
             Acompanhe sua receita e performance em tempo real
+            {!canAccessPremiumFeatures && (
+              <span className="ml-2 text-xs text-yellow-600">
+                • Alguns recursos disponíveis apenas no plano Premium
+              </span>
+            )}
           </motion.p>
         </div>
         
@@ -698,7 +831,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                   >
                     {growth >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                   </motion.div>
-                  {Math.abs(growth).toFixed(1)}% vs período anterior
+                  {growth >= 0 ? '+' : ''}{growth.toFixed(1)}% vs período anterior
                 </motion.div>
               )}
             </CardContent>
@@ -814,8 +947,8 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
 
       {/* Tabs para dados detalhados */}
       <motion.div variants={itemVariants}>
-        <Tabs defaultValue="professionals" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="professionals" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Profissionais
@@ -824,6 +957,36 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
               <Award className="h-4 w-4" />
               Serviços
             </TabsTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="heatmap" className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Horários
+                  {!canAccessPremiumFeatures && <Crown className="h-3 w-3 text-yellow-600" />}
+                </TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Heatmap de horários mais procurados</p>
+                {!canAccessPremiumFeatures && (
+                  <p className="text-xs text-muted-foreground">Disponível apenas no plano Premium</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="comparison" className="flex items-center gap-2">
+                  <BarChart className="h-4 w-4" />
+                  Comparação
+                  {!canAccessPremiumFeatures && <Crown className="h-3 w-3 text-yellow-600" />}
+                </TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Comparação de períodos</p>
+                {!canAccessPremiumFeatures && (
+                  <p className="text-xs text-muted-foreground">Disponível apenas no plano Premium</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
             <TabsTrigger value="insights" className="flex items-center gap-2">
               <Star className="h-4 w-4" />
               Insights
@@ -880,7 +1043,7 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                           <div className="text-right">
                             <div className="font-bold text-lg">{formatBRL(item.revenue)}</div>
                             <div className="text-sm text-muted-foreground">
-                              {((item.revenue / totalRevenue) * 100).toFixed(1)}% do total
+                              {totalRevenue > 0 ? ((item.revenue / totalRevenue) * 100).toFixed(1) : '0'}% do total
                             </div>
                           </div>
                         </motion.div>
@@ -897,59 +1060,124 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="h-5 w-5" />
-                    Receita por Serviço
-                  </CardTitle>
-                  <CardDescription>
-                    Serviços mais vendidos e sua contribuição para a receita
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {serviceRevenue
-                      .sort((a, b) => b.revenue - a.revenue)
-                      .map((item, index) => (
-                        <motion.div 
-                          key={index} 
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1, duration: 0.3 }}
-                          whileHover={{ scale: 1.02, x: 5 }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <motion.div 
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                                index === 0 ? 'bg-green-500' : 
-                                index === 1 ? 'bg-blue-500' : 
-                                index === 2 ? 'bg-purple-500' : 'bg-gray-500'
-                              }`}
-                              whileHover={{ scale: 1.1, rotate: 5 }}
-                            >
-                              {index + 1}
-                            </motion.div>
-                            <div>
-                              <div className="font-medium">{item.service_name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {item.count} vendas
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Lista de serviços */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      Receita por Serviço
+                    </CardTitle>
+                    <CardDescription>
+                      Serviços mais vendidos e sua contribuição para a receita
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {serviceRevenue
+                        .sort((a, b) => b.revenue - a.revenue)
+                        .map((item, index) => (
+                          <motion.div 
+                            key={index} 
+                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1, duration: 0.3 }}
+                            whileHover={{ scale: 1.02, x: 5 }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <motion.div 
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                                  index === 0 ? 'bg-green-500' : 
+                                  index === 1 ? 'bg-blue-500' : 
+                                  index === 2 ? 'bg-purple-500' : 'bg-gray-500'
+                                }`}
+                                whileHover={{ scale: 1.1, rotate: 5 }}
+                              >
+                                {index + 1}
+                              </motion.div>
+                              <div>
+                                <div className="font-medium">{item.service_name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {item.count} vendas
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-lg">{formatBRL(item.revenue)}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {((item.revenue / totalRevenue) * 100).toFixed(1)}% do total
+                            <div className="text-right">
+                              <div className="font-bold text-lg">{formatBRL(item.revenue)}</div>
+                                                          <div className="text-sm text-muted-foreground">
+                              {totalRevenue > 0 ? ((item.revenue / totalRevenue) * 100).toFixed(1) : '0'}% do total
                             </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
+                            </div>
+                          </motion.div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Gráfico de pizza */}
+                <PieChart
+                  data={pieData}
+                  title="Distribuição de Receita"
+                  description="Percentual de receita por serviço"
+                />
+              </div>
             </motion.div>
+          </TabsContent>
+
+          <TabsContent value="heatmap" className="space-y-4">
+            {canAccessPremiumFeatures ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <HeatmapChart
+                  data={heatmapData}
+                  totalRevenue={totalRevenue}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <UpgradePrompt
+                  requiredPlan="premium"
+                  featureName="Heatmap de Horários"
+                  currentPlan={planTier || 'essential'}
+                />
+              </motion.div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="comparison" className="space-y-4">
+            {canAccessPremiumFeatures ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <ComparisonChart
+                  data={comparisonData}
+                  title="Comparação de Períodos"
+                  description={`Comparação entre os últimos ${period} dias e o período anterior`}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <UpgradePrompt
+                  requiredPlan="premium"
+                  featureName="Comparação de Períodos"
+                  currentPlan={planTier || 'essential'}
+                />
+              </motion.div>
+            )}
           </TabsContent>
 
           <TabsContent value="insights" className="space-y-4">
@@ -991,6 +1219,11 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                           <div className="text-lg font-bold">{topProfessional.professional_name}</div>
                           <div className="text-sm text-muted-foreground">
                             {formatBRL(topProfessional.revenue)} • {topProfessional.appointments} agendamentos
+                            {totalRevenue > 0 && (
+                              <span className="text-blue-600 ml-1">
+                                ({((topProfessional.revenue / totalRevenue) * 100).toFixed(1)}%)
+                              </span>
+                            )}
                           </div>
                         </motion.div>
                       )}
@@ -1030,6 +1263,11 @@ export default function FinancialDashboard({ tenantId, planTier }: FinancialDash
                           <div className="text-lg font-bold">{topService.service_name}</div>
                           <div className="text-sm text-muted-foreground">
                             {formatBRL(topService.revenue)} • {topService.count} vendas
+                            {totalRevenue > 0 && (
+                              <span className="text-green-600 ml-1">
+                                ({((topService.revenue / totalRevenue) * 100).toFixed(1)}%)
+                              </span>
+                            )}
                           </div>
                         </motion.div>
                       )}

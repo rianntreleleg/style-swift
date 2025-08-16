@@ -450,7 +450,7 @@ Entre em contato conosco!
   const uniqueServices = Array.from(new Set(appointments.map(a => a.services?.name).filter(Boolean)));
 
   return (
-    <AnimatedCard>
+    <AnimatedCard interactive={false}>
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -480,11 +480,7 @@ Entre em contato conosco!
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           <div className="flex items-center gap-4">
-            <motion.div 
-              className="relative flex-1 max-w-sm"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar agendamentos..."
@@ -492,7 +488,7 @@ Entre em contato conosco!
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
-            </motion.div>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -512,15 +508,10 @@ Entre em contato conosco!
             className="overflow-hidden"
           >
             {showFilters && (
-              <AnimatedCard className="p-4" delay={0.1}>
+              <AnimatedCard className="p-4" delay={0.1} interactive={false}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   {/* Filtro de status */}
-                  <motion.div 
-                    className="space-y-2"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.1 }}
-                  >
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Status</label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger className="h-9">
@@ -535,15 +526,10 @@ Entre em contato conosco!
                         ))}
                       </SelectContent>
                     </Select>
-                  </motion.div>
+                  </div>
 
                   {/* Filtro de profissional */}
-                  <motion.div 
-                    className="space-y-2"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.2 }}
-                  >
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Profissional</label>
                     <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
                       <SelectTrigger className="h-9">
@@ -558,15 +544,10 @@ Entre em contato conosco!
                         ))}
                       </SelectContent>
                     </Select>
-                  </motion.div>
+                  </div>
 
                   {/* Filtro de serviço */}
-                  <motion.div 
-                    className="space-y-2"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.3 }}
-                  >
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Serviço</label>
                     <Select value={serviceFilter} onValueChange={setServiceFilter}>
                       <SelectTrigger className="h-9">
@@ -581,15 +562,10 @@ Entre em contato conosco!
                         ))}
                       </SelectContent>
                     </Select>
-                  </motion.div>
+                  </div>
 
                   {/* Botão limpar filtros */}
-                  <motion.div 
-                    className="space-y-2"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.4 }}
-                  >
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">&nbsp;</label>
                     <Button
                       variant="outline"
@@ -604,7 +580,7 @@ Entre em contato conosco!
                     >
                       Limpar Filtros
                     </Button>
-                  </motion.div>
+                  </div>
                 </div>
               </AnimatedCard>
             )}
