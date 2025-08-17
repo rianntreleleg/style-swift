@@ -19,12 +19,10 @@ import {
   Trash2,
   RefreshCw,
   CheckCheck,
-  Volume2,
-  TestTube
+  Volume2
 } from 'lucide-react';
 import { useNotifications, type Notification, type NotificationSettings } from '@/hooks/useNotifications';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
-import { PushNotificationManager } from '@/components/PushNotificationManager';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -86,14 +84,12 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     markAsRead,
     markAllAsRead,
     settings,
-    updateSettings,
-    testNotificationSystem
+    updateSettings
   } = useNotifications(tenantId);
   
   const { settings: soundSettings, updateSettings: updateSoundSettings, playSound } = useSoundSettings();
 
   const [activeTab, setActiveTab] = useState('all');
-  const [isTesting, setIsTesting] = useState(false);
 
   // Fechar painel ao pressionar Escape
   useEffect(() => {
@@ -140,14 +136,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     }
   };
 
-  const handleTestNotificationSystem = async () => {
-    setIsTesting(true);
-    try {
-      await testNotificationSystem(tenantId);
-    } finally {
-      setIsTesting(false);
-    }
-  };
+
 
   if (!isOpen) return null;
 
@@ -250,23 +239,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
             <span className="truncate">Configurações</span>
           </Button>
           
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start text-left !flex !items-center"
-            onClick={handleTestNotificationSystem}
-            disabled={isTesting}
-          >
-            <TestTube className="h-4 w-4 mr-2 flex-shrink-0" />
-            <span className="truncate">
-              {isTesting ? 'Testando...' : 'Testar Sistema'}
-            </span>
-          </Button>
-          
-                  {/* Push Notifications Manager */}
-        <div className="mt-4">
-          <PushNotificationManager tenantId={tenantId} />
-        </div>
+
         </div>
       </div>
 
