@@ -19,7 +19,8 @@ import {
   Trash2,
   RefreshCw,
   CheckCheck,
-  Volume2
+  Volume2,
+  TestTube
 } from 'lucide-react';
 import { useNotifications, type Notification, type NotificationSettings } from '@/hooks/useNotifications';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
@@ -84,12 +85,14 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     markAsRead,
     markAllAsRead,
     settings,
-    updateSettings
+    updateSettings,
+    testNotificationSystem
   } = useNotifications(tenantId);
   
   const { settings: soundSettings, updateSettings: updateSoundSettings, playSound } = useSoundSettings();
 
   const [activeTab, setActiveTab] = useState('all');
+  const [isTesting, setIsTesting] = useState(false);
 
   // Fechar painel ao pressionar Escape
   useEffect(() => {
@@ -133,6 +136,15 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     // Fechar apenas se clicar diretamente no backdrop
     if (e.target === e.currentTarget) {
       onClose();
+    }
+  };
+
+  const handleTestNotificationSystem = async () => {
+    setIsTesting(true);
+    try {
+      await testNotificationSystem(tenantId);
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -226,7 +238,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
         </div>
 
         {/* Settings */}
-        <div className="border-t p-4">
+        <div className="border-t p-4 space-y-2">
           <Button
             variant="outline"
             size="sm"
@@ -235,6 +247,19 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
           >
             <Settings className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="truncate">Configurações</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start text-left !flex !items-center"
+            onClick={handleTestNotificationSystem}
+            disabled={isTesting}
+          >
+            <TestTube className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">
+              {isTesting ? 'Testando...' : 'Testar Sistema'}
+            </span>
           </Button>
         </div>
       </div>

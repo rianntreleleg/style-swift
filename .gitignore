@@ -107,6 +107,7 @@ SOLUCAO*.md
 # Development scripts
 *.ps1
 *.bat
+*.cjs
 test-*.sh
 setup-*.sh
 apply-*.sh
@@ -114,3 +115,10 @@ apply-*.sh
 # Supabase local
 .branches
 .temp
+
+# Scripts directory
+scripts/
+!scripts/README.md
+
+# Notification fix documentation
+NOTIFICATIONS_FIX.md

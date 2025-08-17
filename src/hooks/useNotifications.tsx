@@ -47,6 +47,7 @@ interface UseNotificationsReturn {
   updateSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
   playNotificationSound: () => Promise<void>;
   audioRef: React.RefObject<HTMLAudioElement>;
+  testNotificationSystem: (tenantId: string) => Promise<void>;
 }
 
 export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
@@ -81,12 +82,35 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
 
       if (error) {
         console.error('Erro ao carregar notificações:', error);
+        toast({
+          title: 'Erro ao carregar notificações',
+          description: 'Não foi possível carregar as notificações. Tente novamente.',
+          variant: 'destructive',
+        });
         return;
       }
 
-      setNotifications(data || []);
+      // Mapear os novos nomes de coluna para os nomes esperados pelo frontend
+      const mappedNotifications = (data || []).map((notification: any) => ({
+        id: notification.notification_id,
+        type: notification.notification_type,
+        title: notification.notification_title,
+        message: notification.notification_message,
+        data: notification.notification_data,
+        is_read: notification.notification_is_read,
+        is_important: notification.notification_is_important,
+        created_at: notification.notification_created_at,
+        read_at: notification.notification_read_at
+      }));
+      
+      setNotifications(mappedNotifications);
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para carregar as notificações.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -117,12 +141,18 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
     if (!user) return;
 
     try {
-      const { error } = await supabase.rpc('mark_notification_read', {
-        p_notification_id: notificationId
+      const { error } = await supabase.rpc('mark_notification_as_read', {
+        p_notification_id: notificationId,
+        p_tenant_id: tenantId
       });
 
       if (error) {
         console.error('Erro ao marcar notificação como lida:', error);
+        toast({
+          title: 'Erro ao marcar notificação',
+          description: 'Não foi possível marcar a notificação como lida.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -139,6 +169,11 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       await refreshUnreadCount();
     } catch (error) {
       console.error('Erro ao marcar notificação como lida:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para marcar a notificação.',
+        variant: 'destructive',
+      });
     }
   }, [user, refreshUnreadCount]);
 
@@ -153,6 +188,11 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
 
       if (error) {
         console.error('Erro ao marcar todas como lidas:', error);
+        toast({
+          title: 'Erro ao marcar notificações',
+          description: 'Não foi possível marcar todas as notificações como lidas.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -173,6 +213,11 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       });
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para marcar as notificações.',
+        variant: 'destructive',
+      });
     }
   }, [tenantId, user]);
 
@@ -189,6 +234,11 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Erro ao carregar configurações:', error);
+        toast({
+          title: 'Erro ao carregar configurações',
+          description: 'Não foi possível carregar as configurações de notificação.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -220,6 +270,11 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
 
         if (createError) {
           console.error('Erro ao criar configurações padrão:', createError);
+          toast({
+            title: 'Erro ao criar configurações',
+            description: 'Não foi possível criar as configurações padrão de notificação.',
+            variant: 'destructive',
+          });
           return;
         }
 
@@ -227,6 +282,11 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para carregar as configurações.',
+        variant: 'destructive',
+      });
     }
   }, [tenantId, user]);
 
@@ -271,6 +331,11 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
 
       if (error) {
         console.error('Erro ao atualizar configurações:', error);
+        toast({
+          title: 'Erro ao atualizar configurações',
+          description: 'Não foi possível atualizar as configurações de notificação.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -282,8 +347,56 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       });
     } catch (error) {
       console.error('Erro ao atualizar configurações:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para atualizar as configurações.',
+        variant: 'destructive',
+      });
     }
   }, [tenantId, user, settings]);
+
+  // Função para testar o sistema de notificações
+  const testNotificationSystem = useCallback(async (testTenantId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('test_notification_system', {
+        p_tenant_id: testTenantId
+      });
+
+      if (error) {
+        console.error('Erro ao testar sistema de notificações:', error);
+        toast({
+          title: 'Erro no teste de notificações',
+          description: 'Não foi possível executar o teste do sistema de notificações.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data && data.success) {
+        toast({
+          title: 'Teste de notificações realizado com sucesso!',
+          description: 'O sistema de notificações está funcionando corretamente.',
+        });
+        
+        // Recarregar notificações para mostrar a notificação de teste
+        await loadNotifications();
+        await refreshUnreadCount();
+      } else {
+        toast({
+          title: 'Erro no teste de notificações',
+          description: data?.error || 'O teste do sistema de notificações falhou.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao testar sistema de notificações:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para testar o sistema de notificações.',
+        variant: 'destructive',
+      });
+    }
+  }, [loadNotifications, refreshUnreadCount]);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -358,10 +471,13 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       )
       .subscribe();
 
+    // Verificar se há notificações ao conectar
+    refreshUnreadCount();
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenantId, user, playNotificationSound]);
+  }, [tenantId, user, playNotificationSound, refreshUnreadCount]);
 
   return {
     notifications,
@@ -374,6 +490,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
     settings,
     updateSettings,
     playNotificationSound,
-    audioRef
+    audioRef,
+    testNotificationSystem
   };
 };

@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, AlertCircle } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNotificationContext } from '@/components/NotificationProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface NotificationBellProps {
   tenantId: string;
@@ -17,14 +18,57 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   className
 }) => {
   const { openPanel } = useNotificationContext();
-  const { unreadCount, isLoading } = useNotifications(tenantId);
+  const { unreadCount, isLoading, refreshUnreadCount } = useNotifications(tenantId);
+
+  // Verificar notificações não lidas periodicamente
+  useEffect(() => {
+    if (!tenantId) return;
+
+    // Verificar imediatamente ao carregar
+    refreshUnreadCount();
+
+    // Verificar a cada 30 segundos
+    const interval = setInterval(() => {
+      refreshUnreadCount();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [tenantId, refreshUnreadCount]);
+
+  const handleClick = () => {
+    if (!tenantId) {
+      toast({
+        title: 'Erro',
+        description: 'ID do tenant não encontrado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    openPanel(tenantId);
+  };
+
+  if (!tenantId) {
+    return (
+      <div className={cn('relative', className)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="relative p-2 h-auto"
+          disabled
+        >
+          <AlertCircle className="h-5 w-5 text-destructive" />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('relative', className)}>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => openPanel(tenantId)}
+        onClick={handleClick}
         className="relative p-2 h-auto"
         disabled={isLoading}
       >
