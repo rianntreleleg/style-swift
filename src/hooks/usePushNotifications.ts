@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { firebaseConfig, vapidKey as configVapidKey } from '@/config/firebase';
 
 interface PushNotificationState {
   isSupported: boolean;
@@ -104,27 +105,9 @@ export const usePushNotifications = (tenantId?: string) => {
       // Verificar se já existe uma instância do Firebase
       let app;
       try {
-        if (getApps().length === 0) {
-          const firebaseConfig = {
-            apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-            authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-            storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-            appId: import.meta.env.VITE_FIREBASE_APP_ID
-          };
-          
-          // Verificar se todas as configurações estão presentes
-          const missingConfigs = Object.entries(firebaseConfig)
-            .filter(([key, value]) => !value)
-            .map(([key]) => key);
-          
-          if (missingConfigs.length > 0) {
-            throw new Error(`Configurações do Firebase faltando: ${missingConfigs.join(', ')}`);
-          }
-          
-          app = initializeApp(firebaseConfig);
-          console.log('FCM: Nova instância do Firebase criada');
+                 if (getApps().length === 0) {
+           app = initializeApp(firebaseConfig);
+           console.log('FCM: Nova instância do Firebase criada');
         } else {
           app = getApp();
           console.log('FCM: Usando instância existente do Firebase');
@@ -185,8 +168,12 @@ export const usePushNotifications = (tenantId?: string) => {
 
       const { getToken } = await import('firebase/messaging');
       
-      // Validar e usar chave VAPID
-      const vapidKey = validateVapidKey(import.meta.env.VITE_FIREBASE_VAPID_KEY || '');
+             // Validar e usar chave VAPID
+       let vapidKey = validateVapidKey(configVapidKey || '');
+       
+       if (!vapidKey) {
+         console.warn('FCM: Chave VAPID não encontrada, push notifications podem não funcionar');
+       }
       
       const token = await getToken(messaging, {
         vapidKey: vapidKey || undefined
