@@ -4,68 +4,107 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { Bell, TestTube, CheckCircle, AlertCircle } from 'lucide-react';
 
-export const NotificationTest: React.FC = () => {
+interface NotificationTestProps {
+  tenantId: string;
+}
+
+export const NotificationTest: React.FC<NotificationTestProps> = ({ tenantId }) => {
   const { user } = useAuth();
-  const [tenantId, setTenantId] = useState('');
-  const { testNotificationSystem, isLoading } = useNotifications();
+  const { testNotificationSystem, notifications, unreadCount, isLoading } = useNotifications(tenantId);
+  const [isTesting, setIsTesting] = useState(false);
 
-  const handleTest = async () => {
-    if (!tenantId) {
+  const handleTestNotification = async () => {
+    if (!tenantId || !user) {
       toast({
         title: 'Erro',
-        description: 'Por favor, insira um ID de tenant válido.',
+        description: 'Tenant ID ou usuário não encontrado.',
         variant: 'destructive',
       });
       return;
     }
 
+    setIsTesting(true);
     try {
       await testNotificationSystem(tenantId);
     } catch (error) {
-      console.error('Erro ao testar notificações:', error);
+      console.error('Erro no teste:', error);
       toast({
-        title: 'Erro',
-        description: 'Falha ao testar o sistema de notificações.',
+        title: 'Erro no teste',
+        description: 'Não foi possível executar o teste do sistema de notificações.',
         variant: 'destructive',
       });
+    } finally {
+      setIsTesting(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Teste de Notificações</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <TestTube className="h-5 w-5" />
+          Teste do Sistema de Notificações
+        </CardTitle>
         <CardDescription>
-          Verifique se o sistema de notificações está funcionando corretamente
+          Teste se o sistema de notificações está funcionando corretamente
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="tenantId" className="text-sm font-medium">
-            ID do Tenant
-          </label>
-          <input
-            id="tenantId"
-            type="text"
-            value={tenantId}
-            onChange={(e) => setTenantId(e.target.value)}
-            placeholder="Insira o ID do tenant"
-            className="w-full px-3 py-2 border rounded-md"
-          />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="text-sm">Notificações não lidas: {unreadCount}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">Total: {notifications.length}</span>
+          </div>
         </div>
-        
-        <Button 
-          onClick={handleTest} 
-          disabled={!tenantId || isLoading}
+
+        <Button
+          onClick={handleTestNotification}
+          disabled={isTesting || isLoading}
           className="w-full"
         >
-          {isLoading ? 'Testando...' : 'Testar Notificações'}
+          {isTesting ? (
+            <>
+              <TestTube className="h-4 w-4 mr-2 animate-spin" />
+              Testando...
+            </>
+          ) : (
+            <>
+              <TestTube className="h-4 w-4 mr-2" />
+              Testar Sistema de Notificações
+            </>
+          )}
         </Button>
-        
-        {user && (
-          <div className="text-sm text-muted-foreground">
-            <p>Usuário logado: {user.email}</p>
+
+        {notifications.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Últimas notificações:</h4>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {notifications.slice(0, 3).map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-2 rounded text-xs ${
+                    notification.is_read 
+                      ? 'bg-muted text-muted-foreground' 
+                      : 'bg-primary/10 text-primary'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {notification.is_read ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3" />
+                    )}
+                    <span className="font-medium">{notification.title}</span>
+                  </div>
+                  <p className="text-xs mt-1">{notification.message}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>

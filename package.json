@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "fix:notifications": "node scripts/fix-notifications.cjs"
+    "fix:notifications": "node scripts/fix-notifications-complete.cjs",
+    "verify:notifications": "node scripts/verify-notifications.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

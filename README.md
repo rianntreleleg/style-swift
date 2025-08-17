@@ -177,6 +177,8 @@ src/
   - Melhoria nas funções RPC para gerenciamento de notificações
   - Adição de função de teste para verificar o sistema
   - Atualização dos componentes de notificação com botão de teste
+  - Adição de funções de diagnóstico e reparo automático
+  - Correção das políticas de segurança (RLS)
 
 ### **Comandos Úteis**
 ```bash

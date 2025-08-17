@@ -27,6 +27,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/Skeleton';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface NotificationsPanelProps {
   tenantId: string;
@@ -84,10 +86,13 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     markAsRead,
     markAllAsRead,
     settings,
-    updateSettings
+    updateSettings,
+    testNotificationSystem
   } = useNotifications(tenantId);
   
   const { settings: soundSettings, updateSettings: updateSoundSettings, playSound } = useSoundSettings();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState('all');
 
@@ -239,7 +244,24 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
             <span className="truncate">Configurações</span>
           </Button>
           
-
+          {user && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start text-left !flex !items-center"
+              onClick={() => testNotificationSystem(tenantId)}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 flex-shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="truncate">
+                {isLoading ? 'Testando...' : 'Testar Sistema'}
+              </span>
+            </Button>
+          )}
+          
+          <div className="text-xs text-muted-foreground text-center">
+            Sistema de notificações ativo
+          </div>
         </div>
       </div>
 

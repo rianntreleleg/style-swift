@@ -48,6 +48,8 @@ interface UseNotificationsReturn {
   playNotificationSound: () => Promise<void>;
   audioRef: React.RefObject<HTMLAudioElement>;
   testNotificationSystem: (tenantId: string) => Promise<void>;
+  diagnoseNotificationSystem: (tenantId: string) => Promise<any>;
+  repairNotificationSystem: (tenantId: string) => Promise<any>;
 }
 
 export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
@@ -90,20 +92,8 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
         return;
       }
 
-      // Mapear os novos nomes de coluna para os nomes esperados pelo frontend
-      const mappedNotifications = (data || []).map((notification: any) => ({
-        id: notification.notification_id,
-        type: notification.notification_type,
-        title: notification.notification_title,
-        message: notification.notification_message,
-        data: notification.notification_data,
-        is_read: notification.notification_is_read,
-        is_important: notification.notification_is_important,
-        created_at: notification.notification_created_at,
-        read_at: notification.notification_read_at
-      }));
-      
-      setNotifications(mappedNotifications);
+      // Os dados já estão no formato correto, não precisamos mapear
+      setNotifications(data || []);
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
       toast({
@@ -138,7 +128,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
 
   // Marcar notificação como lida
   const markAsRead = useCallback(async (notificationId: string) => {
-    if (!user) return;
+    if (!user || !tenantId) return;
 
     try {
       const { error } = await supabase.rpc('mark_notification_as_read', {
@@ -175,14 +165,14 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
         variant: 'destructive',
       });
     }
-  }, [user, refreshUnreadCount]);
+  }, [user, tenantId, refreshUnreadCount]);
 
   // Marcar todas como lidas
   const markAllAsRead = useCallback(async () => {
     if (!tenantId || !user) return;
 
     try {
-      const { data, error } = await supabase.rpc('mark_all_notifications_read', {
+      const { data, error } = await supabase.rpc('mark_all_notifications_as_read', {
         p_tenant_id: tenantId
       });
 
@@ -209,7 +199,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       
       toast({
         title: 'Notificações marcadas como lidas com sucesso!',
-        description: `${data} notificação(ões) foram marcada(s) como lida(s) no sistema de notificações.`,
+        description: `${data || 0} notificação(ões) foram marcada(s) como lida(s) no sistema de notificações.`,
       });
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
@@ -230,6 +220,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
         .from('notification_settings')
         .select('*')
         .eq('tenant_id', tenantId)
+        .eq('user_id', user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -263,6 +254,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
           .from('notification_settings')
           .insert({
             tenant_id: tenantId,
+            user_id: user.id,
             ...defaultSettings
           })
           .select()
@@ -326,6 +318,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
           updated_at: new Date().toISOString()
         })
         .eq('tenant_id', tenantId)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -355,6 +348,82 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
     }
   }, [tenantId, user, settings]);
 
+  // Função de diagnóstico do sistema de notificações
+  const diagnoseNotificationSystem = useCallback(async (tenantId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('diagnose_notification_system', {
+        p_tenant_id: tenantId
+      });
+
+      if (error) {
+        console.error('Erro ao diagnosticar sistema de notificações:', error);
+        toast({
+          title: 'Erro no diagnóstico de notificações',
+          description: 'Não foi possível executar o diagnóstico do sistema de notificações.',
+          variant: 'destructive',
+        });
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao diagnosticar sistema de notificações:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para diagnosticar o sistema de notificações.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, []);
+
+  // Função de reparo do sistema de notificações
+  const repairNotificationSystem = useCallback(async (tenantId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('repair_notification_system', {
+        p_tenant_id: tenantId
+      });
+
+      if (error) {
+        console.error('Erro ao reparar sistema de notificações:', error);
+        toast({
+          title: 'Erro no reparo de notificações',
+          description: 'Não foi possível executar o reparo do sistema de notificações.',
+          variant: 'destructive',
+        });
+        return null;
+      }
+
+      if (data && data.success) {
+        toast({
+          title: 'Sistema de notificações reparado!',
+          description: 'O sistema de notificações foi reparado com sucesso.',
+        });
+        
+        // Recarregar dados após o reparo
+        await loadNotifications();
+        await refreshUnreadCount();
+        await loadSettings();
+      } else {
+        toast({
+          title: 'Erro no reparo de notificações',
+          description: data?.error || 'Falha ao reparar o sistema de notificações.',
+          variant: 'destructive',
+        });
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao reparar sistema de notificações:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor para reparar o sistema de notificações.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, [loadNotifications, refreshUnreadCount, loadSettings]);
+
   // Função para testar o sistema de notificações
   const testNotificationSystem = useCallback(async (testTenantId: string) => {
     try {
@@ -375,7 +444,7 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
       if (data && data.success) {
         toast({
           title: 'Teste de notificações realizado com sucesso!',
-          description: 'O sistema de notificações está funcionando corretamente.',
+          description: 'Uma notificação de teste foi criada e deve aparecer no painel. Se você tiver tokens FCM registrados, também deve receber uma push notification.',
         });
         
         // Recarregar notificações para mostrar a notificação de teste
@@ -491,6 +560,8 @@ export const useNotifications = (tenantId?: string): UseNotificationsReturn => {
     updateSettings,
     playNotificationSound,
     audioRef,
-    testNotificationSystem
+    testNotificationSystem,
+    diagnoseNotificationSystem,
+    repairNotificationSystem
   };
 };
