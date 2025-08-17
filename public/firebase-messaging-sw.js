@@ -1,8 +1,8 @@
 // Firebase Cloud Messaging Service Worker
 // Este arquivo deve estar na raiz do public/ para funcionar corretamente
 
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -15,10 +15,28 @@ const firebaseConfig = {
 };
 
 // Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log('FCM SW: Firebase inicializado com sucesso');
+} catch (error) {
+    console.error('FCM SW: Erro ao inicializar Firebase:', error);
+    // Se já existe uma instância, usar a existente
+    if (error.code === 'app/duplicate-app') {
+        console.log('FCM SW: Usando instância existente do Firebase');
+    } else {
+        throw error;
+    }
+}
 
 // Inicializar Firebase Cloud Messaging
-const messaging = firebase.messaging();
+let messaging;
+try {
+    messaging = firebase.messaging();
+    console.log('FCM SW: Firebase Messaging inicializado com sucesso');
+} catch (error) {
+    console.error('FCM SW: Erro ao inicializar Firebase Messaging:', error);
+    throw error;
+}
 
 // Configurações de notificação padrão
 const defaultNotificationOptions = {

@@ -103,18 +103,39 @@ export const usePushNotifications = (tenantId?: string) => {
 
       // Verificar se já existe uma instância do Firebase
       let app;
-      if (getApps().length === 0) {
-        const firebaseConfig = {
-          apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-          authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-          storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-          messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-          appId: import.meta.env.VITE_FIREBASE_APP_ID
-        };
-        app = initializeApp(firebaseConfig);
-      } else {
-        app = getApp();
+      try {
+        if (getApps().length === 0) {
+          const firebaseConfig = {
+            apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+            authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+            storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+            appId: import.meta.env.VITE_FIREBASE_APP_ID
+          };
+          
+          // Verificar se todas as configurações estão presentes
+          const missingConfigs = Object.entries(firebaseConfig)
+            .filter(([key, value]) => !value)
+            .map(([key]) => key);
+          
+          if (missingConfigs.length > 0) {
+            throw new Error(`Configurações do Firebase faltando: ${missingConfigs.join(', ')}`);
+          }
+          
+          app = initializeApp(firebaseConfig);
+          console.log('FCM: Nova instância do Firebase criada');
+        } else {
+          app = getApp();
+          console.log('FCM: Usando instância existente do Firebase');
+        }
+      } catch (error) {
+        if (error.code === 'app/duplicate-app') {
+          app = getApp();
+          console.log('FCM: Usando instância existente do Firebase (duplicada)');
+        } else {
+          throw error;
+        }
       }
 
       const messaging = getMessaging(app);
