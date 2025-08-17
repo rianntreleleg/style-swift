@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useNotifications, type Notification, type NotificationSettings } from '@/hooks/useNotifications';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
+import { PushNotificationManager } from '@/components/PushNotificationManager';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -261,6 +262,11 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
               {isTesting ? 'Testando...' : 'Testar Sistema'}
             </span>
           </Button>
+          
+          {/* Push Notifications Manager */}
+          <div className="mt-4">
+            <PushNotificationManager tenantId={tenantId} />
+          </div>
         </div>
       </div>
 

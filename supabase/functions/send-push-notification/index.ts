@@ -6,26 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface NotificationPayload {
-  token: string;
-  notification: {
-    title: string;
-    body: string;
-    icon?: string;
-    badge?: string;
-    click_action?: string;
-  };
-  data?: Record<string, string>;
-  priority?: 'normal' | 'high';
-  ttl?: number;
-}
-
-interface FCMResponse {
-  success: boolean;
-  message_id?: string;
-  error?: string;
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -38,35 +18,18 @@ serve(async (req) => {
       throw new Error('Método não permitido')
     }
 
-    // Verificar autorização
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Token de autorização não fornecido')
-    }
-
-    // Criar cliente Supabase
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    )
-
-    // Verificar se o usuário está autenticado
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    if (authError || !user) {
-      throw new Error('Usuário não autenticado')
-    }
-
     // Obter dados da requisição
-    const { token, notification, data, priority = 'high', ttl = 2419200 } = await req.json() as NotificationPayload
+    const { tenantId, title, body, data, tokens } = await req.json()
 
-    if (!token || !notification || !notification.title || !notification.body) {
-      throw new Error('Dados de notificação inválidos')
+    if (!tenantId || !title || !body) {
+      throw new Error('Dados obrigatórios não fornecidos')
     }
+
+    // Configuração do Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Configuração do Firebase
     const FIREBASE_SERVER_KEY = Deno.env.get('FIREBASE_SERVER_KEY')
@@ -74,159 +37,145 @@ serve(async (req) => {
       throw new Error('Chave do servidor Firebase não configurada')
     }
 
-    // Preparar payload para FCM
-    const fcmPayload = {
-      to: token,
+    // Obter tokens FCM ativos do tenant
+    let targetTokens = tokens
+    if (!targetTokens || targetTokens.length === 0) {
+      const { data: fcmTokens, error: fcmError } = await supabase
+        .rpc('get_active_fcm_tokens', { p_tenant_id: tenantId })
+
+      if (fcmError) {
+        throw new Error(`Erro ao obter tokens FCM: ${fcmError.message}`)
+      }
+
+      targetTokens = fcmTokens.map((token: any) => token.token)
+    }
+
+    if (!targetTokens || targetTokens.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Nenhum token FCM ativo encontrado para este tenant' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      )
+    }
+
+    // Preparar payload da notificação
+    const notificationPayload = {
       notification: {
-        title: notification.title,
-        body: notification.body,
-        icon: notification.icon || '/icons/icon-192x192.png',
-        badge: notification.badge || '/icons/icon-72x72.png',
-        click_action: notification.click_action || '/admin',
-        sound: 'default'
+        title: title,
+        body: body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-72x72.png',
+        click_action: '/admin',
+        tag: 'styleswift-notification',
+        renotify: true,
+        require_interaction: true,
+        silent: false,
+        vibrate: [100, 50, 100]
       },
       data: {
         ...data,
-        timestamp: Date.now().toString(),
-        source: 'styleswift-pwa'
+        timestamp: new Date().toISOString(),
+        source: 'styleswift-pwa',
+        tenant_id: tenantId
       },
-      priority: priority,
-      ttl: ttl,
-      android: {
-        priority: priority,
-        notification: {
-          sound: 'default',
-          channel_id: 'styleswift-notifications',
-          priority: priority === 'high' ? 'high' : 'default',
-          default_sound: true,
-          default_vibrate_timings: true,
-          default_light_settings: true
-        }
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'default',
-            badge: 1,
-            content_available: true,
-            mutable_content: true
+      priority: 'high',
+      content_available: true,
+      mutable_content: true
+    }
+
+    // Enviar notificação para cada token
+    const results = []
+    const batchSize = 500 // Firebase permite até 500 tokens por requisição
+
+    for (let i = 0; i < targetTokens.length; i += batchSize) {
+      const batch = targetTokens.slice(i, i + batchSize)
+      
+      const fcmPayload = {
+        registration_ids: batch,
+        ...notificationPayload
+      }
+
+      const fcmResponse = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `key=${FIREBASE_SERVER_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fcmPayload)
+      })
+
+      if (!fcmResponse.ok) {
+        const errorText = await fcmResponse.text()
+        throw new Error(`Erro ao enviar para FCM: ${fcmResponse.status} - ${errorText}`)
+      }
+
+      const fcmResult = await fcmResponse.json()
+      results.push(fcmResult)
+
+      // Processar tokens inválidos
+      if (fcmResult.failure > 0) {
+        const invalidTokens = []
+        fcmResult.results.forEach((result: any, index: number) => {
+          if (result.error === 'InvalidRegistration' || result.error === 'NotRegistered') {
+            invalidTokens.push(batch[index])
           }
-        },
-        fcm_options: {
-          image: notification.icon
-        }
-      },
-      webpush: {
-        notification: {
-          icon: notification.icon,
-          badge: notification.badge,
-          vibrate: [100, 50, 100],
-          require_interaction: true,
-          silent: false,
-          tag: 'styleswift-notification',
-          renotify: true,
-          actions: [
-            {
-              action: 'view',
-              title: 'Ver Detalhes',
-              icon: '/icons/calendar-shortcut.png'
-            },
-            {
-              action: 'dismiss',
-              title: 'Fechar',
-              icon: '/icons/close.png'
-            }
-          ]
-        },
-        fcm_options: {
-          link: notification.click_action || '/admin'
+        })
+
+        // Marcar tokens inválidos como inativos
+        if (invalidTokens.length > 0) {
+          for (const token of invalidTokens) {
+            await supabase.rpc('deactivate_fcm_token', { p_token: token })
+          }
         }
       }
     }
 
-    // Enviar notificação via FCM
-    const fcmResponse = await fetch('https://fcm.googleapis.com/fcm/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `key=${FIREBASE_SERVER_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(fcmPayload)
-    })
+    // Registrar log da notificação
+    const { error: logError } = await supabase
+      .from('notification_logs')
+      .insert({
+        tenant_id: tenantId,
+        type: 'push_notification',
+        title: title,
+        message: body,
+        data: data,
+        tokens_sent: targetTokens.length,
+        success: true,
+        created_at: new Date().toISOString()
+      })
 
-    if (!fcmResponse.ok) {
-      const errorText = await fcmResponse.text()
-      console.error('FCM Error:', fcmResponse.status, errorText)
-      throw new Error(`Erro ao enviar notificação: ${fcmResponse.status}`)
+    if (logError) {
+      console.error('Erro ao registrar log:', logError)
     }
 
-    const fcmResult = await fcmResponse.json()
-    
-    // Verificar se a notificação foi enviada com sucesso
-    if (fcmResult.success === 1) {
-      // Registrar notificação enviada no banco
-      await supabaseClient
-        .from('notification_logs')
-        .insert({
-          user_id: user.id,
-          token: token,
-          notification_type: data?.type || 'general',
-          title: notification.title,
-          body: notification.body,
-          fcm_message_id: fcmResult.results?.[0]?.message_id,
-          sent_at: new Date().toISOString(),
-          status: 'sent'
-        })
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message_id: fcmResult.results?.[0]?.message_id,
-          message: 'Notificação enviada com sucesso'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      )
-    } else {
-      // Registrar erro no banco
-      const error = fcmResult.results?.[0]?.error
-      await supabaseClient
-        .from('notification_logs')
-        .insert({
-          user_id: user.id,
-          token: token,
-          notification_type: data?.type || 'general',
-          title: notification.title,
-          body: notification.body,
-          error: error,
-          sent_at: new Date().toISOString(),
-          status: 'failed'
-        })
-
-      // Se o token é inválido, removê-lo do banco
-      if (error === 'InvalidRegistration' || error === 'NotRegistered') {
-        await supabaseClient
-          .from('fcm_tokens')
-          .delete()
-          .eq('token', token)
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Notificação enviada para ${targetTokens.length} dispositivos`,
+        results: results
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       }
-
-      throw new Error(`Falha ao enviar notificação: ${error}`)
-    }
+    )
 
   } catch (error) {
-    console.error('Error:', error.message)
-    
+    console.error('Erro ao enviar push notification:', error)
+
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message
       }),
-      {
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        status: 500
       }
     )
   }
