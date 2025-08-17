@@ -45,21 +45,7 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
   } = usePushNotifications(tenantId);
 
   const [isTesting, setIsTesting] = useState(false);
-  const [deviceInfo, setDeviceInfo] = useState<any>(null);
 
-  useEffect(() => {
-    // Verificar informações do dispositivo
-    if (typeof window !== 'undefined') {
-      setDeviceInfo({
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        language: navigator.language,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        isPWA: window.matchMedia('(display-mode: standalone)').matches,
-        isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      });
-    }
-  }, []);
 
   const handleEnablePushNotifications = async () => {
     try {
@@ -97,7 +83,7 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
     setIsTesting(true);
     try {
       // Enviar notificação de teste via Supabase Edge Function
-      const response = await fetch('/api/test-push-notification', {
+      const response = await fetch('/functions/v1/send-push-notification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,22 +121,30 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
   const getStatusIcon = () => {
     if (isLoading) return <RefreshCw className="h-4 w-4 animate-spin" />;
     if (isSubscribed && isEnabled) return <CheckCircle className="h-4 w-4 text-green-500" />;
+    if (error && !isSupported) return <XCircle className="h-4 w-4 text-red-500" />;
+    if (error && error.includes('Firebase')) return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
     if (error) return <XCircle className="h-4 w-4 text-red-500" />;
+    if (!isSupported) return <XCircle className="h-4 w-4 text-red-500" />;
     return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
   };
 
   const getStatusText = () => {
     if (isLoading) return "Verificando...";
     if (isSubscribed && isEnabled) return "Ativo";
+    if (error && !isSupported) return "Não suportado";
+    if (error && error.includes('Firebase')) return "Configurar"; // Firebase error não é crítico
     if (error) return "Erro";
     if (!isSupported) return "Não suportado";
-    if (!isEnabled) return "Desativado";
+    if (!isEnabled) return "Configurar";
     return "Configurar";
   };
 
   const getStatusColor = () => {
     if (isSubscribed && isEnabled) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+    if (error && !isSupported) return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+    if (error && error.includes('Firebase')) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
     if (error) return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+    if (!isSupported) return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
     return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
   };
 
@@ -180,35 +174,9 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
 
         <Separator />
 
-        {/* Suporte do Navegador */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">Suporte do Navegador</Label>
-            <div className="flex items-center gap-2">
-              {isSupported ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <XCircle className="h-4 w-4 text-red-500" />
-              )}
-              <span className="text-xs">
-                {isSupported ? "Suportado" : "Não suportado"}
-              </span>
-            </div>
-          </div>
-        </div>
+        
 
-        {/* Informações do Dispositivo */}
-        {deviceInfo && (
-          <div className="space-y-2">
-            <Label className="text-sm">Informações do Dispositivo</Label>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <div>Plataforma: {deviceInfo.platform}</div>
-              <div>Idioma: {deviceInfo.language}</div>
-              <div>PWA: {deviceInfo.isPWA ? "Sim" : "Não"}</div>
-              <div>Mobile: {deviceInfo.isMobile ? "Sim" : "Não"}</div>
-            </div>
-          </div>
-        )}
+        
 
         <Separator />
 
@@ -246,28 +214,30 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
                 </div>
               )}
 
-              {/* Botão de Teste */}
-              {isSubscribed && isEnabled && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestNotification}
-                  disabled={isTesting}
-                  className="w-full"
-                >
-                  {isTesting ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <Bell className="h-4 w-4 mr-2" />
-                      Testar Notificação
-                    </>
-                  )}
-                </Button>
-              )}
+                             {/* Botão de Teste */}
+               {isSubscribed && isEnabled && (
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={handleTestNotification}
+                   disabled={isTesting}
+                   className="w-full"
+                 >
+                   {isTesting ? (
+                     <>
+                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                       Enviando...
+                     </>
+                   ) : (
+                     <>
+                       <Bell className="h-4 w-4 mr-2" />
+                       Testar Notificação
+                     </>
+                   )}
+                 </Button>
+               )}
+
+               
             </>
           ) : (
             <div className="text-center py-4">
@@ -279,18 +249,7 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
           )}
         </div>
 
-        {/* Token FCM (apenas para debug) */}
-        {process.env.NODE_ENV === 'development' && fcmToken && (
-          <>
-            <Separator />
-            <div className="space-y-2">
-              <Label className="text-sm">Token FCM (Debug)</Label>
-              <div className="text-xs bg-muted p-2 rounded break-all">
-                {fcmToken.substring(0, 50)}...
-              </div>
-            </div>
-          </>
-        )}
+                 
 
         {/* Erro */}
         {error && (

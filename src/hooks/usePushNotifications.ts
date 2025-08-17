@@ -50,10 +50,23 @@ export const usePushNotifications = (tenantId?: string) => {
 
   // Verificar se o navegador suporta push notifications
   const checkSupport = useCallback(() => {
-    const isSupported = 'serviceWorker' in navigator && 
-                       'PushManager' in window && 
-                       'Notification' in window &&
-                       'firebase' in window;
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const hasPushManager = 'PushManager' in window;
+    const hasNotification = 'Notification' in window;
+    const isHTTPS = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    
+    // Firebase será verificado dinamicamente quando necessário
+    const isSupported = hasServiceWorker && hasPushManager && hasNotification && isHTTPS;
+
+    console.log('Push Notification Support Check:', {
+      hasServiceWorker,
+      hasPushManager,
+      hasNotification,
+      isHTTPS,
+      isSupported,
+      userAgent: navigator.userAgent,
+      platform: navigator.platform
+    });
 
     setState(prev => ({ ...prev, isSupported }));
     return isSupported;
@@ -80,24 +93,30 @@ export const usePushNotifications = (tenantId?: string) => {
   // Inicializar Firebase Messaging
   const initializeFirebase = useCallback(async () => {
     try {
-      if (typeof window === 'undefined' || !('firebase' in window)) {
+      if (typeof window === 'undefined') {
         throw new Error('Firebase não está disponível');
       }
 
       // Importar Firebase dinamicamente
-      const { initializeApp } = await import('firebase/app');
+      const { initializeApp, getApps, getApp } = await import('firebase/app');
       const { getMessaging, getToken, onMessage } = await import('firebase/messaging');
 
-      const firebaseConfig = {
-        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId: import.meta.env.VITE_FIREBASE_APP_ID
-      };
+      // Verificar se já existe uma instância do Firebase
+      let app;
+      if (getApps().length === 0) {
+        const firebaseConfig = {
+          apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+          authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+          storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+          appId: import.meta.env.VITE_FIREBASE_APP_ID
+        };
+        app = initializeApp(firebaseConfig);
+      } else {
+        app = getApp();
+      }
 
-      const app = initializeApp(firebaseConfig);
       const messaging = getMessaging(app);
       messagingRef.current = messaging;
 
@@ -114,6 +133,23 @@ export const usePushNotifications = (tenantId?: string) => {
     }
   }, []);
 
+    // Validar chave VAPID
+  const validateVapidKey = useCallback((vapidKey: string) => {
+    // Verificar se a chave VAPID tem o formato correto
+    if (!vapidKey || vapidKey.length < 80) {
+      console.warn('FCM: Chave VAPID inválida ou muito curta');
+      return null;
+    }
+    
+    // Verificar se começa com 'B' (formato base64 válido para VAPID)
+    if (!vapidKey.startsWith('B')) {
+      console.warn('FCM: Chave VAPID não tem formato válido');
+      return null;
+    }
+    
+    return vapidKey;
+  }, []);
+
   // Obter token FCM
   const getFCMToken = useCallback(async () => {
     try {
@@ -128,8 +164,11 @@ export const usePushNotifications = (tenantId?: string) => {
 
       const { getToken } = await import('firebase/messaging');
       
+      // Validar e usar chave VAPID
+      const vapidKey = validateVapidKey(import.meta.env.VITE_FIREBASE_VAPID_KEY || '');
+      
       const token = await getToken(messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+        vapidKey: vapidKey || undefined
       });
 
       if (token) {

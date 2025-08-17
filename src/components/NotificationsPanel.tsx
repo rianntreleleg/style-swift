@@ -263,10 +263,10 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
             </span>
           </Button>
           
-          {/* Push Notifications Manager */}
-          <div className="mt-4">
-            <PushNotificationManager tenantId={tenantId} />
-          </div>
+                  {/* Push Notifications Manager */}
+        <div className="mt-4">
+          <PushNotificationManager tenantId={tenantId} />
+        </div>
         </div>
       </div>
 
