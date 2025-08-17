@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Palette, Sparkles, Monitor, Smartphone } from "lucide-react";
+import { Palette, Sparkles, Monitor, Smartphone, Sun } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -9,16 +9,34 @@ const themes = [
     description: "Um tema robusto e clássico para o ambiente da barbearia, com cores escuras e tipografia elegante que transmite profissionalismo e tradição.",
     colors: ["#2e2723", "#030202", "#5d4e46"],
     features: ["Tipografia elegante", "Efeitos metálicos", "Layout focado em serviços masculinos"],
-    delay: 0.2,
+    delay: 0.1,
     icon: "💈"
+  },
+  {
+    title: "Barbearia Light",
+    description: "Um tema moderno e elegante para barbearias, com tons mais suaves que mantêm a essência masculina em um fundo claro e convidativo.",
+    colors: ["#8B5A2B", "#D2B48C", "#F5DEB3"],
+    features: ["Fundo claro e confortável", "Cores terrosas suaves", "Layout focado em serviços masculinos"],
+    delay: 0.2,
+    icon: "💈",
+    light: true
   },
   {
     title: "Salão de Beleza Moderno",
     description: "Um tema leve e moderno, com paleta de cores claras e elementos sofisticados que criam uma atmosfera acolhedora e premium.",
     colors: ["#fce7f3", "#fbcfe8", "#f9a8d4"],
     features: ["Design minimalista", "Elementos florais", "Layout focado em beleza e bem-estar"],
-    delay: 0.4,
+    delay: 0.3,
     icon: "💇‍♀️"
+  },
+  {
+    title: "Salão Light",
+    description: "Um tema delicado e suave para salões de beleza, com tons pastel que transmitem leveza e elegância em um fundo claro.",
+    colors: ["#F8C8DC", "#C3B1E1", "#F0E6FF"],
+    features: ["Tons pastel suaves", "Design leve e arejado", "Layout focado em beleza e bem-estar"],
+    delay: 0.4,
+    icon: "💇‍♀️",
+    light: true
   }
 ];
 
@@ -67,9 +85,18 @@ const ThemesSection = () => {
                       <div className="text-2xl">{theme.icon}</div>
                       <h3 className="text-2xl font-bold">{theme.title}</h3>
                     </div>
-                    <Badge className="bg-primary/10 text-primary border-primary/20">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      Popular
+                    <Badge className={`border-primary/20 ${theme.light ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' : 'bg-primary/10 text-primary'}`}>
+                      {theme.light ? (
+                        <>
+                          <Sun className="w-3 h-3 mr-1" />
+                          Light
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          Popular
+                        </>
+                      )}
                     </Badge>
                   </div>
 

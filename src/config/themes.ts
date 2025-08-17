@@ -51,6 +51,39 @@ export const themes: ThemeConfig = {
       '--popover-foreground': '25 76% 91%' // #EAE4DB
     }
   },
+  barberLight: {
+    name: "Barbearia Light",
+    description: "Tema masculino e elegante para barbearias, com fundo claro e cores suaves",
+    colors: {
+      primary: "#8B5A2B", // Marrom Claro
+      secondary: "#D2B48C", // Bege
+      accent: "#CD853F", // Marrom Dourado
+      muted: "#F5DEB3", // Bege Claro
+      highlight: "#FFFFFF" // Branco Puro
+    },
+    cssVars: {
+      '--background': '30 20% 95%', // Bege muito claro
+      '--foreground': '25 25% 20%', // Marrom escuro
+      '--primary': '25 25% 35%', // #8B5A2B
+      '--primary-foreground': '0 0% 100%', // #FFFFFF
+      '--secondary': '30 25% 70%', // #D2B48C
+      '--secondary-foreground': '25 25% 20%', // Marrom escuro
+      '--accent': '30 50% 50%', // #CD853F
+      '--accent-foreground': '0 0% 100%', // #FFFFFF
+      '--muted': '30 20% 85%', // #F5DEB3
+      '--muted-foreground': '25 25% 20%', // Marrom escuro
+      '--destructive': '0 84% 60%',
+      '--destructive-foreground': '0 0% 100%', // #FFFFFF
+      '--border': '30 25% 70%', // #D2B48C
+      '--input': '30 20% 85%', // #F5DEB3
+      '--ring': '30 50% 50%', // #CD853F
+      '--radius': '0.5rem',
+      '--card': '30 20% 90%', // Bege claro
+      '--card-foreground': '25 25% 20%', // Marrom escuro
+      '--popover': '30 20% 90%', // Bege claro
+      '--popover-foreground': '25 25% 20%' // Marrom escuro
+    }
+  },
   salon: {
     name: "Salão de Beleza",
     description: "Tema feminino e delicado para salões, com fundo escuro e cores sofisticadas",
@@ -82,6 +115,39 @@ export const themes: ThemeConfig = {
       '--card-foreground': '30 20% 90%', // #EAE2DE
       '--popover': '220 20% 10%', // Dark Blue médio
       '--popover-foreground': '30 20% 90%' // #EAE2DE
+    }
+  },
+  salonLight: {
+    name: "Salão Light",
+    description: "Tema feminino e delicado para salões, com fundo claro e cores pastel",
+    colors: {
+      primary: "#F8C8DC", // Rosa Pastel
+      secondary: "#C3B1E1", // Lavanda
+      accent: "#FFD1DC", // Rosa Bebê
+      muted: "#F0E6FF", // Lavanda Clara
+      highlight: "#FFFFFF" // Branco Puro
+    },
+    cssVars: {
+      '--background': '260 20% 98%', // Lavanda muito claro
+      '--foreground': '260 10% 25%', // Roxo escuro
+      '--primary': '330 70% 88%', // #F8C8DC
+      '--primary-foreground': '260 10% 25%', // Roxo escuro
+      '--secondary': '250 30% 80%', // #C3B1E1
+      '--secondary-foreground': '260 10% 25%', // Roxo escuro
+      '--accent': '330 100% 90%', // #FFD1DC
+      '--accent-foreground': '260 10% 25%', // Roxo escuro
+      '--muted': '260 20% 95%', // #F0E6FF
+      '--muted-foreground': '260 10% 25%', // Roxo escuro
+      '--destructive': '0 84% 60%',
+      '--destructive-foreground': '260 10% 25%', // Roxo escuro
+      '--border': '250 30% 80%', // #C3B1E1
+      '--input': '260 20% 95%', // #F0E6FF
+      '--ring': '330 70% 88%', // #F8C8DC
+      '--radius': '0.5rem',
+      '--card': '260 20% 97%', // Lavanda claro
+      '--card-foreground': '260 10% 25%', // Roxo escuro
+      '--popover': '260 20% 97%', // Lavanda claro
+      '--popover-foreground': '260 10% 25%' // Roxo escuro
     }
   }
 };

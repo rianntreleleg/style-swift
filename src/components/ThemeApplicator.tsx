@@ -8,7 +8,7 @@ interface ThemeApplicatorProps {
 export function ThemeApplicator({ themeVariant = 'default' }: ThemeApplicatorProps) {
   useEffect(() => {
     // Validar se o tema é válido
-    const validThemes = ['default', 'salon', 'barber'];
+    const validThemes = ['default', 'salon', 'barber', 'salonLight', 'barberLight'];
     const theme = validThemes.includes(themeVariant) ? themeVariant : 'default';
     
     if (theme === 'default') {
@@ -17,7 +17,7 @@ export function ThemeApplicator({ themeVariant = 'default' }: ThemeApplicatorPro
       console.log(`🎨 Tema padrão aplicado`);
     } else {
       // Aplicar o tema específico
-      applyTheme(theme as 'salon' | 'barber');
+      applyTheme(theme as 'salon' | 'barber' | 'salonLight' | 'barberLight');
       
       // Adicionar classe ao body para facilitar estilos específicos
       document.body.className = document.body.className.replace(/theme-\w+/g, '');

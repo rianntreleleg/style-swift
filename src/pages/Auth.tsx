@@ -50,7 +50,7 @@ const SignupSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   logo_url: z.string().url().optional().or(z.literal("")),
-  theme_variant: z.enum(["barber", "salon"]).default("barber"),
+  theme_variant: z.enum(["barber", "salon", "barberLight", "salonLight"]).default("barber"),
   plan_tier: z.enum(["essential", "professional", "premium"]).default("professional"),
   open_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
   close_time: z.string().regex(/^\d{2}:\d{2}$/, "Informe no formato HH:MM"),
@@ -269,6 +269,7 @@ export default function Auth() {
           p_theme_variant: values.theme_variant,
           p_address: values.address,
           p_phone: values.phone,
+          p_email: values.email,
         });
 
         console.log('[AUTH] Resposta RPC:', { data: tenantId, error: tenantError });
@@ -827,13 +828,15 @@ export default function Auth() {
                         <Palette className="h-4 w-4" />
                         Tema do Estabelecimento
                       </Label>
-                      <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "barber" | "salon")}>
+                      <Select onValueChange={(v) => signupForm.setValue("theme_variant", v as "barber" | "salon" | "barberLight" | "salonLight")}>
                         <SelectTrigger className="h-12">
                           <SelectValue placeholder="Escolha o tema do seu estabelecimento" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
-                          <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
+                          <SelectItem value="barber">Barbearia (Tema Masculino Escuro)</SelectItem>
+                          <SelectItem value="barberLight">Barbearia Light (Tema Masculino Claro)</SelectItem>
+                          <SelectItem value="salon">Salão (Tema Feminino Escuro)</SelectItem>
+                          <SelectItem value="salonLight">Salão Light (Tema Feminino Claro)</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">

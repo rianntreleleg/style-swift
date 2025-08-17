@@ -111,7 +111,7 @@ interface Service {
 const TenantSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
   slug: z.string().min(2, "Slug obrigatório").regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"),
-  theme_variant: z.enum(["barber", "salon"]).default("barber"),
+  theme_variant: z.enum(["barber", "salon", "barberLight", "salonLight"]).default("barber"),
 });
 
 type TenantForm = z.infer<typeof TenantSchema>;
@@ -1053,7 +1053,7 @@ export default function Admin() {
                           <Select
                             defaultValue={selectedTenant.theme_variant || 'barber'}
                             onValueChange={async (value) => {
-                                                              const { error } = await supabase
+                              const { error } = await supabase
                                   .from("tenants")
                                   .update({ 
                                     theme_variant: value
@@ -1072,7 +1072,9 @@ export default function Admin() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="barber">Barbearia (Tema Masculino)</SelectItem>
+                              <SelectItem value="barberLight">Barbearia Light (Tema Masculino Claro)</SelectItem>
                               <SelectItem value="salon">Salão (Tema Feminino)</SelectItem>
+                              <SelectItem value="salonLight">Salão Light (Tema Feminino Claro)</SelectItem>
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-muted-foreground">

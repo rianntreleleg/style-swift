@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark" | "system" | "barber" | "salon" | "barberLight" | "salonLight";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -33,8 +33,15 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement;
 
-    root.classList.remove("light", "dark");
+    root.classList.remove("light", "dark", "barber", "salon", "barberLight", "salonLight");
 
+    // Se for um tema específico, aplicar diretamente
+    if (["barber", "salon", "barberLight", "salonLight"].includes(theme)) {
+      root.classList.add(theme);
+      return;
+    }
+
+    // Para temas light/dark/system, usar a lógica padrão
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
         .matches

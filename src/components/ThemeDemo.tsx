@@ -12,11 +12,56 @@ import {
   Calendar,
   Users,
   TrendingUp,
-  Settings
+  Settings,
+  Sun
 } from 'lucide-react';
 
+type ThemeVariant = 'barber' | 'salon' | 'barberLight' | 'salonLight';
+
 export function ThemeDemo() {
-  const [currentTheme, setCurrentTheme] = useState<'barber' | 'salon'>('barber');
+  const [currentTheme, setCurrentTheme] = useState<ThemeVariant>('barber');
+
+  const getThemeInfo = (theme: ThemeVariant) => {
+    switch (theme) {
+      case 'barber':
+        return {
+          title: 'Barbearia StyleSwift',
+          description: 'Tema masculino e elegante para barbearias',
+          themeName: 'Barbearia (Dark + Marrom)',
+          colors: 'Marrom escuro (#8B4513), Marrom médio (#D2691E), Marrom claro (#CD853F)'
+        };
+      case 'barberLight':
+        return {
+          title: 'Barbearia Light StyleSwift',
+          description: 'Tema masculino e elegante para barbearias com fundo claro',
+          themeName: 'Barbearia Light (Bege + Marrom)',
+          colors: 'Marrom claro (#8B5A2B), Bege (#D2B48C), Marrom dourado (#CD853F)'
+        };
+      case 'salon':
+        return {
+          title: 'Salão StyleSwift',
+          description: 'Tema feminino e delicado para salões',
+          themeName: 'Salão (Dark + Rosé)',
+          colors: 'Rosa vibrante (#E91E63), Rosa médio (#FF69B4), Rosa claro (#FFB6C1)'
+        };
+      case 'salonLight':
+        return {
+          title: 'Salão Light StyleSwift',
+          description: 'Tema feminino e delicado para salões com fundo claro',
+          themeName: 'Salão Light (Pastel)',
+          colors: 'Rosa pastel (#F8C8DC), Lavanda (#C3B1E1), Rosa bebê (#FFD1DC)'
+        };
+      default:
+        return {
+          title: 'Barbearia StyleSwift',
+          description: 'Tema masculino e elegante para barbearias',
+          themeName: 'Barbearia (Dark + Marrom)',
+          colors: 'Marrom escuro (#8B4513), Marrom médio (#D2691E), Marrom claro (#CD853F)'
+        };
+    }
+  };
+
+  const themeInfo = getThemeInfo(currentTheme);
 
   return (
     <>
@@ -28,17 +73,14 @@ export function ThemeDemo() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                {currentTheme === 'barber' ? 'Barbearia StyleSwift' : 'Salão StyleSwift'}
+                {themeInfo.title}
               </h1>
               <p className="text-muted-foreground mt-2">
-                {currentTheme === 'barber' 
-                  ? 'Tema masculino e elegante para barbearias' 
-                  : 'Tema feminino e delicado para salões'
-                }
+                {themeInfo.description}
               </p>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button 
                 variant={currentTheme === 'barber' ? 'default' : 'outline'}
                 onClick={() => setCurrentTheme('barber')}
@@ -48,12 +90,28 @@ export function ThemeDemo() {
                 Barbearia
               </Button>
               <Button 
+                variant={currentTheme === 'barberLight' ? 'default' : 'outline'}
+                onClick={() => setCurrentTheme('barberLight')}
+                className="flex items-center gap-2"
+              >
+                <Sun className="h-4 w-4" />
+                Barbearia Light
+              </Button>
+              <Button 
                 variant={currentTheme === 'salon' ? 'default' : 'outline'}
                 onClick={() => setCurrentTheme('salon')}
                 className="flex items-center gap-2"
               >
                 <Heart className="h-4 w-4" />
                 Salão
+              </Button>
+              <Button 
+                variant={currentTheme === 'salonLight' ? 'default' : 'outline'}
+                onClick={() => setCurrentTheme('salonLight')}
+                className="flex items-center gap-2"
+              >
+                <Sun className="h-4 w-4" />
+                Salão Light
               </Button>
             </div>
           </div>
@@ -200,7 +258,11 @@ export function ThemeDemo() {
                   <Label htmlFor="business-name">Nome do Estabelecimento</Label>
                   <Input 
                     id="business-name" 
-                    defaultValue={currentTheme === 'barber' ? 'Barbearia Elegante' : 'Salão de Beleza'}
+                    defaultValue={
+                      currentTheme === 'barber' || currentTheme === 'barberLight' 
+                        ? 'Barbearia Elegante' 
+                        : 'Salão de Beleza'
+                    }
                     className="h-9"
                   />
                 </div>
@@ -208,7 +270,7 @@ export function ThemeDemo() {
                   <Label htmlFor="theme">Tema Atual</Label>
                   <Input 
                     id="theme" 
-                    value={currentTheme === 'barber' ? 'Barbearia (Dark + Marrom)' : 'Salão (Dark + Rosé)'}
+                    value={themeInfo.themeName}
                     disabled
                     className="h-9 bg-muted"
                   />
@@ -259,13 +321,10 @@ export function ThemeDemo() {
           {/* Footer com informações do tema */}
           <div className="text-center py-8 border-t border-border">
             <p className="text-muted-foreground">
-              Tema atual: <strong>{currentTheme === 'barber' ? 'Barbearia (Dark + Marrom)' : 'Salão (Dark + Rosé)'}</strong>
+              Tema atual: <strong>{themeInfo.themeName}</strong>
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              {currentTheme === 'barber' 
-                ? 'Cores: Marrom escuro (#8B4513), Marrom médio (#D2691E), Marrom claro (#CD853F)' 
-                : 'Cores: Rosa vibrante (#E91E63), Rosa médio (#FF69B4), Rosa claro (#FFB6C1)'
-              }
+              Cores: {themeInfo.colors}
             </p>
           </div>
         </div>
